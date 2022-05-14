@@ -29,7 +29,7 @@ void LeafNodeTest() {
 
 	int index = ln.search(73);
 	char* value = "NOT FOUND";
-	if (index!=NOT_FOUND) value = ln.getValue(index);
+	if (index!=NOT_FOUND) value = ln.getValueAt(index);
 	cout << "search key 73 = " << value << endl;
 	
 	ln.deleteKey(69);
@@ -37,12 +37,18 @@ void LeafNodeTest() {
 	
 	index = ln.search(69);
 	value = "NOT FOUND";
-	if (index != NOT_FOUND) value = ln.getValue(index);
+	if (index != NOT_FOUND) value = ln.getValueAt(index);
 	cout << "search key 69 = " << value << endl;
 
-
-
 	ln.print();
+
+	cout << "split\n";
+
+	LeafNode* ln2 = (LeafNode*) ln.split();
+	ln.print();
+	ln2->print();
+
+
 }
 
 

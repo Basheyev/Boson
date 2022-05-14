@@ -6,7 +6,7 @@ using namespace Boson;
 BalancedTree::BalancedTree(int order) {
 	if (order < MINIMAL_TREE_ORDER) order = MINIMAL_TREE_ORDER;
 	this->treeOrder = order;
-	root = new InnerNode(order);
+	root = new LeafNode(order);
 }
 
 

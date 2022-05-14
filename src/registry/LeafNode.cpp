@@ -6,8 +6,8 @@ using namespace Boson;
 using namespace std;
 
 
-LeafNode::LeafNode(int m) : Node(m) {
-	values.reserve(m);
+LeafNode::LeafNode(size_t m) : Node(m) {
+	values.reserve(this->keys.capacity());
 }
 
 
@@ -17,12 +17,12 @@ LeafNode::~LeafNode() {
 
 
 
-VALUE LeafNode::getValue(int index) {
+VALUE LeafNode::getValueAt(int index) {
 	return values[index];
 }
 
 
-void LeafNode::setValue(int index, VALUE value) {
+void LeafNode::setValueAt(int index, VALUE value) {
 	values[index] = value;
 }
 
@@ -37,7 +37,7 @@ int LeafNode::search(KEY key) {
 
 void LeafNode::insertKey(KEY key, VALUE value) {
 	// find index to insert new key/value pair in sorted order
-	int insertIndex = keys.size();
+	size_t insertIndex = keys.size();
 	for (int i = 0; i < keys.size(); i++) {
 		if (key < keys[i]) {
 			insertIndex = i;
@@ -45,12 +45,12 @@ void LeafNode::insertKey(KEY key, VALUE value) {
 		}
 	}
 	// insert key/value
-	insertKeyAt(insertIndex, key, value);
+	insertAt(insertIndex, key, value);
 
 }
 
 
-void LeafNode::insertKeyAt(int index, KEY key, VALUE value) {
+void LeafNode::insertAt(size_t index, KEY key, VALUE value) {
 	keys.insert(keys.begin() + index, 1, key);
 	values.insert(values.begin() + index, 1, value);
 }
@@ -70,13 +70,47 @@ bool LeafNode::deleteAt(int index) {
 }
 
 
+
+Node* LeafNode::split() {
+	size_t midIndex = keys.size() / 2;
+	LeafNode* newNode = new LeafNode(this->keys.capacity());
+	for (size_t i = midIndex; i < keys.size(); ++i) {
+		newNode->insertKey(keys[i], values[i]);
+	}
+	keys.resize(midIndex);
+	values.resize(midIndex);
+	return newNode;
+}
+
+
+void LeafNode::merge(KEY sinkkey, Node* sibling) {
+	LeafNode* siblingLeaf = (LeafNode*)sibling;
+
+	for (size_t i = 0; siblingLeaf->getKeyCount(); i++) {
+		keys.push_back(siblingLeaf->getKeyAt(i));
+		values.push_back(siblingLeaf->getValueAt(i));
+	}
+
+	setRightSibling(siblingLeaf->rightSibling);
+	if (siblingLeaf->rightSibling != nullptr) {
+		siblingLeaf->rightSibling->setLeftSibling(this);
+	}
+}
+
+
+KEY LeafNode::borrowFromSibling(KEY sinkKey, Node* sibling, int borrowIndex) {
+	return 0;
+
+}
+
+
 NodeType LeafNode::getNodeType() {
 	return NodeType::LEAF;
 }
 
 
 void LeafNode::print() {
-	cout << "-------  " << keys.size() << " records -------" << endl;
+	cout << "-------- " << keys.size() << " records -------" << endl;
 	for (int i = 0; i < keys.size(); i++) {
 		cout << keys[i] << " - " << values[i] << endl;
 	}

@@ -4,8 +4,8 @@
 using namespace Boson;
 using namespace std;
 
-InnerNode::InnerNode(int m) : Node(m) {
-	children.reserve(m);
+InnerNode::InnerNode(size_t m) : Node(m) {
+	children.reserve(keys.capacity() + 1);
 	
 }
 
@@ -29,7 +29,10 @@ inline void InnerNode::setChild(int index, Node* childNode) {
 
 
 int InnerNode::search(KEY key) {
-	return 0;
+	for (int i = 0; i < keys.size(); i++) {
+		if (keys[i] == key) return i;
+	}
+	return NOT_FOUND;
 }
 
 
@@ -48,3 +51,11 @@ inline NodeType InnerNode::getNodeType() {
 	return NodeType::INNER;
 }
 
+
+Node* InnerNode::split() {
+	return nullptr;
+}
+
+void InnerNode::merge(KEY sinkkey, Node* sibling) {
+
+}

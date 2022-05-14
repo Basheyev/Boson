@@ -18,7 +18,7 @@ namespace Boson {
 
 	class Node {
 	public:
-		Node(int m);
+		Node(size_t m);
 		~Node();
 		int    getKeyCount();
 		bool   isOverflow();
@@ -36,6 +36,7 @@ namespace Boson {
 		Node*  dealUnderflow();
 		virtual NodeType getNodeType() = 0;
 		virtual int search(KEY key) = 0;
+		virtual void merge(KEY sinkkey, Node* siblingRight) = 0;
 	protected:
 		int maxDegree;
 		int minDegree;
@@ -50,13 +51,15 @@ namespace Boson {
 
 	class InnerNode : public Node {
 	public:
-		InnerNode(int m);
+		InnerNode(size_t m);
 		~InnerNode();
+		int   search(KEY key);
 		Node* getChild(int index);
 		void  setChild(int index, Node* childNode);
-		int   search(KEY key);
 		void  insertAt(int index, Node*, Node*);
-		void  deleteAt(int index);
+		void  deleteAt(int index);		
+		Node* split();
+		void  merge(KEY sinkkey, Node* siblingRight);
 		NodeType getNodeType();
 	private:
 		std::vector<Node*> children;
@@ -66,15 +69,18 @@ namespace Boson {
 
 	class LeafNode : public Node {
 	public:
-		LeafNode(int m);
+		LeafNode(size_t m);
 		~LeafNode();
-		VALUE getValue(int index);
-		void  setValue(int index, VALUE value);
 		int   search(KEY key);
+		VALUE getValueAt(int index);
+		void  setValueAt(int index, VALUE value);
 		void  insertKey(KEY key, VALUE value);
-		void  insertKeyAt(int index, KEY key, VALUE value);
+		void  insertAt(size_t index, KEY key, VALUE value);
 		bool  deleteKey(KEY key);
-		bool  deleteAt(int index);
+		bool  deleteAt(int index);		
+		Node* split();
+		void  merge(KEY sinkkey, Node* siblingRight);
+		KEY   borrowFromSibling(KEY sinkKey, Node* sibling, int borrowIndex);
 		NodeType getNodeType();
 		void  print();
 	private:
@@ -94,7 +100,7 @@ namespace Boson {
 		Node*  getRoot();
 	private:
 		int treeOrder;
-		InnerNode* root;
+		Node* root;
 	};
 
 
