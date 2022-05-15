@@ -18,25 +18,45 @@ BalancedTree::~BalancedTree() {
 
 
 void BalancedTree::insert(KEY key, VALUE value) {
-
+	LeafNode* leaf = findLeaf(key);
+	leaf->insertKey(key, value);
+	if (leaf->isOverflow()) {
+		Node* n = leaf->dealOverflow();
+		if (n != nullptr) root = n;
+	}
 }
 
 
 VALUE BalancedTree::search(KEY key) {
-	return 0;
+	LeafNode* leaf = findLeaf(key);
+	size_t index = leaf->search(key);
+	return (index == NOT_FOUND) ? nullptr : leaf->getValueAt(index);
 }
 
 
 bool BalancedTree::erase(KEY key) {
-
-
+	LeafNode* leaf = findLeaf(key);
+	if (leaf->deleteKey(key) && leaf->isUnderflow()) {
+		Node* n = leaf->dealUnderflow();
+		if (n != nullptr) root = n;
+	}
 	return false;
+}
+
+
+LeafNode* BalancedTree::findLeaf(KEY key) {
+	Node* node = root;
+	while (node->getNodeType() == NodeType::INNER) {
+		node = ((InnerNode*)node)->getChild(node->search(key));
+	}
+	return (LeafNode*)node;
 }
 
 
 int BalancedTree::getTreeOrder() {
 	return this->treeOrder;
 }
+
 
 Node* BalancedTree::getRoot() {
 	return root;

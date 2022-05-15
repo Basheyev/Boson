@@ -7,7 +7,7 @@ using namespace std;
 
 
 LeafNode::LeafNode(size_t m) : Node(m) {
-	values.reserve(this->keys.capacity());
+	values.reserve(this->keys.capacity() + 1);
 }
 
 
@@ -27,8 +27,8 @@ void LeafNode::setValueAt(int index, VALUE value) {
 }
 
 
-int LeafNode::search(KEY key) {
-	for (int i = 0; i < keys.size(); i++) {
+size_t LeafNode::search(KEY key) {
+	for (size_t i = 0; i < keys.size(); i++) {
 		if (keys[i] == key) return i;
 	}
 	return NOT_FOUND;
@@ -98,9 +98,26 @@ void LeafNode::merge(KEY sinkkey, Node* sibling) {
 }
 
 
-KEY LeafNode::borrowFromSibling(KEY sinkKey, Node* sibling, int borrowIndex) {
-	return 0;
+Node* LeafNode::pushUpKey(KEY key, Node* leftChild, Node* rightChild) {
+	throw exception("Unsupported operation");
+	return nullptr;
+}
 
+
+Node* LeafNode::transferChildren(Node* borrower, Node* lender, int borrowIndex) {
+	return nullptr;
+}
+
+
+Node* LeafNode::mergeChildren(Node* leftChild, Node* rightChild) {
+	return nullptr;
+}
+
+KEY LeafNode::borrowFromSibling(KEY sinkKey, Node* sibling, int borrowIndex) {
+	LeafNode* siblingNode = (LeafNode*)sibling;
+	this->insertKey(siblingNode->getKeyAt(borrowIndex), siblingNode->getValueAt(borrowIndex));
+	siblingNode->deleteAt(borrowIndex);
+	return borrowIndex == 0 ? sibling->getKeyAt(0) : this->getKeyAt(0);
 }
 
 

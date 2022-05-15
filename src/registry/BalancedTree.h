@@ -20,7 +20,7 @@ namespace Boson {
 	public:
 		Node(size_t m);
 		~Node();
-		int    getKeyCount();
+		size_t getKeyCount();
 		bool   isOverflow();
 		bool   isUnderflow();
 		bool   canLendAKey();
@@ -34,13 +34,19 @@ namespace Boson {
 		void   setRightSibling(Node*);
 		Node*  dealOverflow();
 		Node*  dealUnderflow();
+
 		virtual NodeType getNodeType() = 0;
-		virtual int search(KEY key) = 0;
+		virtual size_t search(KEY key) = 0;
+		virtual Node* split() = 0;
 		virtual void merge(KEY sinkkey, Node* siblingRight) = 0;
+		virtual Node* pushUpKey(KEY key, Node* leftChild, Node* rightChild) = 0;
+		virtual Node* transferChildren(Node* borrower, Node* lender, int borrowIndex) = 0;
+		virtual Node* mergeChildren(Node* leftChild, Node* rightChild) = 0;
+
 	protected:
-		int maxDegree;
-		int minDegree;
-		int degree;
+		size_t maxDegree;
+		size_t minDegree;
+		size_t degree;
 		Node* parent;
 		Node* leftSibling;
 		Node* rightSibling;
@@ -53,13 +59,17 @@ namespace Boson {
 	public:
 		InnerNode(size_t m);
 		~InnerNode();
-		int   search(KEY key);
+		size_t search(KEY key);
 		Node* getChild(int index);
 		void  setChild(int index, Node* childNode);
-		void  insertAt(int index, Node*, Node*);
+		void  insertAt(int index, KEY key, Node* leftChild, Node* rightChild);
 		void  deleteAt(int index);		
 		Node* split();
 		void  merge(KEY sinkkey, Node* siblingRight);
+		Node* pushUpKey(KEY key, Node* leftChild, Node* rightChild);
+		Node* transferChildren(Node* borrower, Node* lender, int borrowIndex);
+		Node* mergeChildren(Node* leftChild, Node* rightChild);
+		KEY   borrowFromSibling(KEY sinkKey, Node* sibling, int borrowIndex);
 		NodeType getNodeType();
 	private:
 		std::vector<Node*> children;
@@ -71,7 +81,7 @@ namespace Boson {
 	public:
 		LeafNode(size_t m);
 		~LeafNode();
-		int   search(KEY key);
+		size_t search(KEY key);
 		VALUE getValueAt(int index);
 		void  setValueAt(int index, VALUE value);
 		void  insertKey(KEY key, VALUE value);
@@ -80,6 +90,9 @@ namespace Boson {
 		bool  deleteAt(int index);		
 		Node* split();
 		void  merge(KEY sinkkey, Node* siblingRight);
+		Node* pushUpKey(KEY key, Node* leftChild, Node* rightChild);
+		Node* transferChildren(Node* borrower, Node* lender, int borrowIndex);
+		Node* mergeChildren(Node* leftChild, Node* rightChild);
 		KEY   borrowFromSibling(KEY sinkKey, Node* sibling, int borrowIndex);
 		NodeType getNodeType();
 		void  print();
@@ -101,6 +114,7 @@ namespace Boson {
 	private:
 		int treeOrder;
 		Node* root;
+		LeafNode* findLeaf(KEY key);
 	};
 
 

@@ -13,7 +13,7 @@ Node::Node(size_t m) {
 	this->parent = nullptr;
 	this->leftSibling = nullptr;
 	this->rightSibling = nullptr;
-	keys.reserve(maxDegree);
+	keys.reserve(m);
 }
 
 
@@ -24,7 +24,7 @@ Node::~Node() {
 
 
 
-int Node::getKeyCount() {
+size_t Node::getKeyCount() {
 	return degree;
 }
 
@@ -87,12 +87,47 @@ void Node::setRightSibling(Node* rightSibling) {
 
 
 Node* Node::dealOverflow() {
-	// todo
-	return 0;
+	int midIndex = getKeyCount() / 2;
+	KEY upKey = getKeyAt(midIndex);
+
+	Node* newRightNode = this->split();
+	if (getParent() == nullptr) {
+		setParent(new InnerNode(maxDegree + 1));
+	}
+	newRightNode->setParent(this->getParent());
+
+	newRightNode->setLeftSibling(this);
+	newRightNode->setRightSibling(this->rightSibling);
+	if (this->getRightSibling() != nullptr) {
+		this->getRightSibling()->setLeftSibling(newRightNode);
+	}
+	this->setRightSibling(newRightNode);
+
+	return this->getParent()->pushUpKey(upKey, this, newRightNode);
 }
 
 
 Node* Node::dealUnderflow() {
-	// todo
-	return 0;
+	if (this->getParent() == nullptr) return nullptr;
+
+	Node* leftSibling = this->getLeftSibling();
+	if (leftSibling != nullptr && leftSibling->canLendAKey()) {
+		this->getParent()->transferChildren(this, rightSibling, 0);
+		return nullptr;
+	}
+
+	Node* rightSibling = this->getRightSibling();
+	if (rightSibling != nullptr && rightSibling->canLendAKey()) {
+		this->getParent()->transferChildren(this, rightSibling, 0);
+		return nullptr;
+	}
+
+	// Can not borrow a key from any sibling, then do fusion with sibling
+	if (leftSibling != nullptr) {
+		return this->getParent()->mergeChildren(leftSibling, this);
+	}
+	else {
+		return this->getParent()->mergeChildren(this, rightSibling);
+	}
+
 }
