@@ -46,12 +46,12 @@ bool Node::canLendAKey() {
 
 
 
-KEY Node::getKeyAt(int index) {
+KEY Node::getKeyAt(size_t index) {
 	return keys[index];
 }
 
 
-void Node::setKeyAt(int index, KEY key) {
+void Node::setKeyAt(size_t index, KEY key) {
 	keys[index] = key;
 }
 
@@ -87,7 +87,7 @@ void Node::setRightSibling(Node* rightSibling) {
 
 
 Node* Node::dealOverflow() {
-	int midIndex = getKeyCount() / 2;
+	size_t midIndex = getKeyCount() / 2;
 	KEY upKey = getKeyAt(midIndex);
 
 	Node* newRightNode = this->split();

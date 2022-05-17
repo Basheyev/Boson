@@ -3,7 +3,7 @@
 using namespace Boson;
 
 
-BalancedTree::BalancedTree(int order) {
+BalancedTree::BalancedTree(size_t order) {
 	if (order < MINIMAL_TREE_ORDER) order = MINIMAL_TREE_ORDER;
 	this->treeOrder = order;
 	root = new LeafNode(order);
@@ -53,7 +53,7 @@ LeafNode* BalancedTree::findLeaf(KEY key) {
 }
 
 
-int BalancedTree::getTreeOrder() {
+size_t BalancedTree::getTreeOrder() {
 	return this->treeOrder;
 }
 

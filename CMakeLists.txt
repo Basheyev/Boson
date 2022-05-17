@@ -10,11 +10,11 @@ add_executable (Boson
     "src/Boson.cpp" 
     "src/Boson.h" 
 
-    "src/registry/BalancedTree.cpp" 
-    "src/registry/BalancedTree.h" 
-    "src/registry/Node.cpp" 
-    "src/registry/InnerNode.cpp" 
-    "src/registry/LeafNode.cpp"
+    "src/table/BalancedTree.cpp" 
+    "src/table/BalancedTree.h" 
+    "src/table/Node.cpp" 
+    "src/table/InnerNode.cpp" 
+    "src/table/LeafNode.cpp"
 )
 
 # TODO: Добавьте тесты и целевые объекты, если это необходимо.

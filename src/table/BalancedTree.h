@@ -12,8 +12,8 @@ namespace Boson {
 	typedef enum { INNER, LEAF } NodeType;
 
 
-	typedef __int64     KEY;
-	typedef char*       VALUE;
+	typedef __int64     KEY;                     // Key type
+	typedef char*       VALUE;                   // Value payload
 
 
 	class Node {
@@ -24,8 +24,8 @@ namespace Boson {
 		bool   isOverflow();
 		bool   isUnderflow();
 		bool   canLendAKey();
-		KEY    getKeyAt(int index);
-		void   setKeyAt(int index, KEY key);
+		KEY    getKeyAt(size_t index);
+		void   setKeyAt(size_t index, KEY key);
 		Node*  getParent();
 		void   setParent(Node* parent);
 		Node*  getLeftSibling();
@@ -38,10 +38,11 @@ namespace Boson {
 		virtual NodeType getNodeType() = 0;
 		virtual size_t search(KEY key) = 0;
 		virtual Node* split() = 0;
-		virtual void merge(KEY sinkkey, Node* siblingRight) = 0;
 		virtual Node* pushUpKey(KEY key, Node* leftChild, Node* rightChild) = 0;
-		virtual Node* transferChildren(Node* borrower, Node* lender, int borrowIndex) = 0;
+		virtual void  transferChildren(Node* borrower, Node* lender, size_t borrowIndex) = 0;
 		virtual Node* mergeChildren(Node* leftChild, Node* rightChild) = 0;
+		virtual void  mergeWithSibling(KEY key, Node* rightSibling) = 0;
+		virtual KEY   borrowFromSibling(KEY sinkKey, Node* sibling, size_t borrowIndex) = 0;
 
 	protected:
 		size_t maxDegree;
@@ -60,16 +61,16 @@ namespace Boson {
 		InnerNode(size_t m);
 		~InnerNode();
 		size_t search(KEY key);
-		Node* getChild(int index);
-		void  setChild(int index, Node* childNode);
-		void  insertAt(int index, KEY key, Node* leftChild, Node* rightChild);
-		void  deleteAt(int index);		
+		Node* getChild(size_t index);
+		void  setChild(size_t index, Node* childNode);
+		void  insertAt(size_t index, KEY key, Node* leftChild, Node* rightChild);
+		void  deleteAt(size_t index);
 		Node* split();
-		void  merge(KEY sinkkey, Node* siblingRight);
 		Node* pushUpKey(KEY key, Node* leftChild, Node* rightChild);
-		Node* transferChildren(Node* borrower, Node* lender, int borrowIndex);
+		void  transferChildren(Node* borrower, Node* lender, size_t borrowIndex);
 		Node* mergeChildren(Node* leftChild, Node* rightChild);
-		KEY   borrowFromSibling(KEY sinkKey, Node* sibling, int borrowIndex);
+		void  mergeWithSibling(KEY key, Node* rightSibling);
+		KEY   borrowFromSibling(KEY sinkKey, Node* sibling, size_t borrowIndex);
 		NodeType getNodeType();
 	private:
 		std::vector<Node*> children;
@@ -82,18 +83,19 @@ namespace Boson {
 		LeafNode(size_t m);
 		~LeafNode();
 		size_t search(KEY key);
-		VALUE getValueAt(int index);
-		void  setValueAt(int index, VALUE value);
+		VALUE getValueAt(size_t index);
+		void  setValueAt(size_t index, VALUE value);
 		void  insertKey(KEY key, VALUE value);
 		void  insertAt(size_t index, KEY key, VALUE value);
 		bool  deleteKey(KEY key);
-		bool  deleteAt(int index);		
+		void  deleteAt(size_t index);
 		Node* split();
 		void  merge(KEY sinkkey, Node* siblingRight);
 		Node* pushUpKey(KEY key, Node* leftChild, Node* rightChild);
-		Node* transferChildren(Node* borrower, Node* lender, int borrowIndex);
+		void  transferChildren(Node* borrower, Node* lender, size_t borrowIndex);
 		Node* mergeChildren(Node* leftChild, Node* rightChild);
-		KEY   borrowFromSibling(KEY sinkKey, Node* sibling, int borrowIndex);
+		void  mergeWithSibling(KEY key, Node* rightSibling);
+		KEY   borrowFromSibling(KEY sinkKey, Node* sibling, size_t borrowIndex);
 		NodeType getNodeType();
 		void  print();
 	private:
@@ -104,15 +106,15 @@ namespace Boson {
 
 	class BalancedTree {
 	public:
-		BalancedTree(int order=DEFAULT_TREE_ORDER);
+		BalancedTree(size_t order=DEFAULT_TREE_ORDER);
 		~BalancedTree();
 		void   insert(KEY key, VALUE value);
 		VALUE  search(KEY key);
 		bool   erase(KEY key);
-		int    getTreeOrder();
+		size_t getTreeOrder();
 		Node*  getRoot();
 	private:
-		int treeOrder;
+		size_t treeOrder;
 		Node* root;
 		LeafNode* findLeaf(KEY key);
 	};

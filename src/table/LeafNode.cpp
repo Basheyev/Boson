@@ -17,12 +17,12 @@ LeafNode::~LeafNode() {
 
 
 
-VALUE LeafNode::getValueAt(int index) {
+VALUE LeafNode::getValueAt(size_t index) {
 	return values[index];
 }
 
 
-void LeafNode::setValueAt(int index, VALUE value) {
+void LeafNode::setValueAt(size_t index, VALUE value) {
 	values[index] = value;
 }
 
@@ -38,7 +38,7 @@ size_t LeafNode::search(KEY key) {
 void LeafNode::insertKey(KEY key, VALUE value) {
 	// find index to insert new key/value pair in sorted order
 	size_t insertIndex = keys.size();
-	for (int i = 0; i < keys.size(); i++) {
+	for (size_t i = 0; i < keys.size(); i++) {
 		if (key < keys[i]) {
 			insertIndex = i;
 			break;
@@ -57,16 +57,16 @@ void LeafNode::insertAt(size_t index, KEY key, VALUE value) {
 
 
 bool LeafNode::deleteKey(KEY key) {
-	int deleteIndex = search(key);
+	size_t deleteIndex = search(key);
 	if (deleteIndex == NOT_FOUND) return false;
-	return deleteAt(deleteIndex);;
+	deleteAt(deleteIndex);
+	return true;
 }
 
 
-bool LeafNode::deleteAt(int index) {
+void LeafNode::deleteAt(size_t index) {
 	keys.erase(keys.begin() + index);
 	values.erase(values.begin() + index);
-	return true;
 }
 
 
@@ -99,21 +99,31 @@ void LeafNode::merge(KEY sinkkey, Node* sibling) {
 
 
 Node* LeafNode::pushUpKey(KEY key, Node* leftChild, Node* rightChild) {
-	throw exception("Unsupported operation");
-	return nullptr;
+	throw std::runtime_error("Unsupported operation");
 }
 
 
-Node* LeafNode::transferChildren(Node* borrower, Node* lender, int borrowIndex) {
-	return nullptr;
+void LeafNode::transferChildren(Node* borrower, Node* lender, size_t borrowIndex) {
+	throw std::runtime_error("Unsupported operation");
 }
 
 
 Node* LeafNode::mergeChildren(Node* leftChild, Node* rightChild) {
-	return nullptr;
+	throw std::runtime_error("Unsupported operation");
 }
 
-KEY LeafNode::borrowFromSibling(KEY sinkKey, Node* sibling, int borrowIndex) {
+
+void LeafNode::mergeWithSibling(KEY key, Node* rightSibling) {
+	
+	
+	// TODO:
+	// FIXME:
+
+}
+
+
+
+KEY LeafNode::borrowFromSibling(KEY sinkKey, Node* sibling, size_t borrowIndex) {
 	LeafNode* siblingNode = (LeafNode*)sibling;
 	this->insertKey(siblingNode->getKeyAt(borrowIndex), siblingNode->getValueAt(borrowIndex));
 	siblingNode->deleteAt(borrowIndex);
@@ -128,7 +138,7 @@ NodeType LeafNode::getNodeType() {
 
 void LeafNode::print() {
 	cout << "-------- " << keys.size() << " records -------" << endl;
-	for (int i = 0; i < keys.size(); i++) {
+	for (size_t i = 0; i < keys.size(); i++) {
 		cout << keys[i] << " - " << values[i] << endl;
 	}
 	cout << "-------------------------------\n";

@@ -6,7 +6,7 @@
 */
 
 #include "Boson.h"
-#include "registry/BalancedTree.h"
+#include "table/BalancedTree.h"
 
 using namespace std;
 using namespace Boson;
@@ -27,7 +27,7 @@ void LeafNodeTest() {
 	ln.insertKey(86, "Hasar");
 	ln.print();
 
-	int index = ln.search(73);
+	size_t index = ln.search(73);
 	char* value = "NOT FOUND";
 	if (index!=NOT_FOUND) value = ln.getValueAt(index);
 	cout << "search key 73 = " << value << endl;
