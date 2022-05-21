@@ -1,6 +1,8 @@
 #include "BalancedTree.h"
+#include <iostream>
 
 using namespace Boson;
+using namespace std;
 
 
 BalancedTree::BalancedTree(size_t order) {
@@ -18,6 +20,8 @@ BalancedTree::~BalancedTree() {
 
 
 void BalancedTree::insert(KEY key, VALUE value) {
+	cout << "Inserting " << key << " - " << value << '\n';
+	cout << "------------------------" << endl;
 	LeafNode* leaf = findLeaf(key);
 	leaf->insertKey(key, value);
 	if (leaf->isOverflow()) {
@@ -45,9 +49,14 @@ bool BalancedTree::erase(KEY key) {
 
 
 LeafNode* BalancedTree::findLeaf(KEY key) {
+	// fixme
 	Node* node = root;
+	InnerNode* innerNode;
+	size_t index;
 	while (node->getNodeType() == NodeType::INNER) {
-		node = ((InnerNode*)node)->getChild(node->search(key));
+		index = node->search(key);
+		innerNode = (InnerNode*)node;
+		node = innerNode->getChild(index);
 	}
 	return (LeafNode*)node;
 }
@@ -61,3 +70,10 @@ size_t BalancedTree::getTreeOrder() {
 Node* BalancedTree::getRoot() {
 	return root;
 }
+
+
+void BalancedTree::print() {
+	root->print(0);
+	cout << "=======================================" << endl;
+}
+

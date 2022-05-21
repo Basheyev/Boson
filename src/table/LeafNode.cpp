@@ -114,10 +114,16 @@ Node* LeafNode::mergeChildren(Node* leftChild, Node* rightChild) {
 
 
 void LeafNode::mergeWithSibling(KEY key, Node* rightSibling) {
-	
-	
-	// TODO:
-	// FIXME:
+	LeafNode* siblingLeaf = (LeafNode*)rightSibling;
+	size_t j = keys.size();
+
+	for (size_t i = 0; i < siblingLeaf->getKeyCount(); ++i) {
+		keys.push_back(siblingLeaf->getKeyAt(i));
+		values.push_back(siblingLeaf->getValueAt(i));
+	}
+
+	this->setRightSibling(siblingLeaf->rightSibling);
+	if (siblingLeaf->rightSibling != nullptr) siblingLeaf->rightSibling->setLeftSibling(this);
 
 }
 
@@ -136,10 +142,14 @@ NodeType LeafNode::getNodeType() {
 }
 
 
-void LeafNode::print() {
-	cout << "-------- " << keys.size() << " records -------" << endl;
+void LeafNode::print(int level) {
+	//cout << "-------- " << keys.size() << " records -------" << endl;
 	for (size_t i = 0; i < keys.size(); i++) {
+		printTabs(level);
 		cout << keys[i] << " - " << values[i] << endl;
 	}
-	cout << "-------------------------------\n";
+	//cout << "-------------------------------\n";
 }
+
+
+

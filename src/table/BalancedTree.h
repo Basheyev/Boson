@@ -43,15 +43,15 @@ namespace Boson {
 		virtual Node* mergeChildren(Node* leftChild, Node* rightChild) = 0;
 		virtual void  mergeWithSibling(KEY key, Node* rightSibling) = 0;
 		virtual KEY   borrowFromSibling(KEY sinkKey, Node* sibling, size_t borrowIndex) = 0;
-
+		virtual void  print(int level) = 0;
 	protected:
 		size_t maxDegree;
 		size_t minDegree;
-		size_t degree;
 		Node* parent;
 		Node* leftSibling;
 		Node* rightSibling;
 		std::vector<KEY> keys;
+		void printTabs(size_t n);
 	};
 
 
@@ -72,6 +72,7 @@ namespace Boson {
 		void  mergeWithSibling(KEY key, Node* rightSibling);
 		KEY   borrowFromSibling(KEY sinkKey, Node* sibling, size_t borrowIndex);
 		NodeType getNodeType();
+		void print(int level);
 	private:
 		std::vector<Node*> children;
 	};
@@ -97,7 +98,7 @@ namespace Boson {
 		void  mergeWithSibling(KEY key, Node* rightSibling);
 		KEY   borrowFromSibling(KEY sinkKey, Node* sibling, size_t borrowIndex);
 		NodeType getNodeType();
-		void  print();
+		void  print(int level);
 	private:
 		std::vector<VALUE> values;
 	};
@@ -113,6 +114,7 @@ namespace Boson {
 		bool   erase(KEY key);
 		size_t getTreeOrder();
 		Node*  getRoot();
+		void   print();
 	private:
 		size_t treeOrder;
 		Node* root;

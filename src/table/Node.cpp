@@ -8,8 +8,7 @@ using namespace std;
 Node::Node(size_t m) {
 	
 	this->maxDegree = m - 1;
-	this->minDegree = m / 2 + 1;
-	this->degree = 0;
+	this->minDegree = m / 2;
 	this->parent = nullptr;
 	this->leftSibling = nullptr;
 	this->rightSibling = nullptr;
@@ -25,23 +24,23 @@ Node::~Node() {
 
 
 size_t Node::getKeyCount() {
-	return degree;
+	return keys.size();
 }
 
 
 bool Node::isOverflow() {
-	return degree >= maxDegree;
+	return keys.size() > maxDegree;
 }
 
 
 bool Node::isUnderflow() {
-	return degree < minDegree;
+	return keys.size() < minDegree;
 
 }
 
 
 bool Node::canLendAKey() {
-	return degree > minDegree;
+	return keys.size() > minDegree;
 }
 
 
@@ -130,4 +129,12 @@ Node* Node::dealUnderflow() {
 		return this->getParent()->mergeChildren(this, rightSibling);
 	}
 
+}
+
+
+
+void Node::printTabs(size_t n) {
+	for (size_t i = 0; i < n; i++) {
+		cout << "\t";
+	}
 }

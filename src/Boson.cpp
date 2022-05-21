@@ -25,7 +25,7 @@ void LeafNodeTest() {
 	ln.insertKey(24, "Tamara");
 	ln.insertKey(45, "Maxim");
 	ln.insertKey(86, "Hasar");
-	ln.print();
+	ln.print(0);
 
 	size_t index = ln.search(73);
 	char* value = "NOT FOUND";
@@ -40,27 +40,47 @@ void LeafNodeTest() {
 	if (index != NOT_FOUND) value = ln.getValueAt(index);
 	cout << "search key 69 = " << value << endl;
 
-	ln.print();
+	ln.print(0);
 
 	cout << "split\n";
 
 	LeafNode* ln2 = (LeafNode*) ln.split();
-	ln.print();
-	ln2->print();
+	ln.print(0);
+	ln2->print(0);
 
 
 }
 
 
 void BalancedTreeTest() {
-	BalancedTree* bt = new BalancedTree();
-	cout << bt->getTreeOrder() << endl;
+	BalancedTree* bt = new BalancedTree(3);
+	bt->insert(10, "Baurzhan");
+	bt->print();
+	bt->insert(73, "Theya");
+	bt->print();
+	bt->insert(14, "Bolat");
+	bt->print();
+	bt->insert(32, "Aimgul");
+	bt->print();
+	bt->insert(57, "Tair");
+	bt->print();
+	/*
+	bt->insert(98, "Igor");
+	bt->print();
+	bt->insert(69, "Julia");
+	bt->print();
+	bt->insert(24, "Tamara");
+	bt->print();
+	bt->insert(45, "Maxim");
+	bt->print();
+	bt->insert(86, "Hasar");
+	bt->print();*/
 	delete bt;
 }
 
 
 int main()
 {
-	LeafNodeTest();	    
+	BalancedTreeTest();
 	return 0;
 }

@@ -29,18 +29,28 @@ void InnerNode::setChild(size_t index, Node* childNode) {
 
 
 size_t InnerNode::search(KEY key) {
-	for (size_t i = 0; i < keys.size(); i++) {
-		if (keys[i] == key) return i;
+	size_t index = 0;
+	for (index = 0; index < keys.size(); index++) {
+		if (keys[index] == key) 
+			return index + 1;
+		else if (keys[index] > key) {
+			return index;
+		}
 	}
-	return NOT_FOUND;
+	return index;
 }
 
 
 void InnerNode::insertAt(size_t index, KEY key, Node* leftChild, Node* rightChild) {
-	// todo check logic
-	keys.insert(keys.begin() + index, key);
+	// FIXME
+	keys.insert(keys.begin() + index, key);	
 	children.insert(children.begin() + index, leftChild);
-	children[index + 1] = rightChild;
+	if (index + 1 >= children.size()) {
+		children.insert(children.begin() + index + 1, rightChild);
+	} else {
+		children[index + 1] = rightChild;
+	}
+	
 }
 
 
@@ -58,12 +68,14 @@ Node* InnerNode::split() {
 	}
 	this->keys.resize(midIndex);                                     // truncate keys list
 
-	for (size_t i = midIndex + 1; i <= keys.size(); ++i) {
+	// FIXME
+
+	for (size_t i = midIndex + 1; i < children.size(); ++i) {
 		newNode->children.push_back(this->children[i]);              // move children to the new node
 		newNode->children[i - midIndex - 1]->setParent(newNode);     // reattach children to new parent
-	}	
+	}
 	this->children.resize(midIndex + 1);                             // truncate children list
-	
+
 	return newNode;
 
 }
@@ -72,6 +84,8 @@ Node* InnerNode::split() {
 
 Node* InnerNode::pushUpKey(KEY key, Node* leftChild, Node* rightChild) {
 	size_t index = search(key);
+	// fixme
+	if (index == NOT_FOUND) index = 0;
 	insertAt(index, key, leftChild, rightChild);
 	if (isOverflow())
 		return dealOverflow();
@@ -110,7 +124,8 @@ Node* InnerNode::mergeChildren(Node* leftChild, Node* rightChild) {
 			if (keys.size() == 0) {
 				leftChild->setParent(nullptr);
 				return leftChild;
-			} else {
+			}
+			else {
 				return nullptr;
 			}
 
@@ -125,15 +140,39 @@ void  InnerNode::mergeWithSibling(KEY key, Node* rightSiblingNode) {
 
 	InnerNode* rightSibling = (InnerNode*)rightSiblingNode;
 	size_t j = keys.size();
-	
-	// TODO:
+
+	keys.push_back(key);
+	for (size_t i = 0; i < rightSibling->getKeyCount(); ++i) {
+		keys.push_back(rightSibling->getKeyAt(i));
+	}
+	for (size_t i = 0; i < rightSibling->getKeyCount() + 1; ++i) {
+		children.push_back(rightSibling->getChild(i));
+	}	
+
+	this->setRightSibling(rightSibling->rightSibling);
+	if (rightSibling->rightSibling != nullptr) rightSibling->rightSibling->setLeftSibling(this);
 
 }
 
-KEY InnerNode::borrowFromSibling(KEY sinkKey, Node* sibling, size_t borrowIndex) {
-	// TODO:
 
-	return 0;
+KEY InnerNode::borrowFromSibling(KEY sinkKey, Node* sibling, size_t borrowIndex) {
+	InnerNode* siblingNode = (InnerNode*)sibling;
+
+	KEY upKey = 0;
+
+	if (borrowIndex == 0) {
+		keys.push_back(sinkKey);
+		children.push_back(siblingNode->getChild(borrowIndex));
+		upKey = siblingNode->getKeyAt(0);
+		siblingNode->deleteAt(0);
+	}
+	else {
+		insertAt(0, sinkKey, siblingNode->getChild(borrowIndex + 1), children[0]);
+		upKey = siblingNode->getKeyAt(borrowIndex);
+		siblingNode->deleteAt(borrowIndex);
+	}
+
+	return upKey;
 }
 
 
@@ -143,7 +182,23 @@ void InnerNode::deleteAt(size_t index) {
 }
 
 
-inline NodeType InnerNode::getNodeType() {
+NodeType InnerNode::getNodeType() {
 	return NodeType::INNER;
+}
+
+
+void InnerNode::print(int level) {
+	Node* leftChild;
+	Node* rightChild;
+	Node *prevRightChild = nullptr;
+	for (size_t i = 0; i < keys.size(); i++) {
+		leftChild = children[i];
+		rightChild = children[i + 1];
+		if (leftChild != prevRightChild) leftChild->print(level + 1);
+		printTabs(level);
+		cout << keys[i] << endl;
+		rightChild->print(level + 1);
+		prevRightChild = rightChild;
+	}
 }
 
