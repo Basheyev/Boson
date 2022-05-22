@@ -96,15 +96,25 @@ Node* InnerNode::pushUpKey(KEY key, Node* leftChild, Node* rightChild) {
 
 void InnerNode::transferChildren(Node* borrower, Node* lender, size_t borrowIndex) {
 	size_t borrowerChildIndex = 0;
-	while ((borrowerChildIndex < keys.size() + 1) && children[borrowerChildIndex] != borrower) {
-		borrowerChildIndex++;
+
+	// find borrower child index
+	for (int i = 0; i < children.size(); i++) {
+		if (children[i] == borrower) {
+			borrowerChildIndex = i;
+			break;
+		}
 	}
+
 	if (borrowIndex == 0) {
-		KEY upKey = borrower->borrowFromSibling(keys[borrowerChildIndex], lender, borrowIndex);
+		// borrow from right sibling
+		// FIXME
+		KEY theKey = keys[borrowerChildIndex];
+		KEY upKey = borrower->borrowFromSibling(theKey, lender, borrowIndex);
 		keys[borrowerChildIndex] = upKey;
-	}
-	else {
-		KEY upKey = borrower->borrowFromSibling(keys[borrowerChildIndex - 1], lender, borrowIndex);
+	} else {
+		// borrow from left sibling
+		KEY theKey = keys[borrowerChildIndex - 1];
+		KEY upKey = borrower->borrowFromSibling(theKey, lender, borrowIndex);
 		keys[borrowerChildIndex - 1] = upKey;
 	}
 }
@@ -112,12 +122,21 @@ void InnerNode::transferChildren(Node* borrower, Node* lender, size_t borrowInde
 
 Node* InnerNode::mergeChildren(Node* leftChild, Node* rightChild) {
 	size_t index = 0;
-	while (index < keys.size() && children[index] != leftChild) index++;
-	KEY sinkKey = keys[index];
+
+	// FIXME BUGS
+	
+	while (index < children.size() - 1) {
+		if (children[index] == leftChild) break;
+		index++;
+	}
+	KEY key = keys[index];
+	
 	// merge two children and the sink key into the left child node
-	leftChild->mergeWithSibling(sinkKey, rightChild);
+	leftChild->mergeWithSibling(key, rightChild);
+
 	// remove the sink key, keep the left child and abandon the right child
 	deleteAt(index);
+
 	// check whether need to propagate borrow or fusion to parent
 	if (isUnderflow()) {
 		if (getParent() == nullptr) {
@@ -155,19 +174,21 @@ void  InnerNode::mergeWithSibling(KEY key, Node* rightSiblingNode) {
 }
 
 
-KEY InnerNode::borrowFromSibling(KEY sinkKey, Node* sibling, size_t borrowIndex) {
+KEY InnerNode::borrowFromSibling(KEY key, Node* sibling, size_t borrowIndex) {
 	InnerNode* siblingNode = (InnerNode*)sibling;
 
 	KEY upKey = 0;
 
 	if (borrowIndex == 0) {
-		keys.push_back(sinkKey);
+		// borrow the first key from right sibling, append it to tail
+		keys.push_back(key);
 		children.push_back(siblingNode->getChild(borrowIndex));
 		upKey = siblingNode->getKeyAt(0);
 		siblingNode->deleteAt(0);
 	}
 	else {
-		insertAt(0, sinkKey, siblingNode->getChild(borrowIndex + 1), children[0]);
+		// borrow the last key from left sibling, insert it to head
+		insertAt(0, key, siblingNode->getChild(borrowIndex + 1), children[0]);
 		upKey = siblingNode->getKeyAt(borrowIndex);
 		siblingNode->deleteAt(borrowIndex);
 	}

@@ -111,10 +111,13 @@ namespace Boson {
 		~BalancedTree();
 		void   insert(KEY key, VALUE value);
 		VALUE  search(KEY key);
+		VALUE  directSearch(KEY key);
 		bool   erase(KEY key);
 		size_t getTreeOrder();
 		Node*  getRoot();
-		void   print();
+		void   printTree();
+		void   printContent();
+
 	private:
 		size_t treeOrder;
 		Node* root;

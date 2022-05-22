@@ -42,6 +42,9 @@ void LeafNode::insertKey(KEY key, VALUE value) {
 		if (key < keys[i]) {
 			insertIndex = i;
 			break;
+		} else if (key == keys[i]) {
+			cout << "Key duplicate " << key << endl;
+			return; // do not allow duplicated values
 		}
 	}
 	// insert key/value
@@ -124,6 +127,8 @@ void LeafNode::mergeWithSibling(KEY key, Node* rightSibling) {
 
 	this->setRightSibling(siblingLeaf->rightSibling);
 	if (siblingLeaf->rightSibling != nullptr) siblingLeaf->rightSibling->setLeftSibling(this);
+
+	delete rightSibling;
 
 }
 

@@ -8,9 +8,17 @@
 #include "Boson.h"
 #include "table/BalancedTree.h"
 
-using namespace std;
-using namespace Boson;
+#include <chrono>
 
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <unistd.h>
+#endif
+
+using namespace Boson;
+using namespace std;
+using namespace chrono;
 
 
 void LeafNodeTest() {
@@ -54,27 +62,74 @@ void LeafNodeTest() {
 
 void BalancedTreeTest() {
 	BalancedTree* bt = new BalancedTree(3);
-	bt->insert(10, "Baurzhan");
-	bt->print();
-	bt->insert(73, "Theya");
-	bt->print();
-	bt->insert(14, "Bolat");
-	bt->print();
-	bt->insert(32, "Aimgul");
-	bt->print();
-	bt->insert(57, "Tair");
-	bt->print();
+	bt->insert( 10, "Baurzhan");
+	bt->insert( 73, "Theya");
+	bt->insert( 14, "Bolat");
+	bt->insert( 32, "Aimgul");
+	bt->insert( 57, "Tair");
+	bt->insert( 98, "Igor");
+	bt->insert( 69, "Julia");
+	bt->insert( 24, "Tamara");
+	bt->insert( 45, "Maxim");
+	bt->insert( 86, "Hasar");
+	bt->insert( 11, "Umitzhan");
+	bt->insert( 74, "Zhumagali");
+	bt->insert(15, "Louisa");
+	/*bt->insert(33, "Samal");
+	bt->insert( 58, "Elizabeth");
+	bt->insert( 99, "Kymbat");
+	bt->insert( 70, "Talgat");
+	bt->insert( 25, "Dastan");
+	bt->insert( 46, "Laura");
+	bt->insert( 87, "Youri");
+	bt->insert( 21, "Peter");
+	bt->insert( 23, "Ivan");
+	bt->insert( 17, "Andrew");
+	bt->insert( 35, "John");
+	bt->insert( 26, "Anabele");
+	bt->insert( 27, "Serenata");
+	bt->insert( 29, "Erdogan");
+	bt->insert( 41, "Vladimit");
+	bt->insert( 42, "Nikolay");
+	bt->insert( 71, "Hector");
+	bt->insert( 72, "Augustus");*/
+
+	bt->printTree();
+	//->printContent();
+	bt->erase(14);
+	bt->printTree();
+	bt->erase(11);
+	bt->printTree();
+	bt->erase(15);
+	bt->printTree();
+	bt->erase(24);
+	bt->printTree();
+	
+	//->printContent();
 	/*
-	bt->insert(98, "Igor");
-	bt->print();
-	bt->insert(69, "Julia");
-	bt->print();
-	bt->insert(24, "Tamara");
-	bt->print();
-	bt->insert(45, "Maxim");
-	bt->print();
-	bt->insert(86, "Hasar");
-	bt->print();*/
+	size_t searchKey = 72;
+	
+	auto start1 = chrono::steady_clock::now();
+	cout << "Tree lookup: " << searchKey << " - " << bt->search(searchKey) << endl;
+	auto end1 = chrono::steady_clock::now();
+	cout << "Elapsed time in nanoseconds: "
+		<< (end1 - start1).count()
+		<< " ns" << endl;
+
+	
+	auto start2 = chrono::steady_clock::now();
+	cout << "List lookup: " << searchKey << " - " << bt->directSearch(searchKey) << endl;
+	auto end2 = chrono::steady_clock::now();
+	cout << "Elapsed time in nanoseconds: "
+		<< (end2 - start2).count()
+		<< " ns" << endl;
+
+		*/
+
+
+
+
+
 	delete bt;
 }
 

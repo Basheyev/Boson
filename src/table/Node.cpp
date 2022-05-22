@@ -105,28 +105,33 @@ Node* Node::dealOverflow() {
 	return this->getParent()->pushUpKey(upKey, this, newRightNode);
 }
 
-
+// FIXME
 Node* Node::dealUnderflow() {
 	if (this->getParent() == nullptr) return nullptr;
 
+	// try to borrow top key from left sibling
 	Node* leftSibling = this->getLeftSibling();
 	if (leftSibling != nullptr && leftSibling->canLendAKey()) {
-		this->getParent()->transferChildren(this, rightSibling, 0);
+		this->getParent()->transferChildren(this, leftSibling, leftSibling->getKeyCount() - 1);
 		return nullptr;
 	}
 
+	// try to borrow lower key from rihgt sibling
 	Node* rightSibling = this->getRightSibling();
-	if (rightSibling != nullptr && rightSibling->canLendAKey()) {
+	if (rightSibling != nullptr && rightSibling->canLendAKey() && rightSibling->parent==parent) {
 		this->getParent()->transferChildren(this, rightSibling, 0);
 		return nullptr;
 	}
 
 	// Can not borrow a key from any sibling, then do fusion with sibling
-	if (leftSibling != nullptr) {
-		return this->getParent()->mergeChildren(leftSibling, this);
+	// FIXME
+	if (leftSibling != nullptr && leftSibling->parent==parent) {
+		Node* parentNode = this->getParent();
+		return parentNode->mergeChildren(leftSibling, this);
 	}
 	else {
-		return this->getParent()->mergeChildren(this, rightSibling);
+		Node* parentNode = this->getParent();
+		return parentNode->mergeChildren(this, rightSibling);
 	}
 
 }
