@@ -158,6 +158,7 @@ Node* InnerNode::mergeChildren(Node* leftChild, Node* rightChild) {
 void  InnerNode::mergeWithSibling(KEY key, Node* rightSiblingNode) {
 
 	InnerNode* rightSibling = (InnerNode*)rightSiblingNode;
+	Node* siblingChild;
 	size_t j = keys.size();
 
 	keys.push_back(key);
@@ -165,7 +166,9 @@ void  InnerNode::mergeWithSibling(KEY key, Node* rightSiblingNode) {
 		keys.push_back(rightSibling->getKeyAt(i));
 	}
 	for (size_t i = 0; i < rightSibling->getKeyCount() + 1; ++i) {
-		children.push_back(rightSibling->getChild(i));
+		siblingChild = rightSibling->getChild(i);
+		children.push_back(siblingChild);
+		siblingChild->setParent(this);
 	}	
 
 	this->setRightSibling(rightSibling->rightSibling);

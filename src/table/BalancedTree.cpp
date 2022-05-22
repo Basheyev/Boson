@@ -55,10 +55,15 @@ VALUE BalancedTree::directSearch(KEY key) {
 }
 
 bool BalancedTree::erase(KEY key) {
+	cout << "Erasing key = " << key << endl;
+	cout << "----------------------------------" << endl;
 	LeafNode* leaf = findLeaf(key);
 	if (leaf->deleteKey(key) && leaf->isUnderflow()) {
 		Node* n = leaf->dealUnderflow();
-		if (n != nullptr) root = n;
+		if (n != nullptr) {
+			n->setParent(nullptr);
+			root = n;
+		}
 	}
 	return true;
 }
