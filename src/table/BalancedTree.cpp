@@ -1,26 +1,49 @@
+/*=================================================================================================
+*
+*    Balanced PLus Tree Implementation
+*
+*    Indexed key/value store
+*
+*    BOSON embedded database
+*    (C) Bolat Basheyev 2022
+*
+=================================================================================================*/
 #include "BalancedTree.h"
 #include <iostream>
 
 using namespace Boson;
 using namespace std;
 
-
-BalancedTree::BalancedTree(size_t order) {
-	if (order < MINIMAL_TREE_ORDER) order = MINIMAL_TREE_ORDER;
-	this->treeOrder = order;
-	root = new LeafNode(order);
+//-------------------------------------------------------------------------------------------------
+// Balanced Tree Constructor
+// - M-1 - maximum Keys count per Inner node and Key-Value pairs per Leaf node
+// - M/2 - minimal keys count per Inner node and Key-Value pairs per Leaf node
+// - M   - maximum Child nodes per Inner node
+//-------------------------------------------------------------------------------------------------
+BalancedTree::BalancedTree(size_t M) {
+	if (M < MINIMAL_TREE_ORDER) M = MINIMAL_TREE_ORDER;
+	this->treeOrder = M;
+	root = new LeafNode(M);
 }
 
 
+//-------------------------------------------------------------------------------------------------
+// Balanced Tree Desctructor
+//-------------------------------------------------------------------------------------------------
 BalancedTree::~BalancedTree() {
 	delete root;
 }
 
 
-
-
+//-------------------------------------------------------------------------------------------------
+// Insert key/value pair
+//-------------------------------------------------------------------------------------------------
 void BalancedTree::insert(KEY key, VALUE value) {
-	LeafNode* leaf = findLeaf(key);
+	#ifdef DEBUG
+		cout << "Inserting key = " << key << " - " << value << endl;
+	#endif // DEBUG
+	
+	LeafNode* leaf = findLeafNode(key);
 	leaf->insertKey(key, value);
 	if (leaf->isOverflow()) {
 		Node* n = leaf->dealOverflow();
@@ -29,13 +52,19 @@ void BalancedTree::insert(KEY key, VALUE value) {
 }
 
 
+//-------------------------------------------------------------------------------------------------
+// Search value by key (binary search)
+//-------------------------------------------------------------------------------------------------
 VALUE BalancedTree::search(KEY key) {
-	LeafNode* leaf = findLeaf(key);
+	LeafNode* leaf = findLeafNode(key);
 	size_t index = leaf->search(key);
 	return (index == NOT_FOUND) ? nullptr : leaf->getValueAt(index);
 }
 
 
+//-------------------------------------------------------------------------------------------------
+// Search value by key (list scanning)
+//-------------------------------------------------------------------------------------------------
 VALUE BalancedTree::directSearch(KEY key) {
 	Node* firstLeaf = root;
 	// go down tree
@@ -54,10 +83,16 @@ VALUE BalancedTree::directSearch(KEY key) {
 	return nullptr;
 }
 
+
+//-------------------------------------------------------------------------------------------------
+// Delete key/value pair
+//-------------------------------------------------------------------------------------------------
 bool BalancedTree::erase(KEY key) {
-	cout << "Erasing key = " << key << endl;
-	cout << "----------------------------------" << endl;
-	LeafNode* leaf = findLeaf(key);
+//	#ifdef DEBUG
+		cout << "Erasing key = " << key << endl;
+//	#endif // DEBUG
+		
+	LeafNode* leaf = findLeafNode(key);
 	if (leaf->deleteKey(key) && leaf->isUnderflow()) {
 		Node* n = leaf->dealUnderflow();
 		if (n != nullptr) {
@@ -69,7 +104,10 @@ bool BalancedTree::erase(KEY key) {
 }
 
 
-LeafNode* BalancedTree::findLeaf(KEY key) {
+//-------------------------------------------------------------------------------------------------
+// Search for LeafNode that contains specified key
+//-------------------------------------------------------------------------------------------------
+LeafNode* BalancedTree::findLeafNode(KEY key) {
 	Node* node = root;
 	InnerNode* innerNode;
 	size_t index;
@@ -82,6 +120,10 @@ LeafNode* BalancedTree::findLeaf(KEY key) {
 }
 
 
+//-------------------------------------------------------------------------------------------------
+// Return tree order M:
+
+//-------------------------------------------------------------------------------------------------
 size_t BalancedTree::getTreeOrder() {
 	return this->treeOrder;
 }
@@ -93,8 +135,9 @@ Node* BalancedTree::getRoot() {
 
 
 void BalancedTree::printTree() {
+	cout << "----------------------------------------" << endl;
 	root->print(0);
-	cout << "=======================================" << endl;
+	cout << "----------------------------------------" << endl;
 }
 
 
@@ -109,5 +152,5 @@ void BalancedTree::printContent() {
 		firstLeaf->print(0);
 		firstLeaf = firstLeaf->getRightSibling();
 	}
-	cout << "=======================================" << endl;
+	cout << "----------------------------------------" << endl;
 }

@@ -1,3 +1,13 @@
+/*=================================================================================================
+* 
+*    Balanced PLus Tree Header
+* 
+*    Indexed key/value store
+* 
+*    BOSON embedded database
+*    (C) Bolat Basheyev 2022
+*    
+=================================================================================================*/
 #pragma once
 
 #include <vector>
@@ -5,20 +15,20 @@
 
 namespace Boson {
 
-	constexpr int MINIMAL_TREE_ORDER = 3;
-	constexpr int DEFAULT_TREE_ORDER = 5;
-	constexpr int NOT_FOUND = -1;
+	constexpr size_t MINIMAL_TREE_ORDER = 3;
+	constexpr size_t DEFAULT_TREE_ORDER = 5;
+	constexpr size_t NOT_FOUND = -1;
 
 	typedef enum { INNER, LEAF } NodeType;
-
-
 	typedef __int64     KEY;                     // Key type
 	typedef char*       VALUE;                   // Value payload
 
-
+	//---------------------------------------------------------------------------------------------
+	// Node abstract class
+	//---------------------------------------------------------------------------------------------
 	class Node {
 	public:
-		Node(size_t m);
+		Node(size_t M);
 		~Node();
 		size_t getKeyCount();
 		bool   isOverflow();
@@ -39,12 +49,13 @@ namespace Boson {
 		virtual size_t search(KEY key) = 0;
 		virtual Node* split() = 0;
 		virtual Node* pushUpKey(KEY key, Node* leftChild, Node* rightChild) = 0;
-		virtual void  transferChildren(Node* borrower, Node* lender, size_t borrowIndex) = 0;
 		virtual Node* mergeChildren(Node* leftChild, Node* rightChild) = 0;
 		virtual void  mergeWithSibling(KEY key, Node* rightSibling) = 0;
-		virtual KEY   borrowFromSibling(KEY sinkKey, Node* sibling, size_t borrowIndex) = 0;
+		virtual KEY   borrowFromSibling(KEY key, Node* sibling, size_t borrowIndex) = 0;
+		virtual void  borrowChildren(Node* borrower, Node* lender, size_t borrowIndex) = 0;
 		virtual void  print(int level) = 0;
 	protected:
+		size_t treeOrder;
 		size_t maxDegree;
 		size_t minDegree;
 		Node* parent;
@@ -55,7 +66,9 @@ namespace Boson {
 	};
 
 
-
+	//---------------------------------------------------------------------------------------------
+	// Inner Node Class - index page
+	//---------------------------------------------------------------------------------------------
 	class InnerNode : public Node {
 	public:
 		InnerNode(size_t m);
@@ -67,10 +80,10 @@ namespace Boson {
 		void  deleteAt(size_t index);
 		Node* split();
 		Node* pushUpKey(KEY key, Node* leftChild, Node* rightChild);
-		void  transferChildren(Node* borrower, Node* lender, size_t borrowIndex);
+		void  borrowChildren(Node* borrower, Node* lender, size_t borrowIndex);
 		Node* mergeChildren(Node* leftChild, Node* rightChild);
 		void  mergeWithSibling(KEY key, Node* rightSibling);
-		KEY   borrowFromSibling(KEY sinkKey, Node* sibling, size_t borrowIndex);
+		KEY   borrowFromSibling(KEY key, Node* sibling, size_t borrowIndex);
 		NodeType getNodeType();
 		void print(int level);
 	private:
@@ -78,7 +91,9 @@ namespace Boson {
 	};
 
 
-
+	//---------------------------------------------------------------------------------------------
+	// Leaf Node Class - data page
+	//---------------------------------------------------------------------------------------------
 	class LeafNode : public Node {
 	public:
 		LeafNode(size_t m);
@@ -91,12 +106,12 @@ namespace Boson {
 		bool  deleteKey(KEY key);
 		void  deleteAt(size_t index);
 		Node* split();
-		void  merge(KEY sinkkey, Node* siblingRight);
+		void  merge(KEY key, Node* siblingRight);
 		Node* pushUpKey(KEY key, Node* leftChild, Node* rightChild);
-		void  transferChildren(Node* borrower, Node* lender, size_t borrowIndex);
+		void  borrowChildren(Node* borrower, Node* lender, size_t borrowIndex);
 		Node* mergeChildren(Node* leftChild, Node* rightChild);
 		void  mergeWithSibling(KEY key, Node* rightSibling);
-		KEY   borrowFromSibling(KEY sinkKey, Node* sibling, size_t borrowIndex);
+		KEY   borrowFromSibling(KEY key, Node* sibling, size_t borrowIndex);
 		NodeType getNodeType();
 		void  print(int level);
 	private:
@@ -105,9 +120,12 @@ namespace Boson {
 
 
 
+	//---------------------------------------------------------------------------------------------
+	// Balanced Plus Tree class - indexed KEY/VALUE store
+	//---------------------------------------------------------------------------------------------
 	class BalancedTree {
 	public:
-		BalancedTree(size_t order=DEFAULT_TREE_ORDER);
+		BalancedTree(size_t M = DEFAULT_TREE_ORDER);
 		~BalancedTree();
 		void   insert(KEY key, VALUE value);
 		VALUE  search(KEY key);
@@ -117,24 +135,11 @@ namespace Boson {
 		Node*  getRoot();
 		void   printTree();
 		void   printContent();
-
 	private:
 		size_t treeOrder;
 		Node* root;
-		LeafNode* findLeaf(KEY key);
+		LeafNode* findLeafNode(KEY key);
 	};
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 }

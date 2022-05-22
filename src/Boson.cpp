@@ -10,11 +10,6 @@
 
 #include <chrono>
 
-#ifdef _WIN32
-#include <Windows.h>
-#else
-#include <unistd.h>
-#endif
 
 using namespace Boson;
 using namespace std;
@@ -22,6 +17,7 @@ using namespace chrono;
 
 
 void LeafNodeTest() {
+
 	LeafNode ln(10);
 	ln.insertKey(10, "Baurzhan");
 	ln.insertKey(73, "Theya");
@@ -76,8 +72,8 @@ void BalancedTreeTest() {
 	bt->insert( 74, "Zhumagali");
 	bt->insert(15, "Louisa");
 	/*bt->insert(33, "Samal");
-	bt->insert( 58, "Elizabeth");
-	bt->insert( 99, "Kymbat");
+	bt->insert(58, "Elizabeth");
+	bt->insert(99, "Kymbat");
 	bt->insert( 70, "Talgat");
 	bt->insert( 25, "Dastan");
 	bt->insert( 46, "Laura");
@@ -95,7 +91,7 @@ void BalancedTreeTest() {
 	bt->insert( 72, "Augustus");*/
 
 	bt->printTree();
-	//->printContent();
+	//bt->printContent();
 	bt->erase(14);
 	bt->printTree();
 	bt->erase(11);
@@ -114,7 +110,7 @@ void BalancedTreeTest() {
 	bt->printTree();
 	bt->erase(73);
 	bt->printTree();
-	bt->erase(45);
+    bt->erase(45);
 	bt->printTree();
 	bt->erase(57);
 	bt->printTree();
@@ -123,20 +119,6 @@ void BalancedTreeTest() {
 	bt->erase(32);
 	bt->printTree();
 
-	bt->insert(10, "Baurzhan");
-	bt->insert(73, "Theya");
-	bt->insert(14, "Bolat");
-	bt->insert(32, "Aimgul");
-	bt->insert(57, "Tair");
-	bt->insert(98, "Igor");
-	bt->insert(69, "Julia");
-	bt->insert(24, "Tamara");
-	bt->insert(45, "Maxim");
-	bt->insert(86, "Hasar");
-	bt->insert(11, "Umitzhan");
-	bt->insert(74, "Zhumagali");
-	bt->insert(15, "Louisa");
-	bt->printTree();
 	//->printContent();
 	/*
 	size_t searchKey = 72;
