@@ -196,15 +196,16 @@ Node* Node::dealUnderflow() {
 		return nullptr;
 	}
 
-	// 3. Try to merge with left sibling
-	if (leftSibling != nullptr) {
+	// FIXME: should i check are they really sibling (compare parents)?
+	if (leftSibling != nullptr && leftSibling->parent == parent) {
+		// 3. Try to merge with left sibling
 		Node* rootNode = parent->mergeChildren(leftSibling, this);
 		return rootNode;
 	} else {
-	// 4. Try to merge with right sibling
+	    // 4. Try to merge with right sibling
 		Node* rootNode = parent->mergeChildren(this, rightSibling);
 		return rootNode;
-	}
+	} 
 
 }
 

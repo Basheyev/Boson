@@ -173,16 +173,20 @@ void LeafNode::mergeWithSibling(KEY key, Node* rightSibling) {
 
 	LeafNode* siblingLeaf = (LeafNode*)rightSibling;
 
+	// Copy keys and values at the tail of this node
 	for (size_t i = 0; i < siblingLeaf->getKeyCount(); ++i) {
 		keys.push_back(siblingLeaf->getKeyAt(i));
 		values.push_back(siblingLeaf->getValueAt(i));
 	}
 
+	// Interconnect siblings links
 	this->setRightSibling(siblingLeaf->rightSibling);
 	if (siblingLeaf->rightSibling != nullptr) {
 		siblingLeaf->rightSibling->setLeftSibling(this);
 	}
 
+	// Delete sibling node
+	delete siblingLeaf;
 }
 
 

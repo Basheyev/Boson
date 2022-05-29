@@ -71,7 +71,7 @@ void BalancedTreeTest() {
 	bt->insert( 11, "Umitzhan");
 	bt->insert( 74, "Zhumagali");
 	bt->insert(15, "Louisa");
-	/*bt->insert(33, "Samal");
+	bt->insert(33, "Samal");
 	bt->insert(58, "Elizabeth");
 	bt->insert(99, "Kymbat");
 	bt->insert( 70, "Talgat");
@@ -88,36 +88,39 @@ void BalancedTreeTest() {
 	bt->insert( 41, "Vladimit");
 	bt->insert( 42, "Nikolay");
 	bt->insert( 71, "Hector");
-	bt->insert( 72, "Augustus");*/
+	bt->insert( 72, "Augustus");
 
 	bt->printTree();
 	//bt->printContent();
-	bt->erase(14);
-	bt->printTree();
-	bt->erase(11);
-	bt->printTree();
-	bt->erase(15);
-	bt->printTree();
-	bt->erase(24);
-	bt->printTree();
-	bt->erase(10);
-	bt->printTree();
-	bt->erase(86);
-	bt->printTree();
-	bt->erase(98);
-	bt->printTree();
-	bt->erase(74);
-	bt->printTree();
-	bt->erase(73);
-	bt->printTree();
-    bt->erase(45);
-	bt->printTree();
-	bt->erase(57);
-	bt->printTree();
-	bt->erase(69);
-	bt->printTree();
-	bt->erase(32);
-	bt->printTree();
+	bt->erase(14);	bt->printTree();
+	bt->erase(11);	bt->printTree();
+	bt->erase(15);	bt->printTree();
+	bt->erase(24);	bt->printTree();
+	bt->erase(10);	bt->printTree();
+	bt->erase(86);	bt->printTree();
+	bt->erase(98);	bt->printTree();
+	bt->erase(74);	bt->printTree();
+	bt->erase(73);	bt->printTree();
+    bt->erase(45);	bt->printTree();
+	bt->erase(57);	bt->printTree();
+	bt->erase(69);	bt->printTree();
+	bt->erase(32);	bt->printTree();
+	bt->erase(99);	bt->printTree();
+	bt->erase(87);	bt->printTree();
+	bt->erase(72);	bt->printTree();
+	bt->erase(35);	bt->printTree();
+	bt->erase(71);	bt->printTree();
+	bt->erase(70);	bt->printTree();
+	bt->erase(46);	bt->printTree();
+	bt->erase(17);	bt->printTree();
+	bt->erase(21);	bt->printTree();
+	bt->erase(58);	bt->printTree();
+	bt->erase(25);	bt->printTree();
+	bt->erase(33);	bt->printTree();
+	bt->erase(26);	bt->printTree();
+	bt->erase(23);	bt->printTree();
+	bt->erase(41);	bt->printTree();
+	
 
 	//->printContent();
 	/*

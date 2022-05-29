@@ -168,6 +168,8 @@ Node* InnerNode::mergeChildren(Node* leftChild, Node* rightChild) {
 	size_t index = 0;
 
 	// Find corresponding key index of left child
+	
+	// FIXME: What if left child doesnt belong to this node? Causes wrong pointer access
 	while (index < children.size() - 1) {
 		if (children[index] == leftChild) break;
 		index++;
@@ -176,10 +178,10 @@ Node* InnerNode::mergeChildren(Node* leftChild, Node* rightChild) {
 	
 	// Merge two children and push key into the left child node
 	leftChild->mergeWithSibling(key, rightChild);
-
+	
 	// Remove the key, keep the left child and abandon the right child
 	this->deleteAt(index);
-
+	
 	// If there is underflow propagate borrow or merge to parent
 	if (this->isUnderflow()) {
 		// If this node is root node (no parent)
@@ -255,7 +257,13 @@ KEY InnerNode::borrowFromSibling(KEY key, Node* sibling, size_t borrowIndex) {
 		// get key propogated to parent node
 		upKey = siblingNode->getKeyAt(0);
 		// delete key with children from sibling node
-		siblingNode->deleteAt(0);
+		
+	    // FIXME: deleteAt() always deletes right node!
+		// siblingNode->deleteAt(0);        
+		// Workaround:
+		siblingNode->keys.erase(siblingNode->keys.begin());
+		siblingNode->children.erase(siblingNode->children.begin());                   
+
 	} else {
 		// borrow the last key from left sibling, insert it to head
 		childNode = siblingNode->getChild(borrowIndex + 1);
