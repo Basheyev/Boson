@@ -201,7 +201,7 @@ Node* InnerNode::mergeChildren(Node* leftChild, Node* rightChild) {
 //-------------------------------------------------------------------------------------------------
 // Merge with sibling InnerNode by specifying key and right sibling
 //-------------------------------------------------------------------------------------------------
-void  InnerNode::mergeWithSibling(KEY key, Node* rightSiblingNode) {
+void InnerNode::mergeWithSibling(KEY key, Node* rightSiblingNode) {
 	InnerNode* rightSibling = (InnerNode*)rightSiblingNode;
 	Node* siblingChild;
 

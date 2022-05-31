@@ -126,12 +126,12 @@ Node* LeafNode::split() {
 
 
 //-------------------------------------------------------------------------------------------------
-// Split this node by half and return new splitted node
+// Merges two leaf nodes
 //-------------------------------------------------------------------------------------------------
 void LeafNode::merge(KEY key, Node* sibling) {
 	LeafNode* siblingLeaf = (LeafNode*)sibling;
 
-	for (size_t i = 0; siblingLeaf->getKeyCount(); i++) {
+	for (size_t i = 0; i<siblingLeaf->getKeyCount(); i++) {
 		keys.push_back(siblingLeaf->getKeyAt(i));
 		values.push_back(siblingLeaf->getValueAt(i));
 	}
@@ -140,6 +140,8 @@ void LeafNode::merge(KEY key, Node* sibling) {
 	if (siblingLeaf->rightSibling != nullptr) {
 		siblingLeaf->rightSibling->setLeftSibling(this);
 	}
+
+	delete siblingLeaf;
 }
 
 

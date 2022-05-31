@@ -54,6 +54,7 @@ namespace Boson {
 		virtual KEY   borrowFromSibling(KEY key, Node* sibling, size_t borrowIndex) = 0;
 		virtual void  borrowChildren(Node* borrower, Node* lender, size_t borrowIndex) = 0;
 		virtual void  print(int level) = 0;
+
 	protected:
 		size_t treeOrder;
 		size_t maxDegree;
