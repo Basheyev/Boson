@@ -130,7 +130,7 @@ namespace Boson {
 		~BalancedTree();
 		void   insert(KEY key, VALUE value);
 		VALUE  search(KEY key);
-		VALUE  directSearch(KEY key);
+		VALUE  sequencialSearch(KEY key);
 		bool   erase(KEY key);
 		size_t getTreeOrder();
 		Node*  getRoot();

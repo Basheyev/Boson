@@ -7,12 +7,14 @@
 
 #include "Boson.h"
 #include "table/BalancedTree.h"
-#include "test/test.h"
+#include "test/BalancedTreeTest.h"
 
+using namespace Boson;
 
 int main()
 {
-	//test_LeafNode(false);
-	test_BalancedTree();
+	BalancedTreeTest btt;
+	btt.run(false);
+
 	return 0;
 }

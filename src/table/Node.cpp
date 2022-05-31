@@ -153,7 +153,7 @@ Node* Node::dealOverflow() {
 	// if we are splitting the root node
 	if (getParent() == nullptr) {
 		// create new root node and set as parent to this node (grow at root)
-		Node* newRootNode = new InnerNode(maxDegree + 1);  
+		Node* newRootNode = new InnerNode(treeOrder);  
 		this->setParent(newRootNode);                           
 	}
 

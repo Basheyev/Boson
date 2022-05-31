@@ -16,6 +16,7 @@ add_executable (Boson
     "src/table/InnerNode.cpp" 
     "src/table/LeafNode.cpp"
 
-    "src/test/BalancedTreeTest.cpp")
+    "src/test/BalancedTreeTest.cpp"
+    "src/test/BalancedTreeTest.h")
 
 # TODO: Добавьте тесты и целевые объекты, если это необходимо.

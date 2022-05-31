@@ -39,10 +39,6 @@ BalancedTree::~BalancedTree() {
 // Insert key/value pair
 //-------------------------------------------------------------------------------------------------
 void BalancedTree::insert(KEY key, VALUE value) {
-	#ifdef DEBUG
-		cout << "Inserting key = " << key << " - " << value << endl;
-	#endif // DEBUG
-	
 	LeafNode* leaf = findLeafNode(key);
 	leaf->insertKey(key, value);
 	if (leaf->isOverflow()) {
@@ -65,7 +61,7 @@ VALUE BalancedTree::search(KEY key) {
 //-------------------------------------------------------------------------------------------------
 // Search value by key (list scanning)
 //-------------------------------------------------------------------------------------------------
-VALUE BalancedTree::directSearch(KEY key) {
+VALUE BalancedTree::sequencialSearch(KEY key) {
 	Node* firstLeaf = root;
 	// go down tree
 	while (firstLeaf->getNodeType() == NodeType::INNER) {
@@ -88,10 +84,7 @@ VALUE BalancedTree::directSearch(KEY key) {
 // Delete key/value pair
 //-------------------------------------------------------------------------------------------------
 bool BalancedTree::erase(KEY key) {
-//	#ifdef DEBUG
-		cout << "Erasing key = " << key << endl;
-//	#endif // DEBUG
-		
+
 	LeafNode* leaf = findLeafNode(key);
 	if (leaf->deleteKey(key) && leaf->isUnderflow()) {
 		Node* n = leaf->dealUnderflow();
@@ -137,11 +130,11 @@ Node* BalancedTree::getRoot() {
 void BalancedTree::printTree() {
 	cout << "----------------------------------------" << endl;
 	root->print(0);
-	cout << "----------------------------------------" << endl;
 }
 
 
 void BalancedTree::printContent() {
+	cout << "----------------------------------------" << endl;
 	Node* firstLeaf = root;
 	// go down tree
 	while (firstLeaf->getNodeType() == NodeType::INNER) {
@@ -152,5 +145,4 @@ void BalancedTree::printContent() {
 		firstLeaf->print(0);
 		firstLeaf = firstLeaf->getRightSibling();
 	}
-	cout << "----------------------------------------" << endl;
 }
