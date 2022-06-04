@@ -8,7 +8,7 @@
 *    (C) Bolat Basheyev 2022
 *
 =================================================================================================*/
-#include "BalancedTree.h"
+#include "BalancedTreeIndex.h"
 #include <iostream>
 
 using namespace Boson;
@@ -20,9 +20,10 @@ using namespace std;
 // - M/2 - minimal keys count per Inner node and Key-Value pairs per Leaf node
 // - M   - maximum Child nodes per Inner node
 //-------------------------------------------------------------------------------------------------
-BalancedTree::BalancedTree(size_t M) {
+BalancedTreeIndex::BalancedTreeIndex(size_t M) {
 	if (M < MINIMAL_TREE_ORDER) M = MINIMAL_TREE_ORDER;
 	this->treeOrder = M;
+	this->entriesCount = 0;
 	root = new LeafNode(M);
 }
 
@@ -30,7 +31,7 @@ BalancedTree::BalancedTree(size_t M) {
 //-------------------------------------------------------------------------------------------------
 // Balanced Tree Desctructor
 //-------------------------------------------------------------------------------------------------
-BalancedTree::~BalancedTree() {
+BalancedTreeIndex::~BalancedTreeIndex() {
 	delete root;
 }
 
@@ -38,20 +39,22 @@ BalancedTree::~BalancedTree() {
 //-------------------------------------------------------------------------------------------------
 // Insert key/value pair
 //-------------------------------------------------------------------------------------------------
-void BalancedTree::insert(KEY key, VALUE value) {
+bool BalancedTreeIndex::insert(KEY key, VALUE value) {
 	LeafNode* leaf = findLeafNode(key);
-	leaf->insertKey(key, value);
+	bool isInserted = leaf->insertKey(key, value);
 	if (leaf->isOverflow()) {
 		Node* n = leaf->dealOverflow();
 		if (n != nullptr) root = n;
 	}
+	entriesCount++;
+	return isInserted;
 }
 
 
 //-------------------------------------------------------------------------------------------------
 // Search value by key (binary search)
 //-------------------------------------------------------------------------------------------------
-VALUE BalancedTree::search(KEY key) {
+VALUE BalancedTreeIndex::search(KEY key) {
 	LeafNode* leaf = findLeafNode(key);
 	size_t index = leaf->search(key);
 	return (index == NOT_FOUND) ? nullptr : leaf->getValueAt(index);
@@ -59,38 +62,20 @@ VALUE BalancedTree::search(KEY key) {
 
 
 //-------------------------------------------------------------------------------------------------
-// Search value by key (list scanning)
-//-------------------------------------------------------------------------------------------------
-VALUE BalancedTree::sequencialSearch(KEY key) {
-	Node* firstLeaf = root;
-	// go down tree
-	while (firstLeaf->getNodeType() == NodeType::INNER) {
-		firstLeaf = ((InnerNode*)firstLeaf)->getChild(0);
-	}
-	// print list
-	while (firstLeaf != nullptr) {
-		for (size_t i = 0; i < firstLeaf->getKeyCount(); i++) {
-			if (firstLeaf->getKeyAt(i) == key) {
-				return ((LeafNode*)firstLeaf)->getValueAt(i);
-			}
-		}
-		firstLeaf = firstLeaf->getRightSibling();
-	}
-	return nullptr;
-}
-
-
-//-------------------------------------------------------------------------------------------------
 // Delete key/value pair
 //-------------------------------------------------------------------------------------------------
-bool BalancedTree::erase(KEY key) {
+bool BalancedTreeIndex::erase(KEY key) {
 
 	LeafNode* leaf = findLeafNode(key);
-	if (leaf->deleteKey(key) && leaf->isUnderflow()) {
-		Node* n = leaf->dealUnderflow();
-		if (n != nullptr) {
-			n->setParent(nullptr);
-			root = n;
+	
+	if (leaf->deleteKey(key)) {
+		entriesCount--;
+		if (leaf->isUnderflow()) {
+			Node* n = leaf->dealUnderflow();
+			if (n != nullptr) {
+				n->setParent(nullptr);
+				root = n;
+			}
 		}
 	}
 	return true;
@@ -100,45 +85,65 @@ bool BalancedTree::erase(KEY key) {
 //-------------------------------------------------------------------------------------------------
 // Search for LeafNode that contains specified key
 //-------------------------------------------------------------------------------------------------
-LeafNode* BalancedTree::findLeafNode(KEY key) {
+LeafNode* BalancedTreeIndex::findLeafNode(KEY key) {
 	Node* node = root;
 	InnerNode* innerNode;
 	size_t index;
 	while (node->getNodeType() == NodeType::INNER) {
 		index = node->search(key);
 		innerNode = (InnerNode*)node;
-		node = innerNode->getChild(index);
+		node = innerNode->getChildAt(index);
 	}
 	return (LeafNode*)node;
 }
 
 
 //-------------------------------------------------------------------------------------------------
-// Return tree order M:
-
+// Return tree order M
 //-------------------------------------------------------------------------------------------------
-size_t BalancedTree::getTreeOrder() {
+size_t BalancedTreeIndex::getTreeOrder() {
 	return this->treeOrder;
 }
 
 
-Node* BalancedTree::getRoot() {
+//-------------------------------------------------------------------------------------------------
+// Return tree height
+//-------------------------------------------------------------------------------------------------
+size_t BalancedTreeIndex::getTreeHeight() {
+	size_t levelCounter = 0;
+	Node* firstLeaf = root;
+	while (firstLeaf->getNodeType() == NodeType::INNER) {
+		firstLeaf = ((InnerNode*)firstLeaf)->getChildAt(0);
+		levelCounter++;
+	}
+	return levelCounter;
+}
+
+
+//-------------------------------------------------------------------------------------------------
+// Returns records count
+//-------------------------------------------------------------------------------------------------
+size_t BalancedTreeIndex::getEntriesCount() {
+	return entriesCount;
+}
+
+Node* BalancedTreeIndex::getRoot() {
 	return root;
 }
 
 
-void BalancedTree::printTree() {
+void BalancedTreeIndex::printTree() {
 	cout << "----------------------------------------" << endl;
 	root->print(0);
 }
 
 
-void BalancedTree::printContent() {
+void BalancedTreeIndex::printContent() {
 	cout << "----------------------------------------" << endl;
 	Node* firstLeaf = root;
 	// go down tree
 	while (firstLeaf->getNodeType() == NodeType::INNER) {
-		firstLeaf = ((InnerNode*)firstLeaf)->getChild(0);
+		firstLeaf = ((InnerNode*)firstLeaf)->getChildAt(0);
 	}
 	// print list
 	while (firstLeaf != nullptr) {

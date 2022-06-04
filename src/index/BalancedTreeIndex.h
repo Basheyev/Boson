@@ -1,8 +1,8 @@
 /*=================================================================================================
 * 
-*    Balanced PLus Tree Header
+*    Balanced Plus Tree Header
 * 
-*    Indexed key/value store
+*    Key/value store index
 * 
 *    BOSON embedded database
 *    (C) Bolat Basheyev 2022
@@ -11,7 +11,6 @@
 #pragma once
 
 #include <vector>
-#include <string>
 
 namespace Boson {
 
@@ -20,6 +19,7 @@ namespace Boson {
 	constexpr size_t NOT_FOUND = -1;
 
 	typedef enum { INNER, LEAF } NodeType;
+
 	typedef __int64     KEY;                     // Key type
 	typedef char*       VALUE;                   // Value payload
 
@@ -75,8 +75,8 @@ namespace Boson {
 		InnerNode(size_t m);
 		~InnerNode();
 		size_t search(KEY key);
-		Node* getChild(size_t index);
-		void  setChild(size_t index, Node* childNode);
+		Node* getChildAt(size_t index);
+		void  setChildAt(size_t index, Node* childNode);
 		void  insertAt(size_t index, KEY key, Node* leftChild, Node* rightChild);
 		void  deleteAt(size_t index);
 		Node* split();
@@ -100,9 +100,10 @@ namespace Boson {
 		LeafNode(size_t m);
 		~LeafNode();
 		size_t search(KEY key);
+		size_t searchPlaceFor(KEY key);
 		VALUE getValueAt(size_t index);
 		void  setValueAt(size_t index, VALUE value);
-		void  insertKey(KEY key, VALUE value);
+		bool  insertKey(KEY key, VALUE value);
 		void  insertAt(size_t index, KEY key, VALUE value);
 		bool  deleteKey(KEY key);
 		void  deleteAt(size_t index);
@@ -122,22 +123,29 @@ namespace Boson {
 
 
 	//---------------------------------------------------------------------------------------------
-	// Balanced Plus Tree class - indexed KEY/VALUE store
+	// Balanced Plus Tree class - KEY/VALUE store index
 	//---------------------------------------------------------------------------------------------
-	class BalancedTree {
+	class BalancedTreeIndex {
 	public:
-		BalancedTree(size_t M = DEFAULT_TREE_ORDER);
-		~BalancedTree();
-		void   insert(KEY key, VALUE value);
+		BalancedTreeIndex(size_t M = DEFAULT_TREE_ORDER);
+		~BalancedTreeIndex();
+		
+		bool   insert(KEY key, VALUE value);
 		VALUE  search(KEY key);
-		VALUE  sequencialSearch(KEY key);
+
 		bool   erase(KEY key);
+		size_t getEntriesCount();
+
 		size_t getTreeOrder();
+		size_t getTreeHeight();
 		Node*  getRoot();
+
 		void   printTree();
 		void   printContent();
+
 	private:
 		size_t treeOrder;
+		size_t entriesCount;
 		Node* root;
 		LeafNode* findLeafNode(KEY key);
 	};

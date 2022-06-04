@@ -5,18 +5,20 @@ cmake_minimum_required (VERSION 3.8)
 
 project ("Boson")
 
+include_directories("src/index" "src/test")
+
 # Добавьте источник в исполняемый файл этого проекта.
 add_executable (Boson 
     "src/Boson.cpp" 
     "src/Boson.h" 
 
-    "src/table/BalancedTree.cpp" 
-    "src/table/BalancedTree.h" 
-    "src/table/Node.cpp" 
-    "src/table/InnerNode.cpp" 
-    "src/table/LeafNode.cpp"
+    "src/index/BalancedTreeIndex.cpp" 
+    "src/index/BalancedTreeIndex.h" 
+    "src/index/Node.cpp" 
+    "src/index/InnerNode.cpp" 
+    "src/index/LeafNode.cpp"
 
     "src/test/BalancedTreeTest.cpp"
-    "src/test/BalancedTreeTest.h")
+    "src/test/BalancedTreeTest.h" "src/storage/PagerStorage.h")
 
 # TODO: Добавьте тесты и целевые объекты, если это необходимо.

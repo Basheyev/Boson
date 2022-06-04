@@ -8,7 +8,7 @@
 *    (C) Bolat Basheyev 2022
 *
 =================================================================================================*/
-#include "BalancedTree.h"
+#include "BalancedTreeIndex.h"
 #include <iostream>
 
 using namespace Boson;
@@ -36,7 +36,7 @@ InnerNode::~InnerNode() {
 //-------------------------------------------------------------------------------------------------
 // Returns child node at specified index
 //-------------------------------------------------------------------------------------------------
-Node* InnerNode::getChild(size_t index) {
+Node* InnerNode::getChildAt(size_t index) {
 	return children[index];
 }
 
@@ -44,7 +44,7 @@ Node* InnerNode::getChild(size_t index) {
 //-------------------------------------------------------------------------------------------------
 // Sets child node at specified index
 //-------------------------------------------------------------------------------------------------
-void InnerNode::setChild(size_t index, Node* childNode) {
+void InnerNode::setChildAt(size_t index, Node* childNode) {
 	children[index] = childNode;
 }
 
@@ -216,7 +216,7 @@ void InnerNode::mergeWithSibling(KEY key, Node* rightSiblingNode) {
 	// Copy sibling children
 	for (size_t i = 0; i < rightSibling->getKeyCount() + 1; ++i) {
 		// get sibling child
-		siblingChild = rightSibling->getChild(i);
+		siblingChild = rightSibling->getChildAt(i);
 		// reattach sibling child to this node
 		siblingChild->setParent(this);
 		// copy sibling child to this node
@@ -248,7 +248,7 @@ KEY InnerNode::borrowFromSibling(KEY key, Node* sibling, size_t borrowIndex) {
 	if (borrowIndex == 0) {
 		// borrow the first key from right sibling, append it to tail	
 		// get sibling child node
-		childNode = siblingNode->getChild(borrowIndex);
+		childNode = siblingNode->getChildAt(borrowIndex);
 		// reattach childNode to this node as parent
 		childNode->setParent(this);
 		// append borrowed key and child node to the tail of list
@@ -266,7 +266,7 @@ KEY InnerNode::borrowFromSibling(KEY key, Node* sibling, size_t borrowIndex) {
 
 	} else {
 		// borrow the last key from left sibling, insert it to head
-		childNode = siblingNode->getChild(borrowIndex + 1);
+		childNode = siblingNode->getChildAt(borrowIndex + 1);
 		// reattach childNode to this node as parent
 		childNode->setParent(this);
 		// insert borrowed key and child node to the list at beginning

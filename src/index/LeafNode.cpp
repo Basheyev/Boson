@@ -8,7 +8,7 @@
 *    (C) Bolat Basheyev 2022
 *
 =================================================================================================*/
-#include "BalancedTree.h"
+#include "BalancedTreeIndex.h"
 
 #include <iostream>
 
@@ -51,33 +51,66 @@ void LeafNode::setValueAt(size_t index, VALUE value) {
 
 
 //-------------------------------------------------------------------------------------------------
-// Search index of key in this node
+// Search index of key in this node (binary search in sorted array)
 //-------------------------------------------------------------------------------------------------
 size_t LeafNode::search(KEY key) {
-	for (size_t i = 0; i < keys.size(); i++) {
-		if (keys[i] == key) return i;
+
+	int64_t start = 0;                            // we need signed integers for
+	int64_t end = keys.size() - 1;                // correct comparison in while loop
+	size_t mid;                                   // middle index can not be negative
+	KEY entry;                                    // variable to hold value
+
+	while (start <= end) {                        // while start index <= end index
+		mid = start + (end - start) / 2;          // calculate middle index between start & end
+		entry = keys[mid];                        // get value in keys array at middle index
+		if (entry == key) return mid;             // if value equals to key return index
+		if (key < entry) end = mid - 1; else      // if key < value bound end index to middle-1
+		if (key > entry) start = mid + 1;         // if key > value bound start index to middle+1 
 	}
-	return NOT_FOUND;
+
+	return NOT_FOUND;                             // Key is definitely not found
+}
+
+
+//-------------------------------------------------------------------------------------------------
+// Search index for new key in sorted order (binary search in sorted array)
+//-------------------------------------------------------------------------------------------------
+size_t LeafNode::searchPlaceFor(KEY key) {
+
+	size_t insertIndex = keys.size();
+	int64_t start = 0;                            // we need signed integers for
+	int64_t end = keys.size() - 1;                // correct comparison in while loop
+	size_t mid;                                   // middle index can not be negative
+	KEY entry;                                    // variable to hold value
+
+	while (start <= end) {                        // while start index <= end index
+		mid = start + (end - start) / 2;          // calculate middle index between start & end
+		entry = keys[mid];                        // get value in keys array at middle index
+		if (entry == key) return NOT_FOUND;       // if value equals to key - key duplicate!
+		if (key < entry) {                        // if key < value 
+			end = mid - 1;                        // bound end index to middle-1
+			insertIndex = mid;                    // save index where next entry is greater
+		}
+		else if (key > entry) start = mid + 1;    // if key > value bound start index to middle+1 
+	}
+
+	return insertIndex;
 }
 
 
 //-------------------------------------------------------------------------------------------------
 // Insert key/value pair to this node in sorted order
 //-------------------------------------------------------------------------------------------------
-void LeafNode::insertKey(KEY key, VALUE value) {
+bool LeafNode::insertKey(KEY key, VALUE value) {
+
 	// find index to insert new key/value pair in sorted order
-	size_t insertIndex = keys.size();
-	for (size_t i = 0; i < keys.size(); i++) {
-		if (key < keys[i]) {
-			insertIndex = i;
-			break;
-		} else if (key == keys[i]) {
-			cout << "Key duplicate " << key << endl;
-			return; // do not allow duplicated values
-		}
-	}
+	size_t insertIndex = searchPlaceFor(key);
+	if (insertIndex == NOT_FOUND) return false;
+
 	// insert key/value
 	insertAt(insertIndex, key, value);
+
+	return true;
 }
 
 
@@ -131,16 +164,19 @@ Node* LeafNode::split() {
 void LeafNode::merge(KEY key, Node* sibling) {
 	LeafNode* siblingLeaf = (LeafNode*)sibling;
 
+	// copy keys and values from sibling node to this node
 	for (size_t i = 0; i<siblingLeaf->getKeyCount(); i++) {
 		keys.push_back(siblingLeaf->getKeyAt(i));
 		values.push_back(siblingLeaf->getValueAt(i));
 	}
 
+	// interconnect siblings
 	setRightSibling(siblingLeaf->rightSibling);
 	if (siblingLeaf->rightSibling != nullptr) {
 		siblingLeaf->rightSibling->setLeftSibling(this);
 	}
 
+	// Delete sibling node
 	delete siblingLeaf;
 }
 
@@ -181,7 +217,7 @@ void LeafNode::mergeWithSibling(KEY key, Node* rightSibling) {
 		values.push_back(siblingLeaf->getValueAt(i));
 	}
 
-	// Interconnect siblings links
+	// Interconnect siblings
 	this->setRightSibling(siblingLeaf->rightSibling);
 	if (siblingLeaf->rightSibling != nullptr) {
 		siblingLeaf->rightSibling->setLeftSibling(this);
@@ -196,16 +232,23 @@ void LeafNode::mergeWithSibling(KEY key, Node* rightSibling) {
 // Borrow child node at specified index from sibling and return new middle key
 //-------------------------------------------------------------------------------------------------
 KEY LeafNode::borrowFromSibling(KEY key, Node* sibling, size_t borrowIndex) {
+	
 	LeafNode* siblingNode = (LeafNode*)sibling;
+
 	// insert borrowed key/value pair
 	KEY borrowedKey = siblingNode->getKeyAt(borrowIndex);
 	VALUE borrowedValue = siblingNode->getValueAt(borrowIndex);
 	this->insertKey(borrowedKey, borrowedValue);
+
 	// delete borrowed key/value pair in sibling node
 	siblingNode->deleteAt(borrowIndex);
+
 	// return new middle key
-	KEY midKey = borrowIndex == 0 ? sibling->getKeyAt(0) : this->getKeyAt(0);
-	return midKey;
+	if (borrowIndex == 0) 
+		return sibling->getKeyAt(0); 
+	else 
+		return this->getKeyAt(0);
+
 }
 
 

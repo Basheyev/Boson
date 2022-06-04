@@ -9,7 +9,7 @@
 *
 =================================================================================================*/
 
-#include "BalancedTree.h"
+#include "BalancedTreeIndex.h"
 #include <iostream>
 
 using namespace Boson;
@@ -189,7 +189,7 @@ Node* Node::dealUnderflow() {
 		return nullptr;
 	}
 
-	// 2. Try to borrow lower key from rihgt sibling
+	// 2. Try to borrow lower key from right sibling
 	if (rightSibling != nullptr && rightSibling->canLendAKey() && rightSibling->parent == parent) {
 		size_t keyIndex = 0;
 		this->parent->borrowChildren(this, rightSibling, keyIndex);

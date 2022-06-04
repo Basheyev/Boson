@@ -1,5 +1,5 @@
 
-#include "..\table\BalancedTree.h"
+#include "BalancedTreeIndex.h"
 #include "BalancedTreeTest.h"
 
 #include <chrono>
@@ -111,20 +111,18 @@ bool BalancedTreeTest::testInnerNode(bool verbose) {
 
 bool BalancedTreeTest::testBalancedTree(bool verbose) {
 	bool result = true;
-	BalancedTree* bt = buildTree(verbose);
+	BalancedTreeIndex* bt = buildTree(verbose);
 	result &= (bt != nullptr);
 	result &= deleteTree(bt, verbose);
-
-	bt = buildRandomTree(verbose);
-	result &= testPerformance(bt, verbose);
-	delete bt;
-
+	result &= testPerformance(verbose);
 	return result;
 }
 
 
-BalancedTree* BalancedTreeTest::buildTree(bool verbose) {
-	BalancedTree* bt = new BalancedTree(3);
+BalancedTreeIndex* BalancedTreeTest::buildTree(bool verbose) {
+	BalancedTreeIndex* bt = new BalancedTreeIndex(3);
+	cout << "- size of leaf node " << sizeof(LeafNode) << " bytes" << endl;
+	cout << "- size of inner node " << sizeof(InnerNode) << " bytes" << endl;
 	bt->insert(10, "Baurzhan");
 	bt->insert(73, "Theya");
 	bt->insert(14, "Bolat");
@@ -150,41 +148,8 @@ BalancedTree* BalancedTreeTest::buildTree(bool verbose) {
 }
 
 
-BalancedTree* BalancedTreeTest::buildRandomTree(bool verbose) {
-	int entriesCount = 1000000;
-	BalancedTree* bt = new BalancedTree(32);
-	cout << "Generating " << entriesCount << " entries of data...";
-	auto start1 = chrono::steady_clock::now();
-	char* value = new char[entriesCount*8];
-	for (int i = 0; i < entriesCount; i++) {
-		value[i * 8 + 0] = 'A' + i % 26;
-		value[i * 8 + 1] = 'A' + (i+1) % 26;
-		value[i * 8 + 2] = 'A' + (i+2) % 26;
-		value[i * 8 + 3] = 'A' + (i+3) % 26;
-		value[i * 8 + 4] = 'A' + (i+4) % 26;
-		value[i * 8 + 5] = 'A' + (i+5) % 26;
-		value[i * 8 + 6] = 'A' + (i+6) % 26;
-		value[i * 8 + 7] = 0;
-	}
-	auto end1 = chrono::steady_clock::now();
-	cout << "OK (" << (end1 - start1).count()/1000000000.0 << " s)" << endl;
-
-
-	cout << "Inserting " << entriesCount << " entries intro B+ Tree...";
-	start1 = chrono::steady_clock::now();
-	for (int i = 0; i < entriesCount; i++) {
-		bt->insert(i, value);
-	}
-	end1 = chrono::steady_clock::now();
-	cout << "OK (" << (end1 - start1).count()/1000000000.0 << " s)" << endl;
-
-	// FIXME planned memory leak;
-
-	return bt;
-}
-
-
-bool BalancedTreeTest::deleteTree(BalancedTree* bt, bool verbose) {
+bool BalancedTreeTest::deleteTree(BalancedTreeIndex* bt, bool verbose) {
+	cout << "- deleting entries count=" << bt->getEntriesCount() << endl;
 	bt->erase(14);	if (verbose) bt->printTree();
 	bt->erase(11);	if (verbose) bt->printTree();
 	bt->erase(15);	if (verbose) bt->printTree();
@@ -210,37 +175,65 @@ bool BalancedTreeTest::deleteTree(BalancedTree* bt, bool verbose) {
 	bt->erase(58);	if (verbose) bt->printTree();
 	bt->erase(25);	if (verbose) bt->printTree();
 	bt->erase(33);	if (verbose) bt->printTree();
+	cout << "- remaining entries count=" << bt->getEntriesCount() << endl;
 	delete bt;
 	return true;
 }
 
 
 
-bool BalancedTreeTest::testPerformance(BalancedTree* bt, bool verbose) {
+bool BalancedTreeTest::testPerformance(bool verbose) {
 
-	cout << "Testing tree search performance:" << endl;
+	int entriesCount = 1000000;
+	BalancedTreeIndex* bt = new BalancedTreeIndex(32);
 
-	size_t searchKey = 456321;
-	
-	cout << "B+ tree index search for key: " << searchKey << " - ";
+	cout << "-------------------------------------------------------------" << endl;
+	cout << "Performance" << endl;
+	cout << "-------------------------------------------------------------" << endl;
 
+	cout << " - generating " << entriesCount << " entries of data...";
 	auto start1 = chrono::steady_clock::now();
-	auto value = bt->search(searchKey);
+
+	char* value = new char[entriesCount * 8];
+
+	for (int i = 0; i < entriesCount; i++) {
+		value[i * 8 + 0] = 'A' + i % 26;
+		value[i * 8 + 1] = 'A' + (i + 1) % 26;
+		value[i * 8 + 2] = 'A' + (i + 2) % 26;
+		value[i * 8 + 3] = 'A' + (i + 3) % 26;
+		value[i * 8 + 4] = 'A' + (i + 4) % 26;
+		value[i * 8 + 5] = 'A' + (i + 5) % 26;
+		value[i * 8 + 6] = 'A' + (i + 6) % 26;
+		value[i * 8 + 7] = 0;
+	}
 	auto end1 = chrono::steady_clock::now();
-	if (value == nullptr) cout << "NOT FOUND"; else cout << value;
-	cout << " ("
-		<< (end1 - start1).count() / 1000000.0
-		<< " ms)" << endl;
+	cout << "OK (" << (end1 - start1).count() / 1000000000.0 << " s)" << endl;
+
+
+	cout << " - inserting " << entriesCount << " entries into B+ Tree...";
+	start1 = chrono::steady_clock::now();
+	for (int i = 0; i < entriesCount; i++) {
+		bt->insert(i, &value[i * 8]);
+	}
+	end1 = chrono::steady_clock::now();
+	cout << "OK (" << (end1 - start1).count() / 1000000000.0 << " s)" << endl;
+
+	cout << " - generated tree order=" << bt->getTreeOrder() << " height=" << bt->getTreeHeight() << endl;
+
+
+	size_t searchKey = 999999;
+	
+	cout << " - b+ tree index search for key: " << searchKey << " - ";
+
+	start1 = chrono::steady_clock::now();
+	auto keyValue = bt->search(searchKey);
+	end1 = chrono::steady_clock::now();
+	if (keyValue == nullptr) cout << "NOT FOUND"; else cout << keyValue;
+	cout << " (" << (end1 - start1).count() << " ns)" << endl;
 	cout << flush;
 
-	cout << "Sequential search for key: " << searchKey << " - ";
-	auto start2 = chrono::steady_clock::now();
-	value = bt->sequencialSearch(searchKey);
-	auto end2 = chrono::steady_clock::now();
-	if (value == nullptr) cout << "NOT FOUND"; else cout << value;
-	cout << " ("
-		<< (end2 - start2).count() / 1000000.0
-		<< " ms)" << endl;
+
+	delete[] value;
 
 	return true;
 }
