@@ -11,14 +11,13 @@ include_directories("src/index" "src/test")
 add_executable (Boson 
     "src/Boson.cpp" 
     "src/Boson.h" 
-
-    "src/index/BalancedTreeIndex.cpp" 
+     
     "src/index/BalancedTreeIndex.h" 
-    "src/index/Node.cpp" 
-    "src/index/InnerNode.cpp" 
-    "src/index/LeafNode.cpp"
-
+     
     "src/test/BalancedTreeTest.cpp"
-    "src/test/BalancedTreeTest.h" "src/storage/PagerStorage.h")
+    "src/test/BalancedTreeTest.h" 
+    "src/storage/PagerStorage.h" 
+    "src/storage/PagerCache.cpp" 
+    "src/storage/PagerStorage.cpp")
 
 # TODO: Добавьте тесты и целевые объекты, если это необходимо.

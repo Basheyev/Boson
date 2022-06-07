@@ -32,7 +32,7 @@ bool BalancedTreeTest::testLeafNode(bool verbose) {
 	bool testPassed = true;
 	cout << "Testing LeafNode class logic:" << endl;
 	//------------------------------------------------------------------------
-	LeafNode ln(10);
+	LeafNode<int64_t, char*> ln(10);
 	testPassed &= assert(" - create leaf node of order 10...", ln.getKeyCount()==0);
 	//------------------------------------------------------------------------
 	ln.insertKey(10, "Baurzhan");
@@ -81,7 +81,7 @@ bool BalancedTreeTest::testLeafNode(bool verbose) {
 		ln.deleteKey(69) && ln.search(69)==NOT_FOUND);
 	if (verbose) ln.print(1);
 	//------------------------------------------------------------------------
-	LeafNode* splittedNode = (LeafNode*) ln.split();
+	LeafNode<int64_t, char*>* splittedNode = (LeafNode<int64_t, char*>*) ln.split();
 	testPassed &= assert(" - check node split...",
 		ln.getKeyCount() == 4 && !ln.canLendAKey() && splittedNode->getKeyCount() == 5 &&
 		splittedNode->getKeyAt(0)==45);
@@ -111,7 +111,7 @@ bool BalancedTreeTest::testInnerNode(bool verbose) {
 
 bool BalancedTreeTest::testBalancedTree(bool verbose) {
 	bool result = true;
-	BalancedTreeIndex* bt = buildTree(verbose);
+	BalancedTreeIndex<int64_t, char*>* bt = buildTree(verbose);
 	result &= (bt != nullptr);
 	result &= deleteTree(bt, verbose);
 	result &= testPerformance(verbose);
@@ -119,10 +119,10 @@ bool BalancedTreeTest::testBalancedTree(bool verbose) {
 }
 
 
-BalancedTreeIndex* BalancedTreeTest::buildTree(bool verbose) {
-	BalancedTreeIndex* bt = new BalancedTreeIndex(3);
-	cout << "- size of leaf node " << sizeof(LeafNode) << " bytes" << endl;
-	cout << "- size of inner node " << sizeof(InnerNode) << " bytes" << endl;
+BalancedTreeIndex<int64_t, char*>* BalancedTreeTest::buildTree(bool verbose) {
+	BalancedTreeIndex<int64_t, char*>* bt = new BalancedTreeIndex<int64_t, char*>(3);
+	cout << "- size of leaf node " << sizeof(LeafNode<int64_t, char*>) << " bytes" << endl;
+	cout << "- size of inner node " << sizeof(InnerNode<int64_t>) << " bytes" << endl;
 	bt->insert(10, "Baurzhan");
 	bt->insert(73, "Theya");
 	bt->insert(14, "Bolat");
@@ -148,7 +148,7 @@ BalancedTreeIndex* BalancedTreeTest::buildTree(bool verbose) {
 }
 
 
-bool BalancedTreeTest::deleteTree(BalancedTreeIndex* bt, bool verbose) {
+bool BalancedTreeTest::deleteTree(BalancedTreeIndex<int64_t, char*>* bt, bool verbose) {
 	cout << "- deleting entries count=" << bt->getEntriesCount() << endl;
 	bt->erase(14);	if (verbose) bt->printTree();
 	bt->erase(11);	if (verbose) bt->printTree();
@@ -185,7 +185,7 @@ bool BalancedTreeTest::deleteTree(BalancedTreeIndex* bt, bool verbose) {
 bool BalancedTreeTest::testPerformance(bool verbose) {
 
 	int entriesCount = 1000000;
-	BalancedTreeIndex* bt = new BalancedTreeIndex(32);
+	BalancedTreeIndex<int64_t, char*>* bt = new BalancedTreeIndex<int64_t, char*>(32);
 
 	cout << "-------------------------------------------------------------" << endl;
 	cout << "Performance" << endl;

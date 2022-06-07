@@ -14,8 +14,8 @@ namespace Boson {
 		bool testBalancedTree(bool verbose = true);
 		bool testPerformance(bool verbose = true);
 
-		BalancedTreeIndex* buildTree(bool verbose);
-		bool deleteTree(BalancedTreeIndex* bt, bool verbose);
+		BalancedTreeIndex<int64_t, char*>* buildTree(bool verbose);
+		bool deleteTree(BalancedTreeIndex<int64_t, char*>* bt, bool verbose);
 	};
 
 };
