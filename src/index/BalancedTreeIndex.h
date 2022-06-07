@@ -11,6 +11,7 @@
 #pragma once
 
 #include <vector>
+#include <iostream>
 
 namespace Boson {
 
@@ -362,7 +363,7 @@ namespace Boson {
 	//-------------------------------------------------------------------------------------------------
 	template <typename KEY> void Node<KEY>::printTabs(size_t n) {
 		for (size_t i = 0; i < n; i++) {
-			cout << "\t";
+			std::cout << "\t";
 		}
 	}
 
@@ -691,7 +692,7 @@ namespace Boson {
 			leftChild = children[i];
 			if (leftChild != prevRightChild) leftChild->print(level + 1);
 			printTabs(level);
-			cout << keys[i] << endl;
+			std::cout << keys[i] << std::endl;
 			if (i + 1 < children.size()) rightChild = children[i + 1];
 			if (rightChild != nullptr) {
 				rightChild->print(level + 1);
@@ -699,9 +700,6 @@ namespace Boson {
 			prevRightChild = rightChild;
 		}
 	}
-
-
-
 
 
 
@@ -969,7 +967,7 @@ namespace Boson {
 		//cout << "-------- " << keys.size() << " records -------" << endl;
 		for (size_t i = 0; i < keys.size(); i++) {
 			printTabs(level);
-			cout << keys[i] << " - " << values[i] << endl;
+			std::cout << keys[i] << " - " << values[i] << std::endl;
 		}
 		//cout << "-------------------------------\n";
 	}
@@ -978,6 +976,8 @@ namespace Boson {
 
 
 
+	
+	
 	//=================================================================================================
 	//
 	// Balanced Tree Index Template
@@ -1028,7 +1028,8 @@ namespace Boson {
 	template <typename KEY, typename VALUE> VALUE BalancedTreeIndex<KEY,VALUE>::search(KEY key) {
 		LeafNode<KEY,VALUE>* leaf = findLeafNode(key);
 		size_t index = leaf->search(key);
-		return (index == NOT_FOUND) ? nullptr : leaf->getValueAt(index);
+		// FIXME: For non-pointer types returning nullptr is invalid 
+		return (index == NOT_FOUND) ? 0 : leaf->getValueAt(index);
 	}
 
 
@@ -1104,13 +1105,13 @@ namespace Boson {
 
 
 	template <typename KEY, typename VALUE> void BalancedTreeIndex<KEY,VALUE>::printTree() {
-		cout << "----------------------------------------" << endl;
+		std::cout << "----------------------------------------" << std::endl;
 		root->print(0);
 	}
 
 
 	template <typename KEY, typename VALUE> void BalancedTreeIndex<KEY,VALUE>::printContent() {
-		cout << "----------------------------------------" << endl;
+		std::cout << "----------------------------------------" << std:endl;
 		Node<KEY>* firstLeaf = root;
 		// go down tree
 		while (firstLeaf->getNodeType() == NodeType::INNER) {

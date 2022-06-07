@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 namespace Boson {
 
 	class BalancedTreeTest {
@@ -14,8 +16,8 @@ namespace Boson {
 		bool testBalancedTree(bool verbose = true);
 		bool testPerformance(bool verbose = true);
 
-		BalancedTreeIndex<int64_t, char*>* buildTree(bool verbose);
-		bool deleteTree(BalancedTreeIndex<int64_t, char*>* bt, bool verbose);
+		BalancedTreeIndex<size_t, std::string>* buildTree(bool verbose);
+		bool deleteTree(BalancedTreeIndex<size_t, std::string>* bt, bool verbose);
 	};
 
 };

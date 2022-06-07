@@ -111,7 +111,7 @@ bool BalancedTreeTest::testInnerNode(bool verbose) {
 
 bool BalancedTreeTest::testBalancedTree(bool verbose) {
 	bool result = true;
-	BalancedTreeIndex<int64_t, char*>* bt = buildTree(verbose);
+	BalancedTreeIndex<size_t, string>* bt = buildTree(verbose);
 	result &= (bt != nullptr);
 	result &= deleteTree(bt, verbose);
 	result &= testPerformance(verbose);
@@ -119,10 +119,10 @@ bool BalancedTreeTest::testBalancedTree(bool verbose) {
 }
 
 
-BalancedTreeIndex<int64_t, char*>* BalancedTreeTest::buildTree(bool verbose) {
-	BalancedTreeIndex<int64_t, char*>* bt = new BalancedTreeIndex<int64_t, char*>(3);
-	cout << "- size of leaf node " << sizeof(LeafNode<int64_t, char*>) << " bytes" << endl;
-	cout << "- size of inner node " << sizeof(InnerNode<int64_t>) << " bytes" << endl;
+BalancedTreeIndex<size_t, string>* BalancedTreeTest::buildTree(bool verbose) {
+	BalancedTreeIndex<size_t, string>* bt = new BalancedTreeIndex<size_t, string>(3);
+	cout << "- size of leaf node " << sizeof(LeafNode<size_t, string>) << " bytes" << endl;
+	cout << "- size of inner node " << sizeof(InnerNode<size_t>) << " bytes" << endl;
 	bt->insert(10, "Baurzhan");
 	bt->insert(73, "Theya");
 	bt->insert(14, "Bolat");
@@ -148,7 +148,7 @@ BalancedTreeIndex<int64_t, char*>* BalancedTreeTest::buildTree(bool verbose) {
 }
 
 
-bool BalancedTreeTest::deleteTree(BalancedTreeIndex<int64_t, char*>* bt, bool verbose) {
+bool BalancedTreeTest::deleteTree(BalancedTreeIndex<size_t, string>* bt, bool verbose) {
 	cout << "- deleting entries count=" << bt->getEntriesCount() << endl;
 	bt->erase(14);	if (verbose) bt->printTree();
 	bt->erase(11);	if (verbose) bt->printTree();
@@ -185,7 +185,7 @@ bool BalancedTreeTest::deleteTree(BalancedTreeIndex<int64_t, char*>* bt, bool ve
 bool BalancedTreeTest::testPerformance(bool verbose) {
 
 	int entriesCount = 1000000;
-	BalancedTreeIndex<int64_t, char*>* bt = new BalancedTreeIndex<int64_t, char*>(32);
+	BalancedTreeIndex<size_t, string>* bt = new BalancedTreeIndex<size_t, string>(32);
 
 	cout << "-------------------------------------------------------------" << endl;
 	cout << "Performance" << endl;
@@ -228,7 +228,7 @@ bool BalancedTreeTest::testPerformance(bool verbose) {
 	start1 = chrono::steady_clock::now();
 	auto keyValue = bt->search(searchKey);
 	end1 = chrono::steady_clock::now();
-	if (keyValue == nullptr) cout << "NOT FOUND"; else cout << keyValue;
+	if (keyValue.empty()) cout << "NOT FOUND"; else cout << keyValue;
 	cout << " (" << (end1 - start1).count() << " ns)" << endl;
 	cout << flush;
 
