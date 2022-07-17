@@ -1,6 +1,6 @@
 /*=================================================================================================
 * 
-*    Balanced Plus Tree Template
+*    B+ Tree Template
 * 
 *    Key/value store index template
 * 
@@ -17,7 +17,7 @@ namespace Boson {
 
 	constexpr size_t MINIMAL_TREE_ORDER = 3;
 	constexpr size_t DEFAULT_TREE_ORDER = 5;
-	constexpr size_t NOT_FOUND = -1;
+	constexpr size_t NOT_FOUND = 0xFFFFFFFFFFFFFFFF;
 
 	typedef enum { INNER = 1, LEAF = 2 } NodeType;
 
@@ -90,7 +90,7 @@ namespace Boson {
 		NodeType   getNodeType();
 		void       print(int level);
 	private:
-		std::vector<Node*> children;
+		std::vector<Node<KEY>*> children;
 	};
 
 
@@ -249,7 +249,7 @@ namespace Boson {
 	//-------------------------------------------------------------------------------------------------
 	// Sets node parent node
 	//-------------------------------------------------------------------------------------------------
-	template <typename KEY> void Node<KEY>::setParent(Node* parent) {
+	template <typename KEY> void Node<KEY>::setParent(Node<KEY>* parent) {
 		this->parent = parent;
 	}
 
@@ -265,7 +265,7 @@ namespace Boson {
 	//-------------------------------------------------------------------------------------------------
 	// Sets node's left sibling node
 	//-------------------------------------------------------------------------------------------------
-	template <typename KEY> void Node<KEY>::setLeftSibling(Node* leftSibling) {
+	template <typename KEY> void Node<KEY>::setLeftSibling(Node<KEY>* leftSibling) {
 		this->leftSibling = leftSibling;
 	}
 
@@ -281,7 +281,7 @@ namespace Boson {
 	//-------------------------------------------------------------------------------------------------
 	// Sets node's right sibling node
 	//-------------------------------------------------------------------------------------------------
-	template <typename KEY> void Node<KEY>::setRightSibling(Node* rightSibling) {
+	template <typename KEY> void Node<KEY>::setRightSibling(Node<KEY>* rightSibling) {
 		this->rightSibling = rightSibling;
 	}
 
@@ -315,7 +315,7 @@ namespace Boson {
 		this->setRightSibling(newRightNode);
 
 		// Push middle key up to parent the node (root node returned)
-		Node* rootNode = this->parent->pushUpKey(upKey, this, newRightNode);
+		Node<KEY>* rootNode = this->parent->pushUpKey(upKey, this, newRightNode);
 
 		// Return current root node
 		return rootNode;
@@ -346,12 +346,12 @@ namespace Boson {
 
 		if (leftSibling != nullptr && leftSibling->parent == parent) {
 			// 3. Try to merge with left sibling
-			Node* rootNode = parent->mergeChildren(leftSibling, this);
+			Node<KEY>* rootNode = parent->mergeChildren(leftSibling, this);
 			return rootNode;
 		}
 		else {
 			// 4. Try to merge with right sibling
-			Node* rootNode = parent->mergeChildren(this, rightSibling);
+			Node<KEY>* rootNode = parent->mergeChildren(this, rightSibling);
 			return rootNode;
 		}
 
@@ -848,7 +848,7 @@ namespace Boson {
 	//-------------------------------------------------------------------------------------------------
 	template <typename KEY, typename VALUE> Node<KEY>* LeafNode<KEY, VALUE>::split() {
 		size_t midIndex = keys.size() / 2;
-		LeafNode* newNode = new LeafNode(this->treeOrder);
+		LeafNode<KEY,VALUE>* newNode = new LeafNode(this->treeOrder);
 		for (size_t i = midIndex; i < keys.size(); ++i) {
 			newNode->insertKey(keys[i], values[i]);
 		}
@@ -862,7 +862,7 @@ namespace Boson {
 	// Merges two leaf nodes
 	//-------------------------------------------------------------------------------------------------
 	template <typename KEY, typename VALUE> void LeafNode<KEY, VALUE>::merge(KEY key, Node<KEY>* sibling) {
-		LeafNode* siblingLeaf = (LeafNode*)sibling;
+		LeafNode<KEY,VALUE>* siblingLeaf = (LeafNode<KEY,VALUE>*)sibling;
 
 		// copy keys and values from sibling node to this node
 		for (size_t i = 0; i < siblingLeaf->getKeyCount(); i++) {
@@ -885,7 +885,7 @@ namespace Boson {
 	// Unsupported operation for leaf node
 	//-------------------------------------------------------------------------------------------------
 	template <typename KEY, typename VALUE> Node<KEY>* LeafNode<KEY, VALUE>::pushUpKey(KEY key, Node<KEY>* leftChild, Node<KEY>* rightChild) {
-		throw std::runtime_error("Unsupported operation");
+		throw std::runtime_error("Unsupported operation: leaf node can't push keys up.");
 	}
 
 
@@ -893,14 +893,14 @@ namespace Boson {
 	// Unsupported operation for leaf node
 	//-------------------------------------------------------------------------------------------------
 	template <typename KEY, typename VALUE> void LeafNode<KEY, VALUE>::borrowChildren(Node<KEY>* borrower, Node<KEY>* lender, size_t borrowIndex) {
-		throw std::runtime_error("Unsupported operation");
+		throw std::runtime_error("Unsupported operation: leaf node can't process children borrowing.");
 	}
 
 	//-------------------------------------------------------------------------------------------------
 	// Unsupported operation for leaf node
 	//-------------------------------------------------------------------------------------------------
 	template <typename KEY, typename VALUE> Node<KEY>* LeafNode<KEY, VALUE>::mergeChildren(Node<KEY>* leftChild, Node<KEY>* rightChild) {
-		throw std::runtime_error("Unsupported operation");
+		throw std::runtime_error("Unsupported operation: leaf node can't merge children.");
 	}
 
 
@@ -909,7 +909,7 @@ namespace Boson {
 	//-------------------------------------------------------------------------------------------------
 	template <typename KEY, typename VALUE> void LeafNode<KEY, VALUE>::mergeWithSibling(KEY key, Node<KEY>* rightSibling) {
 
-		LeafNode* siblingLeaf = (LeafNode*)rightSibling;
+		LeafNode<KEY,VALUE>* siblingLeaf = (LeafNode<KEY,VALUE>*)rightSibling;
 
 		// Copy keys and values at the tail of this node
 		for (size_t i = 0; i < siblingLeaf->getKeyCount(); ++i) {
@@ -933,7 +933,7 @@ namespace Boson {
 	//-------------------------------------------------------------------------------------------------
 	template <typename KEY, typename VALUE> KEY LeafNode<KEY, VALUE>::borrowFromSibling(KEY key, Node<KEY>* sibling, size_t borrowIndex) {
 
-		LeafNode* siblingNode = (LeafNode*)sibling;
+		LeafNode<KEY,VALUE>* siblingNode = (LeafNode<KEY, VALUE>*)sibling;
 
 		// insert borrowed key/value pair
 		KEY borrowedKey = siblingNode->getKeyAt(borrowIndex);
@@ -1115,7 +1115,7 @@ namespace Boson {
 		Node<KEY>* firstLeaf = root;
 		// go down tree
 		while (firstLeaf->getNodeType() == NodeType::INNER) {
-			firstLeaf = ((InnerNode*)firstLeaf)->getChildAt(0);
+			firstLeaf = ((InnerNode<KEY>*)firstLeaf)->getChildAt(0);
 		}
 		// print list
 		while (firstLeaf != nullptr) {

@@ -1,0 +1,77 @@
+==========================================================================
+Boson Database
+==========================================================================
+
+Core features
+- Emdeddable NoSQL document database engine.
+- Standard Key/Value persistent document store (JSON).
+- Fast document search by ID in b+ tree index.
+- Support cursors for linear records traversal.
+
+
+Considerations:
+- IO performance grow when cache page size aligned to a storage device block size (256Kb for SSD)
+- Average JSON value size 1525 bytes (varying between 512-2048 bytes)
+
+-
+
+===============================================================================
+
+1. BOSON DATABASE ARCHITECTURE
+
+===============================================================================
+
+
+
+     ---------------------------------------------------
+    |                 Boson Key-Value API               | 
+     ---------------------------------------------------
+                |                           |
+     -----------------------     -----------------------
+    |    Database Storage   |   |    Index (B+ Tree)    |
+     -----------------------     -----------------------
+                |                           |
+     ---------------------------------------------------
+    |                 Cached File IO (LRU)              | 
+     ---------------------------------------------------
+                              |
+     ---------------------------------------------------
+    |                   Database File                   |
+     --------------------------------------------------- 
+
+
+
+
+
+===============================================================================
+
+2. INTERNAL ALGORITHMS AND PERFORMANCE STRATEGIES
+
+===============================================================================
+
+2.1. Database file caching (CachedFile Class)
+
+2.1.1. Read operations
+
+CachedFile class is used for improve performance of file IO operations. 
+File accessed through aligned blocks of fixed size (pages) that loaded 
+into the cache that implements LRU strategy (Least Recently Used). The 
+element that hasn't been used for the longest time will be evicted from 
+the cache.
+
+On every read operation CacheFile class looks up for page in
+the cache. If there is a cache hit copies requested data to the user 
+buffer, otherwise load page to the cache from file, and copies to the 
+user's buffer. All recently loaded cache pages marked as "clean".
+
+
+2.1.2. Write operations
+
+For write operations, CachedFile uses Fetch-Before-Write policy.
+If there is a cache hit, write operation changes cache page
+and marks it as "dirty". If there is a cache miss, then file 
+page loaded to the cache and after changes applied.
+
+On file close or when there is no free pages available in the
+cache, CachedFile frees most aged pages. When the page is freed,
+if it has "dirty" mark, page persisted on the storage device.

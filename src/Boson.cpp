@@ -2,27 +2,23 @@
 * ==========================================================================
 * Boson Database
 * ==========================================================================
-* - Serverless, NoSQL database engine.
-* - Transactional (ACID) database.
-* - Zero configuration.
-* - Single database file, does not use temporary files.
-* - Cross-platform file format.
-* - Self-Contained library without dependency.
+* - NoSQL database engine.
+* - Single database file.
 * - Standard Key/Value store.
 * - Document store (JSON).
 * - Support cursors for linear records traversal.
-* - Pluggable run-time interchangeable storage engine.
 * - Support for on-disk as well in-memory databases.
-* - Built with a powerful disk storage engine which support O(1) lookup.
-* - Thread safe and full reentrant.
-* - Simple, Clean and easy to use API.
 * - Support Terabyte sized databases.
 * ==========================================================================
 * (C) Bolat Basheyev 2022
 */
 
 #include "Boson.h"
-#include "BalancedTreeIndex.h"
+
+#include "io/CachedFile.h"
+#include "test/CachedFileTest.h"
+
+#include "core/BalancedTreeIndex.h"
 #include "BalancedTreeTest.h"
 
 #include <chrono>
@@ -31,30 +27,26 @@
 
 using namespace Boson;
 
+
+
+void standardIORead(char* filename) {
+	
+}
+
+
 int main()
 {
-    //BalancedTreeTest btt;
-	//btt.run(true);
+	CachedFileTest cf;
 
-	BalancedTreeIndex<std::string, double> bti(3);
+	char* filename = "datafile.db";
 
-	bti.insert("Bolat", 8.14);
-	bti.insert("Maksat", 9.14);
-	bti.insert("Sanat", 7.14);
-	bti.insert("Uat", 6.14);
-	bti.insert("Kuat", 1.14);
-	bti.insert("Ali", 2.14);
-	bti.insert("Zangar", 3.14);
-	bti.insert("Shokan", 4.14);
-	bti.insert("Hasan", 5.14);
-	
-	bti.printTree();
+	size_t bufferSize = 1565; // average JSON size
 
-	bti.erase("Maksat");
+	cf.open(filename);
+	cf.sequencialReadTest(bufferSize);
+	cf.close();
 
-	bti.printTree();
-
-	std::cout << bti.search("Zangar") << std::endl;
+	cf.stdioSequencialRead(filename, bufferSize);
 
 	return 0;
 }
