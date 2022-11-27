@@ -22,7 +22,9 @@ add_executable (Boson
      "src/storage/DatabaseStorage.h" 
      "src/storage/DatabaseStorage.cpp"   
 
-     "src/io/CachedFile.h" 
-     "src/io/CachedFile.cpp" "src/test/CachedFileTest.h" "src/test/CachedFileTest.cpp")
+     "src/io/CachedFileIO.h" 
+     "src/io/CachedFileIO.cpp" 
+     "src/test/CachedFileIOTest.h" 
+     "src/test/CachedFileIOTest.cpp")
 
 # TODO: Добавьте тесты и целевые объекты, если это необходимо.

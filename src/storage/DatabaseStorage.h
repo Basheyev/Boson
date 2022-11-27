@@ -22,7 +22,7 @@
 =================================================================================================*/
 #pragma once
 
-#include "io/CachedFile.h"
+#include "io/CachedFileIO.h"
 
 #include <vector>
 #include <string>
@@ -89,7 +89,7 @@ namespace Boson {
 
 	protected:
 
-		CachedFilePager pager;
+		CachedFileIOPager pager;
 		
 		bool seek(size_t position);
 		size_t getFreeRecord(size_t capacity);

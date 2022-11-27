@@ -15,8 +15,8 @@
 
 #include "Boson.h"
 
-#include "io/CachedFile.h"
-#include "test/CachedFileTest.h"
+#include "io/CachedFileIO.h"
+#include "test/CachedFileIOTest.h"
 
 #include "core/BalancedTreeIndex.h"
 #include "BalancedTreeTest.h"
@@ -36,17 +36,18 @@ void standardIORead(char* filename) {
 
 int main()
 {
-	CachedFileTest cf;
+	CachedFileIOTest cf;
 
-	char* filename = "datafile.db";
+	char* filename = "write.db";
 
 	size_t bufferSize = 1565; // average JSON size
 
 	cf.open(filename);
+	cf.sequencialWriteTest(0);
 	cf.sequencialReadTest(bufferSize);
 	cf.close();
 
-	cf.stdioSequencialRead(filename, bufferSize);
+	//cf.stdioSequencialRead(filename, bufferSize);
 
 	return 0;
 }

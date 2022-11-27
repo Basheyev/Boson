@@ -1,23 +1,23 @@
 #pragma once
 
-#include "CachedFile.h"
+#include "CachedFileIO.h"
 
 namespace Boson {
 
 
 
-	class CachedFileTest {
+	class CachedFileIOTest {
 	public:
 
-		CachedFileTest();
-		~CachedFileTest();
+		CachedFileIOTest();
+		~CachedFileIOTest();
 
 		void open(char* filename, size_t cacheSize = DEFAULT_CACHE_SIZE);
 		
 		void sequencialReadTest(size_t readBufferSize);
 
 		void randomReadTest(size_t position, size_t bufferSize);
-		void sequencialWriteTest();
+		void sequencialWriteTest(size_t bufferSize);
 		void randomWriteTest();
 
 		void close();
@@ -27,7 +27,7 @@ namespace Boson {
 
 	private:
 
-		CachedFile cf;
+		CachedFileIO cf;
 
 	};
 

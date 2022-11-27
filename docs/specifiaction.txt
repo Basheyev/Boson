@@ -1,18 +1,20 @@
-==========================================================================
+===============================================================================
 Boson Database
-==========================================================================
+===============================================================================
 
-Core features
+Core features:
 - Emdeddable NoSQL document database engine.
 - Standard Key/Value persistent document store (JSON).
 - Fast document search by ID in b+ tree index.
 - Support cursors for linear records traversal.
+- Self-contained, without dependencies
+- Single file database.
 
 
 Considerations:
-- IO performance grow when cache page size aligned to a storage device block size (256Kb for SSD)
-- Average JSON value size 1525 bytes (varying between 512-2048 bytes)
-
+- IO performance grow when page size is aligned to a storage device read 
+  block size (4Kb page/sector for HDD, 4Kb pages and 256-512Kb block for SSD)
+- Average JSON size value 1525 bytes (varying between 512-2048 bytes)
 -
 
 ===============================================================================
@@ -32,13 +34,12 @@ Considerations:
      -----------------------     -----------------------
                 |                           |
      ---------------------------------------------------
-    |                 Cached File IO (LRU)              | 
+    |              Cached File IO (LRU/FBW)             | 
      ---------------------------------------------------
                               |
      ---------------------------------------------------
     |                   Database File                   |
      --------------------------------------------------- 
-
 
 
 
@@ -49,11 +50,11 @@ Considerations:
 
 ===============================================================================
 
-2.1. Database file caching (CachedFile Class)
+2.1. Database file caching (CachedFileIO Class)
 
-2.1.1. Read operations
+2.1.1. Read operations (LRU)
 
-CachedFile class is used for improve performance of file IO operations. 
+CachedFileIO class is used for improve performance of file IO operations. 
 File accessed through aligned blocks of fixed size (pages) that loaded 
 into the cache that implements LRU strategy (Least Recently Used). The 
 element that hasn't been used for the longest time will be evicted from 
@@ -65,13 +66,19 @@ buffer, otherwise load page to the cache from file, and copies to the
 user's buffer. All recently loaded cache pages marked as "clean".
 
 
-2.1.2. Write operations
+2.1.2. Write operations (FBW)
 
-For write operations, CachedFile uses Fetch-Before-Write policy.
+For write operations, CachedFileIO uses Fetch-Before-Write policy.
 If there is a cache hit, write operation changes cache page
 and marks it as "dirty". If there is a cache miss, then file 
-page loaded to the cache and after changes applied.
+page loaded to the cache and after changes are applied.
 
 On file close or when there is no free pages available in the
-cache, CachedFile frees most aged pages. When the page is freed,
+cache, CachedFileIO frees most aged pages. When the page is freed,
 if it has "dirty" mark, page persisted on the storage device.
+
+
+2.1.3. Page search
+
+As most frequent operation, page search uses cached pages hashmap 
+to win O(1) algorithm time complexity.
