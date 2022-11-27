@@ -29,25 +29,27 @@ using namespace Boson;
 
 
 
-void standardIORead(char* filename) {
-	
-}
-
 
 int main()
 {
 	CachedFileIOTest cf;
 
-	char* filename = "write.db";
+	char* filename = "datafile.db"; // "write.db";
 
 	size_t bufferSize = 1565; // average JSON size
 
+	//cf.stdioSequencialRead(filename, bufferSize);
+	
+
 	cf.open(filename);
-	cf.sequencialWriteTest(0);
-	cf.sequencialReadTest(bufferSize);
+	//cf.sequencialWriteTest(0);
+	cf.randomReadTest(1000, bufferSize);
+	//cf.sequencialReadTest(bufferSize);
 	cf.close();
 
-	//cf.stdioSequencialRead(filename, bufferSize);
+	
+	cf.stdioRandomRead(filename, 1000, bufferSize);
+
 
 	return 0;
 }

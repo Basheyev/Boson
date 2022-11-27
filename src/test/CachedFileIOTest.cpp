@@ -22,7 +22,7 @@ CachedFileIOTest::~CachedFileIOTest() {
 
 void CachedFileIOTest::open(char* filename, size_t cacheSize) {
 	if (!cf.open(filename, cacheSize)) {
-		std::cout << "error reading file: " << filename << std::endl;
+		std::cout << "Error reading file: '" << filename << ";" << std::endl;
 	}
 }
 
@@ -62,13 +62,19 @@ void CachedFileIOTest::randomReadTest(size_t position, size_t bufferSize) {
 	std::cout << "file size: " << fileSize << " bytes" << std::endl;
 
 	size_t bytesRead = 0;
+	size_t offset = 0;
 	auto startTime = std::chrono::steady_clock::now();
-	bytesRead = cf.read(position, buffer, bufferSize);
-	buffer[bytesRead - 1] = 0;
-	std::cout << buffer;
-
+	
+	while (bytesRead < fileSize) {
+		offset = (size_t)std::rand() * 128;
+		bytesRead += cf.read(position + offset, buffer, bufferSize);
+	}
+	
 	auto endTime = std::chrono::steady_clock::now();
-	std::cout << std::endl;
+	auto duration = (endTime - startTime).count() / 1000000.0;
+	
+	std::cout << "Cached file IO bytes read: " << bytesRead;
+	std::cout << " (" << duration << " ms)" << std::endl;
 
 	delete[] buffer;
 	
@@ -86,7 +92,7 @@ void CachedFileIOTest::sequencialWriteTest(size_t bufferSize) {
 
 	cf.read(DEFAULT_CACHE_PAGE_SIZE - length / 2, readBuf, length);
 	readBuf[length] = 0;
-	std::cout << "READING: '" << readBuf << "' (" << strlen(readBuf) << " bytes)" << std::endl;
+	std::cout << "READING 1: '" << readBuf << "' (" << strlen(readBuf) << " bytes)" << std::endl;
 	
 
 	if (strcmp(writeBuf, readBuf) == 0) {
@@ -94,10 +100,6 @@ void CachedFileIOTest::sequencialWriteTest(size_t bufferSize) {
 	} else {
 		std::cout << "Sequencial write on page boundry FAILED!" << std::endl;
 	}
-
-	cf.read(DEFAULT_CACHE_PAGE_SIZE - length / 2, readBuf, length);
-	readBuf[length] = 0;
-
 
 	delete[] readBuf;
 }
@@ -129,6 +131,34 @@ void CachedFileIOTest::stdioSequencialRead(char* filename, size_t bufferSize) {
 
 	while (bytesRead < fileSize) {
 		_fseeki64(f, bytesRead, SEEK_SET);
+		bytesRead += fread(bufferData, 1, bufferSize, f);
+	}
+
+	auto endTime = std::chrono::steady_clock::now();
+	fclose(f);
+	delete[] bufferData;
+	std::cout << "Standart IO bytes read: " << bytesRead;
+	std::cout << " (" << (endTime - startTime).count() / 1000000.0 << " ms)" << std::endl;
+}
+
+
+
+void CachedFileIOTest::stdioRandomRead(char* filename, size_t position, size_t bufferSize) {
+
+	char* bufferData = new char[bufferSize];
+	FILE* f = fopen(filename, "r+b");
+
+	size_t bytesRead = 0;
+	auto startTime = std::chrono::steady_clock::now();
+
+	_fseeki64(f, 0, SEEK_END);
+	size_t fileSize = ftell(f);
+	_fseeki64(f, 0, SEEK_SET);
+	size_t offset = 0;
+
+	while (bytesRead < fileSize) {
+		offset = position + (size_t)std::rand() * 128;
+		_fseeki64(f, offset, SEEK_SET);
 		bytesRead += fread(bufferData, 1, bufferSize, f);
 	}
 

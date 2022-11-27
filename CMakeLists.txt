@@ -13,10 +13,8 @@ add_executable (Boson
     "src/Boson.h" 
      
     "src/core/BalancedTreeIndex.h" 
-     
     "src/test/BalancedTreeTest.cpp"
     "src/test/BalancedTreeTest.h" 
-     
      
      "src/index/DBIndex.h"   
      "src/storage/DatabaseStorage.h" 

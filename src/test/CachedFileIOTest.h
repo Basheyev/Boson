@@ -24,6 +24,7 @@ namespace Boson {
 
 
 		void stdioSequencialRead(char* filename, size_t readBufferSize);
+		void stdioRandomRead(char* filename, size_t position, size_t readBufferSize);
 
 	private:
 
