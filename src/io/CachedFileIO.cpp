@@ -1,13 +1,29 @@
-
+/**
+* 
+* 
+* 
+* 
+* 
+* 
+* 
+*  Performance research:
+*     
+*  - In sequencial read CachedFileIO outperforms STDIO by 20%-200%
+*    for JSONs under 180-1565 bytes (average JSON size). But for
+*    JSONs in range 2600-8096 bytes works slower 13-32%.
+* 
+*  - In random read with cache misses less than 33-50% CachedFileIO
+*    outperforms STDIO by 20%-40%. With cache misses more than 95%,
+*    CachedFileIO works slower than STDIO by 5%-13%.
+* 
+*/
 
 #include "CachedFileIO.h"
 
 #include <algorithm>
-
 #include <iostream>
 
 using namespace Boson;
-
 
 //-----------------------------------------------------------------------------
 // Constructor
@@ -18,6 +34,8 @@ CachedFileIO::CachedFileIO() {
 	this->cachePagesInfo = nullptr;
 	this->cachePagesData = nullptr;
 	this->readOnly = false;
+	this->cacheRequests = 0;
+	this->cacheMisses = 0;
 }
 
 
@@ -64,6 +82,11 @@ bool CachedFileIO::open(char* dbName, size_t cacheSize, bool isReadOnly) {
 
 	// Set readOnly flag
 	this->readOnly = isReadOnly;
+
+
+    // Reset stats
+	this->cacheRequests = 0;
+	this->cacheMisses = 0;
 
 	// file successfuly opened
 	return true;
@@ -194,95 +217,6 @@ size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 }
 
 
-/*
-//-----------------------------------------------------------------------------
-// Reads requested amount of bytes to the data buffer
-//-----------------------------------------------------------------------------	
-size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
-
-	if (fileHandler == nullptr || length==0) return 0;
-
-	size_t bytesRead = 0;
-
-	// Calculate first page number and page offset
-	size_t firstPageNo = position / DEFAULT_CACHE_PAGE_SIZE;  
-	size_t firstPageOffset = position % DEFAULT_CACHE_PAGE_SIZE;
-
-	// Calculate total amount of pages and remaining bytes to read
-	size_t pagesToRead = (position + length) / DEFAULT_CACHE_PAGE_SIZE - firstPageNo + 1;
-	size_t remainingBytes = (position + length) % DEFAULT_CACHE_PAGE_SIZE;
-	if (remainingBytes > length) remainingBytes = length;
-		
-
-	size_t index = 0;
-	size_t pageNo;
-	size_t pageCounter = 0;
-	size_t bytesToCopy = 0;
-	uint8_t* dst;
-	uint8_t* src;
-
-	// Go through required pages of file
-	while (pageCounter < pagesToRead) {
-				
-		// Check if this page is already loaded to the cache
-		pageNo = firstPageNo + pageCounter;
-		index = searchPageInCache(pageNo);
-
-		// if not, load page from storage device to the cache
-		if (index == PAGE_NOT_FOUND) {
-			index = loadPageToCache(pageNo);
-			if (index == PAGE_NOT_FOUND) return false; // FIXME: return value is wrong
-		}
-
-		// if this is last page we reading?
-		bool notLastIteration = (pageCounter < pagesToRead - 1);
-
-		// check remaining bytes to read from page in cache
-		if (notLastIteration || remainingBytes == 0) {
-			bytesToCopy = DEFAULT_CACHE_PAGE_SIZE;
-		} else {
-			bytesToCopy = remainingBytes;
-		}
-				
-		// get amount of available data in the cache page
-		size_t pageDataLength = cachePagesInfo[index].availableDataLength;
-
-		// if it's a first page, take first page read offset in account
-		if (pageNo == firstPageNo && bytesToCopy > (pageDataLength - firstPageOffset)) {
-			bytesToCopy = cachePagesInfo[index].availableDataLength - firstPageOffset; 
-		} 				
-
-		// if there is data to copy then copy from cache page to users data buffer
-		if (bytesToCopy > 0) {
-			cachePagesInfo[index].age = 0;
-			if (pageNo == firstPageNo) {
-				src = (uint8_t*)&(cachePagesData[index].data[firstPageOffset]);
-			} else {
-				src = (uint8_t*)&(cachePagesData[index].data[0]);
-			}
-			
-			//dst = ((uint8_t*) dataBuffer) + pageCounter * DEFAULT_CACHE_PAGE_SIZE;
-			dst = ((uint8_t*)dataBuffer) + bytesRead;
-
-			// error
-			if (bytesToCopy > length) {
-				std::cout << "Error: out of bounds error" << std::endl;
-				return bytesRead;
-			}
-
-			if (bytesToCopy > pageDataLength) bytesToCopy = pageDataLength;
-
-			memcpy(dst, src, bytesToCopy);
-			bytesRead += bytesToCopy;
-		}
-
-		pageCounter++;
-	}
-
-	return bytesRead;
-}
-*/
-
 
 //-----------------------------------------------------------------------------
 // Writes data to the cached file
@@ -406,6 +340,15 @@ size_t CachedFileIO::flush() {
 }
 
 
+// @brief return cache hit percentage (%)
+double CachedFileIO::cacheHitRate() {
+	return ((double)cacheRequests - (double)cacheMisses) / (double)cacheRequests * 100.0;
+}
+
+// @brief return cache miss percentage (%)
+double CachedFileIO::cacheMissRate() {
+	return (double)cacheMisses / (double)cacheRequests * 100.0;
+}
 
 //=============================================================================
 // 
@@ -454,10 +397,16 @@ size_t CachedFileIO::getFreeCachePageIndex() {
 * 
 */
 size_t CachedFileIO::searchPageInCache(size_t requestedFilePageNo) {
+	
+	cacheRequests++;
+
 	for (size_t cacheIndex = 0; cacheIndex < cachePagesCount; cacheIndex++) {
 		if (cachePagesInfo[cacheIndex].state != PageState::FREE &&
 			cachePagesInfo[cacheIndex].filePageNo == requestedFilePageNo) return cacheIndex;
 	}
+	
+	cacheMisses++;
+
 	return PAGE_NOT_FOUND;
 }
 
@@ -545,12 +494,13 @@ bool CachedFileIO::freeCachePage(size_t cachePageIndex) {
 		if (!persistCachePage(cachePageIndex)) return false;
 	}
 
+
 	// Clear cache page info fields
 	cachePagesInfo[cachePageIndex].state = PageState::FREE;
 	cachePagesInfo[cachePageIndex].age = 0;
 	cachePagesInfo[cachePageIndex].filePageNo = PAGE_NOT_FOUND;
 	cachePagesInfo[cachePageIndex].availableDataLength = 0;
-
+		
 	// Cache page freed
 	return true;
 }

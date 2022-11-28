@@ -36,20 +36,20 @@ int main()
 
 	char* filename = "datafile.db"; // "write.db";
 
-	size_t bufferSize = 1565; // average JSON size
-
-	//cf.stdioSequencialRead(filename, bufferSize);
+	size_t bufferSize = 8096; // average JSON size
 	
+	
+	//double stdTime = cf.stdioRandomRead(filename, 0, bufferSize);
+	
+	double stdTime = cf.stdioSequencialRead(filename, bufferSize);
 
 	cf.open(filename);
 	//cf.sequencialWriteTest(0);
-	cf.randomReadTest(1000, bufferSize);
-	//cf.sequencialReadTest(bufferSize);
+	//double cachedTime = cf.randomReadTest(0, bufferSize);
+	double cachedTime = cf.sequencialReadTest(bufferSize);
 	cf.close();
 
-	
-	cf.stdioRandomRead(filename, 1000, bufferSize);
-
+	std::cout << "Cached File IO is: " << stdTime / cachedTime * 100.0 << "% of STDIO\n";
 
 	return 0;
 }

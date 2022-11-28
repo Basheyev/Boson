@@ -4,7 +4,6 @@
 #include <cstring>
 #include <cstdint>
 
-
 namespace Boson {
 
 	//-------------------------------------------------------------------------
@@ -46,9 +45,11 @@ namespace Boson {
 		size_t write(size_t position, const void* dataBuffer, size_t length);
 		size_t append(void* dataBuffer, size_t length);
 		size_t flush();		
+		double cacheHitRate();
+		double cacheMissRate();
 	private:
-		size_t getFreeCachePageIndex();                             // slow - implement HashTable?
-		size_t searchPageInCache(size_t requestedFilePageNo);       // slow - implement HashTable?
+		size_t getFreeCachePageIndex();                             
+		size_t searchPageInCache(size_t requestedFilePageNo);       
 		size_t loadPageToCache(size_t requestedFilePageNo);
 		bool   persistCachePage(size_t cachePageIndex);		
 		bool   freeCachePage(size_t cachePageIndex);
@@ -59,7 +60,9 @@ namespace Boson {
 		size_t          cachePagesCount;                            // Cached pages amount
 		CachePageInfo*  cachePagesInfo;                             // Cached pages description array
 		CachePageData*  cachePagesData;                             // Cached pages data array
-		
+
+		size_t cacheRequests;
+		size_t cacheMisses;
 	};
 
 
