@@ -89,9 +89,10 @@ void CachedFileIOTest::sequencialWriteTest(size_t bufferSize) {
 	cf.write(DEFAULT_CACHE_PAGE_SIZE - length / 2, writeBuf, length);
 	cf.flush();
 
+
 	cf.read(DEFAULT_CACHE_PAGE_SIZE - length / 2, readBuf, length);
 	readBuf[length] = 0;
-	std::cout << "READING 1: '" << readBuf << "' (" << strlen(readBuf) << " bytes)" << std::endl;
+	std::cout << "READING: '" << readBuf << "' (" << strlen(readBuf) << " bytes)" << std::endl;
 	
 
 	if (strcmp(writeBuf, readBuf) == 0) {
@@ -107,6 +108,32 @@ void CachedFileIOTest::sequencialWriteTest(size_t bufferSize) {
 
 void CachedFileIOTest::randomWriteTest() {
 
+	char buf[32] = { 0 };
+	size_t length, pos = 0;
+
+	auto startTime = std::chrono::steady_clock::now();
+
+	for (size_t i = 0; i < 1000073; i++) {
+		itoa(i, buf, 10);
+		length = strlen(buf);
+		buf[length] = ' ';
+		buf[length + 1] = 0;
+		if (i == 1000072) {
+			std::cout << "breakpoint" << std::endl;
+		}
+		cf.write(pos, buf, length + 1);
+		pos += length + 1;
+	}
+
+	cf.flush();
+
+	auto endTime = std::chrono::steady_clock::now();
+	auto duration = (endTime - startTime).count() / 1000000.0;
+
+	std::cout << "Cached file IO bytes written: " << pos;
+	std::cout << " (" << duration << " ms)" << std::endl;
+
+	std::cout << "File size: " << cf.getSize() << " bytes" << std::endl;
 
 }
 

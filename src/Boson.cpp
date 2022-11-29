@@ -34,22 +34,26 @@ int main()
 {
 	CachedFileIOTest cf;
 
-	char* filename = "datafile.db"; // "write.db";
+	char* filename = "write.db";
 
 	size_t bufferSize = 8096; // average JSON size
 	
 	
 	//double stdTime = cf.stdioRandomRead(filename, 0, bufferSize);
 	
-	double stdTime = cf.stdioSequencialRead(filename, bufferSize);
+	//double stdTime = cf.stdioSequencialRead(filename, bufferSize);
 
 	cf.open(filename);
 	//cf.sequencialWriteTest(0);
+	cf.randomWriteTest();
 	//double cachedTime = cf.randomReadTest(0, bufferSize);
-	double cachedTime = cf.sequencialReadTest(bufferSize);
+	//double cachedTime = cf.sequencialReadTest(bufferSize);
+
+
+
 	cf.close();
 
-	std::cout << "Cached File IO is: " << stdTime / cachedTime * 100.0 << "% of STDIO\n";
+	//std::cout << "Cached File IO is: " << stdTime / cachedTime * 100.0 << "% of STDIO\n";
 
 	return 0;
 }

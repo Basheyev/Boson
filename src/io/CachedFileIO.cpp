@@ -1,22 +1,24 @@
-/**
+/******************************************************************************
+*  
+*  CachedFileIO class implementation
 * 
 * 
 * 
 * 
+*  (C) Bolat Basheyev 2022
 * 
 * 
-* 
-*  Performance research:
+*  Performance research results:
 *     
-*  - In sequencial read CachedFileIO outperforms STDIO by 20%-200%
-*    for JSONs under 180-1565 bytes (average JSON size). But for
-*    JSONs in range 2600-8096 bytes works slower 13-32%.
+*  - In case of sequencial read CachedFileIO outperforms STDIO by 
+*    20%-200% for JSONs under 180-1565 bytes (average JSON size). 
+*    But for JSONs in range 2600-8096 bytes works slower 13-32%.
 * 
-*  - In random read with cache misses less than 33-50% CachedFileIO
-*    outperforms STDIO by 20%-40%. With cache misses more than 95%,
-*    CachedFileIO works slower than STDIO by 5%-13%.
+*  - In case of random read with cache misses less than 33-50% 
+*    CachedFileIO outperforms STDIO by 20%-40%. With cache misses 
+*    more than 95%, CachedFileIO works slower than STDIO by 5%-13%.
 * 
-*/
+******************************************************************************/
 
 #include "CachedFileIO.h"
 
@@ -135,7 +137,7 @@ size_t CachedFileIO::getSize() {
 
 /**
 * 
-*  @brief Reads data from cached file
+*  @brief Read data from cached file
 * 
 *  @param[in]  position   - offset from beginning of the file
 *  @param[out] dataBuffer - data buffer where data copied
@@ -208,9 +210,9 @@ size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 
 		// Copy available data from cache page to user's data buffer
 		if (bytesToCopy > 0) {			
-			memcpy(dst, src, bytesToCopy);
-			bytesRead += bytesToCopy;
-			dst += bytesToCopy;
+			memcpy(dst, src, bytesToCopy);   // copy data to user buffer
+			bytesRead += bytesToCopy;        // increment read bytes counter
+			dst += bytesToCopy;              // increment pointer in user buffer
 		}
 	}
 	return bytesRead;
@@ -218,89 +220,84 @@ size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 
 
 
-//-----------------------------------------------------------------------------
-// Writes data to the cached file
-//-----------------------------------------------------------------------------	
+/**
+*
+*  @brief Writes data to cached file
+*
+*  @param[in]  position   - offset from beginning of the file
+*  @param[out] dataBuffer - data buffer with write data
+*  @param[in]  length     - data amount to write
+*
+*  @return total bytes amount written to the cached file
+*
+*/
 size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t length) {
 
-	// if file is not open or file is read only, then return
-	if (fileHandler == nullptr || this->readOnly) return 0;
+	// Check if file handler, data buffer and length are not null
+	if (fileHandler == nullptr || this->readOnly || dataBuffer == nullptr || length == 0) return 0;
 
-	size_t bytesWritten = 0;
-
-	// Calculate first page number and page offset
+	// Calculate start and end page number in the file
 	size_t firstPageNo = position / DEFAULT_CACHE_PAGE_SIZE;
-	size_t firstPageOffset = position % DEFAULT_CACHE_PAGE_SIZE;
+	size_t lastPageNo = (position + length) / DEFAULT_CACHE_PAGE_SIZE;
 
-	// Calculate total amount of pages and remaining bytes to write
-	size_t remainingBytes = (firstPageOffset + length) % DEFAULT_CACHE_PAGE_SIZE;
-	size_t pagesToWrite = (firstPageOffset + length) / DEFAULT_CACHE_PAGE_SIZE + (remainingBytes > 0);   // FIXME: on page boundry it return 1 (but 2 expected)
+	// Initialize local variables
+	CachePageInfo* pageInfo = nullptr;
+	CachePageData* pageData = nullptr;
+	uint8_t* src = (uint8_t*)dataBuffer;
+	uint8_t* dst = nullptr;
+	size_t cacheIndex = PAGE_NOT_FOUND;
+	size_t bytesToCopy = 0, bytesWritten = 0;
+	size_t pageDataLength = 0;
 
-	size_t index = 0;
-	size_t pageNo;
-	size_t pageCounter = 0;
-	size_t bytesToCopy = 0;
-	uint8_t* dst;
-	uint8_t* src;
+	// Iterate through file pages
+	for (size_t filePage = firstPageNo; filePage <= lastPageNo; filePage++) {
 
-	// fetch-before-write
-	while (pageCounter < pagesToWrite) {
-
-		// Check if this page is loaded to the cache
-		pageNo = firstPageNo + pageCounter;
-		index = searchPageInCache(pageNo);
-
-		// if not, load page from storage device to the cache
-		if (index == PAGE_NOT_FOUND) {
-			index = loadPageToCache(pageNo);
-			if (index == PAGE_NOT_FOUND) return false;
+		// Fetch-before-write (FBW)
+		cacheIndex = searchPageInCache(filePage);
+		if (cacheIndex == PAGE_NOT_FOUND) {
+			cacheIndex = loadPageToCache(filePage);
+			if (cacheIndex == PAGE_NOT_FOUND) return 0;
 		}
 
-		// if this is last page we writing
-		bool notLastIteration = (pageCounter < pagesToWrite - 1);
+		// Get cached page description and data
+		pageInfo = &cachePagesInfo[cacheIndex];
+		pageData = &cachePagesData[cacheIndex];
+		pageDataLength = pageInfo->availableDataLength;
 
-		// check remaining bytes to write to page in cache
-		if (notLastIteration || remainingBytes == 0) {
-			bytesToCopy = DEFAULT_CACHE_PAGE_SIZE;
+		// Calculate source pointers and data length to write
+		if (filePage == firstPageNo) {
+			// Case 1: if writing first page
+			size_t firstPageOffset = position % DEFAULT_CACHE_PAGE_SIZE;
+			dst = (uint8_t*)&pageData->data[firstPageOffset];
+			bytesToCopy = std::min(length, DEFAULT_CACHE_PAGE_SIZE - firstPageOffset);
+		} else if (filePage == lastPageNo) {
+			// Case 2: if writing last page
+			dst = (uint8_t*)pageData->data;
+			bytesToCopy = length - bytesWritten;
 		} else {
-			bytesToCopy = remainingBytes;
-		}
-				
-		// get amount of available data in the cache page
-
-		size_t pageDataLength = cachePagesInfo[index].availableDataLength;
-
-		// if it's a first page, take first page write offset in account
-		if (pageNo == firstPageNo) {
-			if (bytesToCopy > (DEFAULT_CACHE_PAGE_SIZE - firstPageOffset)) {
-				bytesToCopy = DEFAULT_CACHE_PAGE_SIZE - firstPageOffset;
-			}
+			// Case 3: if reading middle page 
+			dst = (uint8_t*)pageData->data;
+			bytesToCopy = DEFAULT_CACHE_PAGE_SIZE;
 		}
 
-		// if there is data to copy then copy from users data buffer to cache page 
+		// Copy available data from user's data buffer to cache page 
 		if (bytesToCopy > 0) {
 			
-			if (pageNo == firstPageNo) {
-				dst = (uint8_t*)&(cachePagesData[index].data[firstPageOffset]);
-			} else {
-				dst = (uint8_t*)&(cachePagesData[index].data[0]);
-			}
+			memcpy(dst, src, bytesToCopy);       // copy user buffer data to cache page
 			
-			//src = ((uint8_t*)dataBuffer) + pageCounter * DEFAULT_CACHE_PAGE_SIZE;
-			src = ((uint8_t*)dataBuffer) + bytesWritten;
-
-			memcpy(dst, src, bytesToCopy);
-			cachePagesInfo[index].age = 0;
-			cachePagesInfo[index].state = PageState::DIRTY;
-			cachePagesInfo[index].availableDataLength = std::max(pageDataLength, bytesToCopy);
-
-			bytesWritten += bytesToCopy;
+			pageInfo->age = 0;                   // reset cache page age to zero
+			pageInfo->state = PageState::DIRTY;  // mark page as "dirty" (rewritten)
+			pageInfo->availableDataLength = std::max(pageDataLength, bytesToCopy);       // wrong!
+			
+			bytesWritten += bytesToCopy;         // increment written bytes counter
+			src += bytesToCopy;                  // increment pointer in user buffer
+			
 		}
 
-		pageCounter++;
 	}
 
-	return 0;
+	return bytesWritten;
+
 }
 
 
@@ -340,15 +337,19 @@ size_t CachedFileIO::flush() {
 }
 
 
-// @brief return cache hit percentage (%)
+// @brief cache hit percentage (%)
 double CachedFileIO::cacheHitRate() {
 	return ((double)cacheRequests - (double)cacheMisses) / (double)cacheRequests * 100.0;
 }
 
-// @brief return cache miss percentage (%)
+
+
+// @brief cache miss percentage (%)
 double CachedFileIO::cacheMissRate() {
 	return (double)cacheMisses / (double)cacheRequests * 100.0;
 }
+
+
 
 //=============================================================================
 // 
@@ -431,11 +432,18 @@ size_t CachedFileIO::loadPageToCache(size_t requestedFilePageNo) {
 	size_t cachePageIndex = getFreeCachePageIndex();
 
 	// read page from storage device
-	void* cachePage = &cachePagesData[cachePageIndex];
+	uint8_t* cachePage = cachePagesData[cachePageIndex].data;
 	size_t offset = requestedFilePageNo * DEFAULT_CACHE_PAGE_SIZE;
 	size_t bytesToRead = DEFAULT_CACHE_PAGE_SIZE;
 	_fseeki64(fileHandler, offset, SEEK_SET);
 	size_t bytesRead = fread(cachePage, 1, bytesToRead, fileHandler);
+
+	// if available data less than page size
+	if (bytesRead < DEFAULT_CACHE_PAGE_SIZE) {
+		// fill remaining part of page with zero to avoid artifacts
+		memset(cachePage + bytesRead, 0, DEFAULT_CACHE_PAGE_SIZE - bytesRead);
+
+	}
 
 	// fill loaded page description info
 	CachePageInfo& loadedPage = cachePagesInfo[cachePageIndex];
@@ -500,6 +508,7 @@ bool CachedFileIO::freeCachePage(size_t cachePageIndex) {
 	cachePagesInfo[cachePageIndex].age = 0;
 	cachePagesInfo[cachePageIndex].filePageNo = PAGE_NOT_FOUND;
 	cachePagesInfo[cachePageIndex].availableDataLength = 0;
+
 		
 	// Cache page freed
 	return true;

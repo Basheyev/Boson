@@ -38,13 +38,16 @@ namespace Boson {
 	public:
 		CachedFileIO();
 		~CachedFileIO();
+
 		bool open(char* dbName, size_t cacheSize = DEFAULT_CACHE_SIZE, bool readOnly = false);
 		bool close();
+
 		size_t getSize();
 		size_t read(size_t position, void* dataBuffer, size_t length);
 		size_t write(size_t position, const void* dataBuffer, size_t length);
 		size_t append(void* dataBuffer, size_t length);
-		size_t flush();		
+		size_t flush();
+
 		double cacheHitRate();
 		double cacheMissRate();
 	private:
