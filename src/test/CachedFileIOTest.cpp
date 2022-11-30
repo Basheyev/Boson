@@ -113,14 +113,14 @@ void CachedFileIOTest::randomWriteTest() {
 
 	auto startTime = std::chrono::steady_clock::now();
 
-	for (size_t i = 0; i < 1000073; i++) {
-		itoa(i, buf, 10);
+	for (size_t i = 0; i < 10000000; i++) {
+		_itoa(i, buf, 10);
 		length = strlen(buf);
 		buf[length] = ' ';
 		buf[length + 1] = 0;
-		if (i == 1000072) {
+		/*if (i == 1000072) {
 			std::cout << "breakpoint" << std::endl;
-		}
+		}*/
 		cf.write(pos, buf, length + 1);
 		pos += length + 1;
 	}

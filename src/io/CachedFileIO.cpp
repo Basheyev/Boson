@@ -381,7 +381,7 @@ size_t CachedFileIO::getFreeCachePageIndex() {
 		}
 	}
 
-	// if there is no free pages in cache, free and return most aged page
+	// if there is no free pages in the cache, free and return most aged page
 	freeCachePage(mostAgedPageIndex);
 
 	return mostAgedPageIndex;
@@ -401,10 +401,15 @@ size_t CachedFileIO::searchPageInCache(size_t requestedFilePageNo) {
 	
 	cacheRequests++;
 
+	// Search file page in index map and return if its found
+	auto result = cacheMap.find(requestedFilePageNo);
+	if (result != cacheMap.end()) return result->second;
+
+	/*
 	for (size_t cacheIndex = 0; cacheIndex < cachePagesCount; cacheIndex++) {
 		if (cachePagesInfo[cacheIndex].state != PageState::FREE &&
 			cachePagesInfo[cacheIndex].filePageNo == requestedFilePageNo) return cacheIndex;
-	}
+	}*/
 	
 	cacheMisses++;
 
@@ -452,6 +457,9 @@ size_t CachedFileIO::loadPageToCache(size_t requestedFilePageNo) {
 	loadedPage.age = 0;
 	loadedPage.availableDataLength = bytesRead;
 
+	// Add filePage/cachePage key-value pair to the map
+	cacheMap.insert({ requestedFilePageNo, cachePageIndex });
+
 	return cachePageIndex;
 }
 
@@ -496,18 +504,22 @@ bool CachedFileIO::persistCachePage(size_t cachePageIndex) {
 * 
 */
 bool CachedFileIO::freeCachePage(size_t cachePageIndex) {
+
+	CachePageInfo& pageInfo = cachePagesInfo[cachePageIndex];
 	
 	// if cache page has been rewritten persist page to storage device
-	if (cachePagesInfo[cachePageIndex].state == PageState::DIRTY) {
+	if (pageInfo.state == PageState::DIRTY) {
 		if (!persistCachePage(cachePageIndex)) return false;
 	}
 
+	// Remove from index map
+	cacheMap.erase(pageInfo.filePageNo);
 
 	// Clear cache page info fields
-	cachePagesInfo[cachePageIndex].state = PageState::FREE;
-	cachePagesInfo[cachePageIndex].age = 0;
-	cachePagesInfo[cachePageIndex].filePageNo = PAGE_NOT_FOUND;
-	cachePagesInfo[cachePageIndex].availableDataLength = 0;
+	pageInfo.state = PageState::FREE;
+	pageInfo.age = 0;
+	pageInfo.filePageNo = PAGE_NOT_FOUND;
+	pageInfo.availableDataLength = 0;
 
 		
 	// Cache page freed

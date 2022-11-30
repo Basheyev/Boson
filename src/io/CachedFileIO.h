@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstring>
 #include <cstdint>
+#include <unordered_map>
 
 namespace Boson {
 
@@ -50,22 +51,25 @@ namespace Boson {
 
 		double cacheHitRate();
 		double cacheMissRate();
+
 	private:
+
 		size_t getFreeCachePageIndex();                             
-		size_t searchPageInCache(size_t requestedFilePageNo);       
+		size_t searchPageInCache(size_t requestedFilePageNo);    // FIXME: performce low
 		size_t loadPageToCache(size_t requestedFilePageNo);
 		bool   persistCachePage(size_t cachePageIndex);		
 		bool   freeCachePage(size_t cachePageIndex);
-		void   ageCachePages();
+		void   ageCachePages();                                  // TODO: do I really cant use clock?
 		
-		bool            readOnly;                                   // Read only flag
-		std::FILE*      fileHandler;                                // OS file handler
-		size_t          cachePagesCount;                            // Cached pages amount
-		CachePageInfo*  cachePagesInfo;                             // Cached pages description array
-		CachePageData*  cachePagesData;                             // Cached pages data array
+		bool            readOnly;                                // Read only flag
+		std::FILE*      fileHandler;                             // OS file handler
+		size_t          cachePagesCount;                         // Cached pages amount
+		CachePageInfo*  cachePagesInfo;                          // Cached pages description array
+		CachePageData*  cachePagesData;                          // Cached pages data array
 
-		size_t cacheRequests;
-		size_t cacheMisses;
+		std::unordered_map<size_t, size_t> cacheMap;             // Cached pages index map (File page, Cache Page)
+		size_t cacheRequests;                                    // Cache requests counter
+		size_t cacheMisses;                                      // Cache misses counter
 	};
 
 
