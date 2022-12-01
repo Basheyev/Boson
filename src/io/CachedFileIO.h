@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdio>
+#include <filesystem>
 #include <cstring>
 #include <cstdint>
 #include <unordered_map>
@@ -31,6 +32,9 @@ namespace Boson {
 		uint8_t  data[DEFAULT_CACHE_PAGE_SIZE];
 	} CachePageData;
 
+	typedef                                   // Hash map for cache index:
+		std::unordered_map<size_t, size_t>    // Key - file page number
+		CachedPagesMap;                       // Value - cache page number
 
 	//-------------------------------------------------------------------------
 	// Binary random access cached file IO
@@ -40,14 +44,14 @@ namespace Boson {
 		CachedFileIO();
 		~CachedFileIO();
 
-		bool open(char* dbName, size_t cacheSize = DEFAULT_CACHE_SIZE, bool readOnly = false);
+		bool open(char* fileName, size_t cacheSize = DEFAULT_CACHE_SIZE, bool readOnly = false);
 		bool close();
 
-		size_t getSize();
+		size_t getFileSize();
 		size_t read(size_t position, void* dataBuffer, size_t length);
 		size_t write(size_t position, const void* dataBuffer, size_t length);
-		size_t append(void* dataBuffer, size_t length);
 		size_t flush();
+		size_t resizeFile(size_t size);                          
 
 		double cacheHitRate();
 		double cacheMissRate();
@@ -55,21 +59,23 @@ namespace Boson {
 	private:
 
 		size_t getFreeCachePageIndex();                             
-		size_t searchPageInCache(size_t requestedFilePageNo);    // FIXME: performce low
+		size_t searchPageInCache(size_t requestedFilePageNo);    
 		size_t loadPageToCache(size_t requestedFilePageNo);
 		bool   persistCachePage(size_t cachePageIndex);		
 		bool   freeCachePage(size_t cachePageIndex);
-		void   ageCachePages();                                  // TODO: do I really cant use clock?
-		
-		bool            readOnly;                                // Read only flag
+		void   ageCachePages();                                  
+				
+		std::filesystem::path pathToFile;                        // Path to file
 		std::FILE*      fileHandler;                             // OS file handler
+		bool            readOnly;                                // Read only flag
+
+		CachedPagesMap  cacheMap;                                // Cached pages map (file page, cache Page)
 		size_t          cachePagesCount;                         // Cached pages amount
 		CachePageInfo*  cachePagesInfo;                          // Cached pages description array
 		CachePageData*  cachePagesData;                          // Cached pages data array
-
-		std::unordered_map<size_t, size_t> cacheMap;             // Cached pages index map (File page, Cache Page)
 		size_t cacheRequests;                                    // Cache requests counter
 		size_t cacheMisses;                                      // Cache misses counter
+		
 	};
 
 

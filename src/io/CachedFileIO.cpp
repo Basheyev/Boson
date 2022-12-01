@@ -24,12 +24,15 @@
 
 #include <algorithm>
 #include <iostream>
+#include <filesystem>
 
 using namespace Boson;
 
-//-----------------------------------------------------------------------------
-// Constructor
-//-----------------------------------------------------------------------------
+/**
+*
+* @brief Constructor
+*
+*/
 CachedFileIO::CachedFileIO() {
 	this->fileHandler = nullptr;
 	this->cachePagesCount = 0;
@@ -41,31 +44,43 @@ CachedFileIO::CachedFileIO() {
 }
 
 
-//-----------------------------------------------------------------------------
-// Destructor
-//-----------------------------------------------------------------------------
+/**
+* 
+* @brief Destructor closes file if it still open
+* 
+*/
 CachedFileIO::~CachedFileIO() {
 	this->close();
 }
 
 
-//-----------------------------------------------------------------------------
-// Open file
-//-----------------------------------------------------------------------------
-bool CachedFileIO::open(char* dbName, size_t cacheSize, bool isReadOnly) {
+/**
+*
+*  @brief Opens file and allocates cache memory
+* 
+*  @param[in] fileName   - the name of the file to be opened
+*  @param[in] cacheSize  - how much memory for cache to allocate 
+*  @param[in] isReadOnly - if true, write operations are not allowed
+*
+*  @return true if file opened, false if can't open file
+*
+*/
+bool CachedFileIO::open(char* fileName, size_t cacheSize, bool isReadOnly) {
 	// if current file still open, close it
 	if (this->fileHandler != nullptr) close();
 	// try to open existing file for binary read/update (file must exist)
-	this->fileHandler = fopen(dbName, "r+b");
+	this->fileHandler = fopen(fileName, "r+b");
 	// if file does not exist or another problem
 	if (this->fileHandler == nullptr) {
 		// if can`t open file in read only mode return false
 		if (isReadOnly) return false;
 		// try to create new file for binary write/read
-		this->fileHandler = fopen(dbName, "w+b");
+		this->fileHandler = fopen(fileName, "w+b");
 		// if still can't create file return false
 		if (this->fileHandler == nullptr) return false;
 	}
+
+	this->pathToFile = fileName;
 
 	// set mode to no buffering, we will manage buffers and caching by our selves
 	setvbuf(this->fileHandler, nullptr, _IONBF, 0);
@@ -85,7 +100,6 @@ bool CachedFileIO::open(char* dbName, size_t cacheSize, bool isReadOnly) {
 	// Set readOnly flag
 	this->readOnly = isReadOnly;
 
-
     // Reset stats
 	this->cacheRequests = 0;
 	this->cacheMisses = 0;
@@ -96,9 +110,13 @@ bool CachedFileIO::open(char* dbName, size_t cacheSize, bool isReadOnly) {
 
 
 
-//-----------------------------------------------------------------------------
-// Close file
-//-----------------------------------------------------------------------------
+/**
+*
+*  @brief Closes file, persists changed pages and releases cache memory
+*
+*  @return true if file correctly closed, false if file has not been opened
+*
+*/
 bool CachedFileIO::close() {
 	
 	// check if file was opened
@@ -122,10 +140,14 @@ bool CachedFileIO::close() {
 
 
 
-//-----------------------------------------------------------------------------
-// Get file size
-//-----------------------------------------------------------------------------
-size_t CachedFileIO::getSize() {
+/**
+*
+*  @brief Get current file size
+*
+*  @return actual file size in bytes
+*
+*/
+size_t CachedFileIO::getFileSize() {
 	if (fileHandler == nullptr) return 0;
 	size_t currentPosition = ftell(fileHandler);
 	_fseeki64(fileHandler, 0, SEEK_END);
@@ -225,7 +247,7 @@ size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 *  @brief Writes data to cached file
 *
 *  @param[in]  position   - offset from beginning of the file
-*  @param[out] dataBuffer - data buffer with write data
+*  @param[in]  dataBuffer - data buffer with write data
 *  @param[in]  length     - data amount to write
 *
 *  @return total bytes amount written to the cached file
@@ -302,39 +324,51 @@ size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t lengt
 
 
 
-//-----------------------------------------------------------------------------
-// 
-//-----------------------------------------------------------------------------	
-size_t CachedFileIO::append(void* dataBuffer, size_t length) {
-	return 0;
+/**
+* 
+*  @brief Persists all changed cache pages to storage device
+* 
+*  @return true if all changed cache pages been persisted, false otherwise
+* 
+*/
+size_t CachedFileIO::flush() {
+
+	// Suppose all pages will be persisted
+	bool allDirtyPagesPersisted = true;
+
+	// Persist all "dirty" pages one by one
+	for (size_t cacheIndex = 0; cacheIndex < cachePagesCount; cacheIndex++) {
+		allDirtyPagesPersisted = allDirtyPagesPersisted && freeCachePage(cacheIndex);
+	}
+
+	return allDirtyPagesPersisted;
 }
 
 
 
 /**
 * 
-*  @brief Persists all changed cache pages to storage device
+*  @brief Truncates or extends file size to specified size aligned to page size
 * 
-*  @return bytes writen to the file
+*  @return current file size in bytes
 * 
 */
-size_t CachedFileIO::flush() {
-	size_t bytesWritten = 0;
-	bool success;
+size_t CachedFileIO::resizeFile(size_t size) {
 
-	for (size_t cacheIndex = 0; cacheIndex < cachePagesCount; cacheIndex++) {
-		if (cachePagesInfo[cacheIndex].state == PageState::DIRTY) {
-			success = persistCachePage(cacheIndex);
-			
-			// TODO: handle errors
+	
+	// Persist cached pages
+	this->flush();
 
-			if (success) bytesWritten += DEFAULT_CACHE_PAGE_SIZE;
+	// Check page size alignment
+	size_t alignedSize = (size / DEFAULT_CACHE_PAGE_SIZE) * DEFAULT_CACHE_PAGE_SIZE;
 
-		}
-	}
+	// Resize file
+	std::filesystem::resize_file(pathToFile, alignedSize);
 
-	return bytesWritten;
+	return 0;
 }
+
+
 
 
 // @brief cache hit percentage (%)
@@ -404,12 +438,6 @@ size_t CachedFileIO::searchPageInCache(size_t requestedFilePageNo) {
 	// Search file page in index map and return if its found
 	auto result = cacheMap.find(requestedFilePageNo);
 	if (result != cacheMap.end()) return result->second;
-
-	/*
-	for (size_t cacheIndex = 0; cacheIndex < cachePagesCount; cacheIndex++) {
-		if (cachePagesInfo[cacheIndex].state != PageState::FREE &&
-			cachePagesInfo[cacheIndex].filePageNo == requestedFilePageNo) return cacheIndex;
-	}*/
 	
 	cacheMisses++;
 

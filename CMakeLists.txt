@@ -25,4 +25,9 @@ add_executable (Boson
      "src/test/CachedFileIOTest.h" 
      "src/test/CachedFileIOTest.cpp")
 
+set_property(TARGET Boson 
+    PROPERTY 
+        CXX_STANDARD 17
+)
+
 # TODO: Добавьте тесты и целевые объекты, если это необходимо.

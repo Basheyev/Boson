@@ -31,7 +31,7 @@ double CachedFileIOTest::sequencialReadTest(size_t bufferSize) {
 
 	char* buffer = new char[bufferSize + 1];
 
-	size_t fileSize = cf.getSize();
+	size_t fileSize = cf.getFileSize();
 
 	std::cout << "file size: " << fileSize << " bytes" << std::endl;
 
@@ -58,7 +58,7 @@ double CachedFileIOTest::sequencialReadTest(size_t bufferSize) {
 double CachedFileIOTest::randomReadTest(size_t position, size_t bufferSize) {
 	char* buffer = new char[bufferSize + 1];
 
-	size_t fileSize = cf.getSize();
+	size_t fileSize = cf.getFileSize();
 
 	size_t bytesRead = 0;
 	size_t offset = 0;
@@ -113,14 +113,11 @@ void CachedFileIOTest::randomWriteTest() {
 
 	auto startTime = std::chrono::steady_clock::now();
 
-	for (size_t i = 0; i < 10000000; i++) {
+	for (size_t i = 0; i < 1000072; i++) {
 		_itoa(i, buf, 10);
 		length = strlen(buf);
 		buf[length] = ' ';
 		buf[length + 1] = 0;
-		/*if (i == 1000072) {
-			std::cout << "breakpoint" << std::endl;
-		}*/
 		cf.write(pos, buf, length + 1);
 		pos += length + 1;
 	}
@@ -133,7 +130,12 @@ void CachedFileIOTest::randomWriteTest() {
 	std::cout << "Cached file IO bytes written: " << pos;
 	std::cout << " (" << duration << " ms)" << std::endl;
 
-	std::cout << "File size: " << cf.getSize() << " bytes" << std::endl;
+	std::cout << "File size: " << cf.getFileSize() << " bytes" << std::endl;
+
+	std::cout << "Truncate" << std::endl;
+	cf.resizeFile(1024 * 1024); // result 6 889 472
+
+	std::cout << "File size: " << cf.getFileSize() << " bytes" << std::endl;
 
 }
 

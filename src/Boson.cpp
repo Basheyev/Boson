@@ -25,10 +25,13 @@
 #include <iostream>
 #include <string>
 
+#include <fstream>
+#include <filesystem>
+
 using namespace Boson;
 
 
-
+namespace fs = std::filesystem;
 
 int main()
 {
@@ -48,9 +51,7 @@ int main()
 	cf.randomWriteTest();
 	//double cachedTime = cf.randomReadTest(0, bufferSize);
 	//double cachedTime = cf.sequencialReadTest(bufferSize);
-
-
-
+			
 	cf.close();
 
 	//std::cout << "Cached File IO is: " << stdTime / cachedTime * 100.0 << "% of STDIO\n";
