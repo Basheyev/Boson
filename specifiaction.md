@@ -1,26 +1,29 @@
 
-Boson Database
+#Boson Database Specification
+
+##1. Overview
+
+Boson is embeddable JSON document database engine.
 
 Core features:
-- Emdeddable NoSQL document database engine.
 - Standard Key/Value persistent document store (JSON).
-- Fast document search by ID in b+ tree index.
+- Fast document search by ID in B+ Tree Index.
 - Support cursors for linear records traversal.
-- Self-contained, without dependencies
-- Single file database.
-
+- Single file database, no temporary files.
+- Simple, Clean and easy to use API.
+- Self-contained & zero configuration.
 
 Considerations:
-- IO performance grow when page size is aligned to a storage device read 
-  block size (4Kb page/sector for HDD, 4Kb pages and 256-512Kb block for SSD)
-- Average JSON size value 1525 bytes (varying between 512-2048 bytes)
--
+- Median JSON document size is 1525 bytes.
+- Almost all real world apps show some form of locality of reference.
+- Most apps database read/write operations ratio is 70% / 30%.
+- 10-15% of database size cache gives more than 95% cache hits.
+- Storage device sector/block aligned read/writes are faster.
+- Sequential read/write operations are faster.
 
 
-# 1. BOSON DATABASE ARCHITECTURE
 
-
-
+## 1. Boson Database Architecture
 
 
      ---------------------------------------------------
@@ -42,27 +45,20 @@ Considerations:
 
 
 
-===============================================================================
+## 2. Internal algorithms and performance strategies
 
-# 2. INTERNAL ALGORITHMS AND PERFORMANCE STRATEGIES
+### 2.1. Database file caching (CachedFileIO Class)
 
-===============================================================================
-
-## 2.1. Database file caching (CachedFileIO Class)
-
-### 2.1.1. Motivation
+#### 2.1.1. Motivation
 
 CachedFileIO is designed to improve pe rformance of file I/O operations.
 Almost all real world applications show some form of locality of reference, 
-and 70%/30% average read/write ratio. 
+and 70%/30% average read/write ratio. Memory LRU caching strategy could 
+give performance benefits.
 
 
 
-Memory LRU caching strategy could give performance benefits.
-
-
-
-### 2.1.2. Read operations (LRU)
+#### 2.1.2. Read operations (LRU)
 
  
 File accessed through aligned blocks of fixed size (pages) that loaded 
@@ -76,7 +72,7 @@ user buffer, otherwise load page to the cache from file, and copies to the
 user's buffer. All recently loaded cache pages marked as "clean".
 
 
-2.1.3. Write operations (FBW)
+#### 2.1.3. Write operations (FBW)
 
 For write operations, CachedFileIO uses Fetch-On-Write policy.
 If there is a cache hit, write operation changes cache page
@@ -88,7 +84,7 @@ cache, CachedFileIO frees most aged pages. When the page is freed,
 if it has "dirty" mark, page persisted on the storage device.
 
 
-2.1.4. IO performance and cache page O(1) lookup 
+#### 2.1.4. IO performance and cache page O(1) lookup 
 
 Performance is always trade-off, so this class designed to speed up 
 frequent IO for JSON documents with average JSON size is 1525 bytes.
