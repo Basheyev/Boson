@@ -1,6 +1,5 @@
-===============================================================================
+
 Boson Database
-===============================================================================
 
 Core features:
 - Emdeddable NoSQL document database engine.
@@ -17,11 +16,10 @@ Considerations:
 - Average JSON size value 1525 bytes (varying between 512-2048 bytes)
 -
 
-===============================================================================
 
-1. BOSON DATABASE ARCHITECTURE
+# 1. BOSON DATABASE ARCHITECTURE
 
-===============================================================================
+
 
 
 
@@ -46,13 +44,13 @@ Considerations:
 
 ===============================================================================
 
-2. INTERNAL ALGORITHMS AND PERFORMANCE STRATEGIES
+# 2. INTERNAL ALGORITHMS AND PERFORMANCE STRATEGIES
 
 ===============================================================================
 
-2.1. Database file caching (CachedFileIO Class)
+## 2.1. Database file caching (CachedFileIO Class)
 
-2.1.1. Motivation
+### 2.1.1. Motivation
 
 CachedFileIO is designed to improve pe rformance of file I/O operations.
 Almost all real world applications show some form of locality of reference, 
@@ -64,7 +62,7 @@ Memory LRU caching strategy could give performance benefits.
 
 
 
-2.1.2. Read operations (LRU)
+### 2.1.2. Read operations (LRU)
 
  
 File accessed through aligned blocks of fixed size (pages) that loaded 
