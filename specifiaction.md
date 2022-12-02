@@ -1,7 +1,7 @@
 
-#Boson Database Specification
+# Boson Database Specification
 
-##1. Overview
+## 1. Overview
 
 Boson is embeddable JSON document database engine.
 
