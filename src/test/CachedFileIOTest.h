@@ -1,3 +1,10 @@
+/******************************************************************************
+* 
+*  CachedFileIO class test header
+* 
+*  (C) Bolat Basheyev 2022
+* 
+******************************************************************************/
 #pragma once
 
 #include "CachedFileIO.h"
@@ -9,10 +16,13 @@ namespace Boson {
 	class CachedFileIOTest {
 	public:
 
-		CachedFileIOTest();
+		CachedFileIOTest(char* path);
 		~CachedFileIOTest();
 
-		void open(char* filename, size_t cacheSize = DEFAULT_CACHE_SIZE);
+		void generateFileData();
+
+
+		void open(char* path, size_t cacheSize = DEFAULT_CACHE_SIZE);
 		
 		double sequencialReadTest(size_t readBufferSize);
 
@@ -29,6 +39,7 @@ namespace Boson {
 	private:
 
 		CachedFileIO cf;
+		char* fileName;
 
 	};
 

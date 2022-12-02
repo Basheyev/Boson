@@ -52,23 +52,35 @@ Considerations:
 
 2.1. Database file caching (CachedFileIO Class)
 
-2.1.1. Read operations (LRU)
+2.1.1. Motivation
 
-CachedFileIO class is used for improve performance of file IO operations. 
+CachedFileIO is designed to improve pe rformance of file I/O operations.
+Almost all real world applications show some form of locality of reference, 
+and 70%/30% average read/write ratio. 
+
+
+
+Memory LRU caching strategy could give performance benefits.
+
+
+
+2.1.2. Read operations (LRU)
+
+ 
 File accessed through aligned blocks of fixed size (pages) that loaded 
 into the cache that implements LRU strategy (Least Recently Used). The 
 element that hasn't been used for the longest time will be evicted from 
 the cache.
 
-On every read operation CachedFileIO class looks up for page in
-the cache. If there is a cache hit copies requested data to the user 
-buffer, otherwise load page to the cache from file, and copies to the 
+On every read operation CachedFileIO class looks up for page in the cache
+using hashtable O(1). If there is a cache hit copies requested data to the 
+user buffer, otherwise load page to the cache from file, and copies to the 
 user's buffer. All recently loaded cache pages marked as "clean".
 
 
-2.1.2. Write operations (FBW)
+2.1.3. Write operations (FBW)
 
-For write operations, CachedFileIO uses Fetch-Before-Write policy.
+For write operations, CachedFileIO uses Fetch-On-Write policy.
 If there is a cache hit, write operation changes cache page
 and marks it as "dirty". If there is a cache miss, then file 
 page loaded to the cache and after changes are applied.
@@ -78,7 +90,7 @@ cache, CachedFileIO frees most aged pages. When the page is freed,
 if it has "dirty" mark, page persisted on the storage device.
 
 
-2.1.3. IO performance and cache page O(1) lookup 
+2.1.4. IO performance and cache page O(1) lookup 
 
 Performance is always trade-off, so this class designed to speed up 
 frequent IO for JSON documents with average JSON size is 1525 bytes.

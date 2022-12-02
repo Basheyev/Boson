@@ -1,3 +1,11 @@
+/******************************************************************************
+*
+*  CachedFileIO class header
+*
+*  (C) Bolat Basheyev 2022
+*
+******************************************************************************/
+
 #pragma once
 
 #include <cstdio>
@@ -9,10 +17,10 @@
 namespace Boson {
 
 	//-------------------------------------------------------------------------
-	constexpr size_t DEFAULT_CACHE_PAGE_SIZE = 4096;           // 256Kb - SSD Block size (depends on device)
-	constexpr size_t MINIMAL_CACHE_SIZE = 256 * 4096;          // 1024Kb
-	constexpr size_t DEFAULT_CACHE_SIZE = MINIMAL_CACHE_SIZE;  // 1024Kb
-	constexpr size_t PAGE_NOT_FOUND = 0xFFFFFFFFFFFFFFFF;      // Not found signature
+	constexpr size_t DEFAULT_CACHE_PAGE_SIZE = 1024 * 256;     // 8192 bytes
+	constexpr size_t MINIMAL_CACHE_SIZE = 2 * 1024 * 1024;     // 2048 Kb
+	constexpr size_t DEFAULT_CACHE_SIZE = MINIMAL_CACHE_SIZE;  // 2048 Kb
+	constexpr size_t PAGE_NOT_FOUND = 0xFFFFFFFFFFFFFFFF;      // "Not found" signature
 	//-------------------------------------------------------------------------
 
 	typedef enum {
@@ -35,6 +43,7 @@ namespace Boson {
 	typedef                                   // Hash map for cache index:
 		std::unordered_map<size_t, size_t>    // Key - file page number
 		CachedPagesMap;                       // Value - cache page number
+	
 
 	//-------------------------------------------------------------------------
 	// Binary random access cached file IO
@@ -73,8 +82,9 @@ namespace Boson {
 		size_t          cachePagesCount;                         // Cached pages amount
 		CachePageInfo*  cachePagesInfo;                          // Cached pages description array
 		CachePageData*  cachePagesData;                          // Cached pages data array
-		size_t cacheRequests;                                    // Cache requests counter
-		size_t cacheMisses;                                      // Cache misses counter
+		size_t          cacheRequests;                           // Cache requests counter
+		size_t          cacheMisses;                             // Cache misses counter
+		size_t          mostAgedPageIndex;                       // Most aged page
 		
 	};
 

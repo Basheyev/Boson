@@ -1,4 +1,10 @@
-
+/******************************************************************************
+*
+*  CachedFileIO class tests implementation
+*
+*  (C) Bolat Basheyev 2022
+*
+******************************************************************************/
 #include <cstdio>
 #include <iostream>
 #include <chrono>
@@ -9,15 +15,74 @@
 
 using namespace Boson;
 
-CachedFileIOTest::CachedFileIOTest() {
-
-
+CachedFileIOTest::CachedFileIOTest(char* path) {
+	this->fileName = path;
 }
 
 
 CachedFileIOTest::~CachedFileIOTest() {
 	close();
 }
+
+
+
+
+
+/**
+*
+*  @brief Generates file with data
+* 
+*  CachedFileIO uses Least-Recent-Used and Fetch-before-Write
+*
+*/
+void CachedFileIOTest::generateFileData() {
+	CachedFileIO cachedFile;
+	char buf[32] = { 0 };
+	size_t length, pos = 0;
+	cf.open(this->fileName);
+	cf.resizeFile(0);
+	std::cout << "[TEST] Sequential write... ";
+	auto startTime = std::chrono::steady_clock::now();
+	for (size_t i = 0; i < 10000000; i++) {
+		_itoa(i, buf, 10);
+		length = strlen(buf);
+		buf[length] = ' ';
+		buf[length + 1] = 0;
+		cf.write(pos, buf, length + 1);
+		pos += length + 1;
+	}
+	cf.flush();
+	auto endTime = std::chrono::steady_clock::now();
+	auto cachedDuration = (endTime - startTime).count() / 1000000.0;
+	
+	cf.close();
+	char data[4096] = { 0 };
+
+	startTime = std::chrono::steady_clock::now();
+	FILE* f = fopen(this->fileName, "r+b");
+	for (size_t i = 10000000; i < 20000000; i++) {
+		_itoa(i, buf, 10);
+		length = strlen(buf);
+		buf[length] = ' ';
+		buf[length + 1] = 0;
+		_fseeki64(f, pos, SEEK_SET);
+		fread(data, 1, 4096, f);
+		_fseeki64(f, pos, SEEK_SET);
+		fwrite(buf, 1, length + 1, f);
+		pos += length + 1;
+	}
+	fclose(f);
+	endTime = std::chrono::steady_clock::now();
+	auto stdioDuration = (endTime - startTime).count() / 1000000.0;
+	auto ratio = (stdioDuration / cachedDuration);
+
+	std::cout << pos << " bytes (CACHED: " << cachedDuration << "ms, ";
+	std::cout << "STDIO: " << stdioDuration << "ms, ratio=" << ratio << ") - ";
+	if (ratio > 1) std::cout << "PASSED\n"; else std::cout << "FAILED\n";
+}
+
+
+
 
 
 void CachedFileIOTest::open(char* filename, size_t cacheSize) {
@@ -201,3 +266,4 @@ double CachedFileIOTest::stdioRandomRead(char* filename, size_t position, size_t
 	std::cout << " (" << duration << " ms)" << std::endl;
 	return duration;
 }
+

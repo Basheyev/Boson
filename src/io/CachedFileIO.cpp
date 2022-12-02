@@ -2,21 +2,7 @@
 *  
 *  CachedFileIO class implementation
 * 
-* 
-* 
-* 
 *  (C) Bolat Basheyev 2022
-* 
-* 
-*  Performance research results:
-*     
-*  - In case of sequencial read CachedFileIO outperforms STDIO by 
-*    20%-200% for JSONs under 180-1565 bytes (average JSON size). 
-*    But for JSONs in range 2600-8096 bytes works slower 13-32%.
-* 
-*  - In case of random read with cache misses less than 33-50% 
-*    CachedFileIO outperforms STDIO by 20%-40%. With cache misses 
-*    more than 95%, CachedFileIO works slower than STDIO by 5%-13%.
 * 
 ******************************************************************************/
 
@@ -41,6 +27,7 @@ CachedFileIO::CachedFileIO() {
 	this->readOnly = false;
 	this->cacheRequests = 0;
 	this->cacheMisses = 0;
+	this->mostAgedPageIndex = 0;
 }
 
 
@@ -403,22 +390,15 @@ double CachedFileIO::cacheMissRate() {
 */
 size_t CachedFileIO::getFreeCachePageIndex() {
 
-	size_t largestAge = 0;
-	size_t mostAgedPageIndex = 0;
-
-	// Search for free cache page and most aged one
+	// Search for free cache page
 	for (size_t cacheIndex = 0; cacheIndex < cachePagesCount; cacheIndex++) {
 		if (cachePagesInfo[cacheIndex].state == PageState::FREE) return cacheIndex;
-		if (cachePagesInfo[cacheIndex].age > largestAge) {
-			largestAge = cachePagesInfo[cacheIndex].age;
-			mostAgedPageIndex = cacheIndex;
-		}
 	}
 
 	// if there is no free pages in the cache, free and return most aged page
-	freeCachePage(mostAgedPageIndex);
+	freeCachePage(this->mostAgedPageIndex);
 
-	return mostAgedPageIndex;
+	return this->mostAgedPageIndex;
 }
 
 
@@ -562,7 +542,13 @@ bool CachedFileIO::freeCachePage(size_t cachePageIndex) {
 * 
 */
 void CachedFileIO::ageCachePages() {
+	size_t maxAge = 0;
+	
 	for (size_t cacheIndex = 0; cacheIndex < cachePagesCount; cacheIndex++) {
 		cachePagesInfo[cacheIndex].age++;
+		if (cachePagesInfo[cacheIndex].age > maxAge) {
+			maxAge = cachePagesInfo[cacheIndex].age;
+			this->mostAgedPageIndex = cacheIndex;
+		}
 	}
 }
