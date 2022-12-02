@@ -23,7 +23,7 @@ Considerations:
 
 
 
-## 1. Boson Database Architecture
+## 2. Boson Database Architecture
 
 
      ---------------------------------------------------
@@ -45,11 +45,11 @@ Considerations:
 
 
 
-## 2. Internal algorithms and performance strategies
+## 3. Internal algorithms and performance strategies
 
-### 2.1. Database file caching (CachedFileIO Class)
+### 3.1. Database file caching (CachedFileIO Class)
 
-#### 2.1.1. Motivation
+#### 3.1.1. Motivation
 
 CachedFileIO is designed to improve pe rformance of file I/O operations.
 Almost all real world applications show some form of locality of reference, 
@@ -58,7 +58,7 @@ give performance benefits.
 
 
 
-#### 2.1.2. Read operations (LRU)
+#### 3.1.2. Read operations (LRU)
 
  
 File accessed through aligned blocks of fixed size (pages) that loaded 
@@ -72,7 +72,7 @@ user buffer, otherwise load page to the cache from file, and copies to the
 user's buffer. All recently loaded cache pages marked as "clean".
 
 
-#### 2.1.3. Write operations (FBW)
+#### 3.1.3. Write operations (FBW)
 
 For write operations, CachedFileIO uses Fetch-On-Write policy.
 If there is a cache hit, write operation changes cache page
@@ -84,7 +84,7 @@ cache, CachedFileIO frees most aged pages. When the page is freed,
 if it has "dirty" mark, page persisted on the storage device.
 
 
-#### 2.1.4. IO performance and cache page O(1) lookup 
+#### 3.1.4. IO performance and cache page O(1) lookup 
 
 Performance is always trade-off, so this class designed to speed up 
 frequent IO for JSON documents with average JSON size is 1525 bytes.
