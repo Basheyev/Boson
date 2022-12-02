@@ -3,9 +3,9 @@
 
 ## 1. Overview
 
-Boson is embeddable JSON document database engine.
+**Boson is embeddable JSON document database engine written in C++.**
 
-Core features:
+**Core features**:
 - Standard Key/Value persistent document store (JSON).
 - Fast document search by ID in B+ Tree Index.
 - Support cursors for linear records traversal.
@@ -13,7 +13,7 @@ Core features:
 - Simple, Clean and easy to use API.
 - Self-contained & zero configuration.
 
-Considerations:
+**Considerations**:
 - Median JSON document size is 1525 bytes.
 - Almost all real world apps show some form of locality of reference.
 - Most apps database read/write operations ratio is 70% / 30%.
@@ -47,11 +47,11 @@ Considerations:
 
 ## 3. Internal algorithms and performance strategies
 
-### 3.1. Database file caching (CachedFileIO Class)
+### 3.1. Database file caching (CachedFileIO)
 
 #### 3.1.1. Motivation
 
-CachedFileIO is designed to improve pe rformance of file I/O operations.
+CachedFileIO is designed to improve performance of file I/O operations.
 Almost all real world applications show some form of locality of reference, 
 and 70%/30% average read/write ratio. Memory LRU caching strategy could 
 give performance benefits.
