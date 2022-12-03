@@ -444,18 +444,21 @@ size_t CachedFileIO::loadPageToCache(size_t requestedFilePageNo) {
 	// get free cache page index
 	size_t cachePageIndex = getFreeCachePageIndex();
 
-	// read page from storage device
+	// calculate offset and initialize variables
 	uint8_t* cachePage = cachePagesData[cachePageIndex].data;
 	size_t offset = requestedFilePageNo * DEFAULT_CACHE_PAGE_SIZE;
 	size_t bytesToRead = DEFAULT_CACHE_PAGE_SIZE;
+	size_t bytesRead = 0;
+
+	// Fetch page from storage device
 	_fseeki64(fileHandler, offset, SEEK_SET);
-	size_t bytesRead = fread(cachePage, 1, bytesToRead, fileHandler);
+	bytesRead = fread(cachePage, 1, bytesToRead, fileHandler);
+	
 
 	// if available data less than page size
 	if (bytesRead < DEFAULT_CACHE_PAGE_SIZE) {
 		// fill remaining part of page with zero to avoid artifacts
 		memset(cachePage + bytesRead, 0, DEFAULT_CACHE_PAGE_SIZE - bytesRead);
-
 	}
 
 	// fill loaded page description info

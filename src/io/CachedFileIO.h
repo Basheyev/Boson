@@ -17,9 +17,9 @@
 namespace Boson {
 
 	//-------------------------------------------------------------------------
-	constexpr size_t DEFAULT_CACHE_PAGE_SIZE = 1024 * 256;     // 8192 bytes
+	constexpr size_t DEFAULT_CACHE_PAGE_SIZE = 4 * 1024;       // 4096 bytes
 	constexpr size_t MINIMAL_CACHE_SIZE = 2 * 1024 * 1024;     // 2048 Kb
-	constexpr size_t DEFAULT_CACHE_SIZE = MINIMAL_CACHE_SIZE;  // 2048 Kb
+	constexpr size_t DEFAULT_CACHE_SIZE = MINIMAL_CACHE_SIZE;  // Minimal cache
 	constexpr size_t PAGE_NOT_FOUND = 0xFFFFFFFFFFFFFFFF;      // "Not found" signature
 	//-------------------------------------------------------------------------
 

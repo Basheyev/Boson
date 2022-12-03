@@ -20,6 +20,7 @@ namespace Boson {
 		~CachedFileIOTest();
 
 		void generateFileData();
+		void randomReads();
 
 
 		void open(char* path, size_t cacheSize = DEFAULT_CACHE_SIZE);

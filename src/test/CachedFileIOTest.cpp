@@ -32,57 +32,84 @@ CachedFileIOTest::~CachedFileIOTest() {
 *
 *  @brief Generates file with data
 * 
-*  CachedFileIO uses Least-Recent-Used and Fetch-before-Write
+*  CachedFileIO uses Least-Recent-Used (LRU) and Fetch-Before-Write (FBW)
 *
 */
 void CachedFileIOTest::generateFileData() {
+
 	CachedFileIO cachedFile;
-	char buf[32] = { 0 };
+	
+	char buf[128] = "\n{\n\t\"name:\": \"unknown\",\n\t\"birthDate\": \"unknown\",\n\t"
+		            "\"letters\": ['a','b','c','d','e','f','g'],\n\t\"id\": ";
+	size_t textLen = strlen(buf);
+
 	size_t length, pos = 0;
 	cf.open(this->fileName);
 	cf.resizeFile(0);
-	std::cout << "[TEST] Sequential write... ";
+	std::cout << "[TEST] Sequential write 1000000 of " << textLen + 12 << " byte blocks... ";
 	auto startTime = std::chrono::steady_clock::now();
-	for (size_t i = 0; i < 10000000; i++) {
-		_itoa(i, buf, 10);
+	
+	for (size_t i = 0; i < 1000000; i++) {
+		_itoa(i, &buf[textLen], 10);
 		length = strlen(buf);
-		buf[length] = ' ';
-		buf[length + 1] = 0;
-		cf.write(pos, buf, length + 1);
-		pos += length + 1;
+		buf[length] = '\n';
+		buf[length + 1] = '}';
+		buf[length + 2] = 0;
+		length += 3;
+		cf.write(pos, buf, length);
+		pos += length;
 	}
 	cf.flush();
 	auto endTime = std::chrono::steady_clock::now();
 	auto cachedDuration = (endTime - startTime).count() / 1000000.0;
 	
 	cf.close();
-	char data[4096] = { 0 };
 
-	startTime = std::chrono::steady_clock::now();
-	FILE* f = fopen(this->fileName, "r+b");
-	for (size_t i = 10000000; i < 20000000; i++) {
-		_itoa(i, buf, 10);
-		length = strlen(buf);
-		buf[length] = ' ';
-		buf[length + 1] = 0;
-		_fseeki64(f, pos, SEEK_SET);
-		fread(data, 1, 4096, f);
-		_fseeki64(f, pos, SEEK_SET);
-		fwrite(buf, 1, length + 1, f);
-		pos += length + 1;
-	}
-	fclose(f);
-	endTime = std::chrono::steady_clock::now();
-	auto stdioDuration = (endTime - startTime).count() / 1000000.0;
-	auto ratio = (stdioDuration / cachedDuration);
-
-	std::cout << pos << " bytes (CACHED: " << cachedDuration << "ms, ";
-	std::cout << "STDIO: " << stdioDuration << "ms, ratio=" << ratio << ") - ";
-	if (ratio > 1) std::cout << "PASSED\n"; else std::cout << "FAILED\n";
+	double throughput = (pos / 1024.0 / 1024.0) / (cachedDuration / 1000.0);
+	
+	std::cout << pos << " bytes (" << cachedDuration << "ms), ";
+	std::cout << "Write: " << throughput << " Mb/sec\n";
 }
 
 
 
+void CachedFileIOTest::randomReads() {
+
+	CachedFileIO cachedFile;
+
+	char buf[256] = { 0 };	
+	size_t length, pos = 0;
+	size_t offset;
+
+	cf.open(this->fileName);
+	cf.resizeFile(0);
+
+	std::cout << "[TEST] Random read 1000000 of 128 byte blocks... ";
+
+	auto startTime = std::chrono::steady_clock::now();
+
+	for (size_t i = 0; i < 1000000; i++) {
+
+       // offset = 
+
+		cf.write(pos, buf, length);
+
+		buf[length + 2] = 0;
+		length += 3;
+		
+		pos += length;
+	}
+	cf.flush();
+	auto endTime = std::chrono::steady_clock::now();
+	auto cachedDuration = (endTime - startTime).count() / 1000000.0;
+
+	cf.close();
+
+	double throughput = (pos / 1024.0 / 1024.0) / (cachedDuration / 1000.0);
+
+	std::cout << pos << " bytes (" << cachedDuration << "ms), ";
+	std::cout << "Read: " << throughput << " Mb/sec\n";
+}
 
 
 void CachedFileIOTest::open(char* filename, size_t cacheSize) {
