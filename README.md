@@ -64,15 +64,15 @@ Used). If CachedFileIO has no free cache pages then cache page that
 hasn't been used for the longest time will be evicted from the cache.
 
 On every read operation CachedFileIO looks up for page in the cache
-using hashtable with O(1) time complexity. If there is a cache hit 
-copies requested data to the user buffer, otherwise loads page to 
-the cache from file, and copies to the user's buffer. All recently 
-loaded cache pages marked as "clean".
+**using hashtable with O(1) time complexity**. If there is a cache hit, 
+CacheFileIo copies requested data to the user buffer, otherwise loads
+page to the cache from file, and copies to the user's buffer. All 
+recently loaded cache pages marked as "clean".
 
 
-#### 3.1.3. Write operations (FoW)
+#### 3.1.3. Write operations (FBW)
 
-For write operations, CachedFileIO uses Fetch-On-Write policy.
+For write operations, CachedFileIO uses Fetch-Before-Write policy.
 If there is a cache hit, write operation changes cache page
 and marks it as "dirty". If there is a write miss, then file 
 page loaded to the cache and after changes are applied.

@@ -38,12 +38,11 @@ using namespace Boson;
 */
 double probabilityDensity(double x, double sigma, double mu) {
 	using namespace std;
-	double pi = 3.14159265358979323846;
-	double e = 2.71828182845904523536;
+	double pi = 3.14159265358979323846L;
+	double e = 2.71828182845904523536L;
 	double power = -0.5 * pow((x - mu) / sigma, 2);
-	double numerator = 1.0;
 	double denominator = sigma * sqrt(2 * pi);
-	return (numerator / denominator) * pow(e, power);
+	return (1.0 / denominator) * pow(e, power);
 }
 
 
