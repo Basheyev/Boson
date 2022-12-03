@@ -46,7 +46,7 @@ abstraction like API working with document store entities.
 #### 3.1.1. Motivation
 
 **CachedFileIO is designed to improve performance of file I/O 
-operations specificly for JSON document store case**. We assume 
+operations specifically for JSON document store case**. We assume 
 that almost all real world apps show some form of locality of 
 reference, so 10-15% of database size cache gives more than 95% 
 cache hits. Most JSON documents size are less than 1000 bytes, 
@@ -73,7 +73,7 @@ recently loaded cache pages marked as "clean".
 #### 3.1.3. Write operations (FBW)
 
 For write operations, CachedFileIO uses Fetch-Before-Write policy.
-If there is a cache hit, write operation changes cache page
+If there is a cache hit, write operation rewrirtes cache page
 and marks it as "dirty". If there is a write miss, then file 
 page loaded to the cache and after changes are applied.
 
