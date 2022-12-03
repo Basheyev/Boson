@@ -25,21 +25,24 @@
 
 ## 2. Boson Database Architecture
 
+Boson has four layers. Each of them providing required guaranties 
+and level of abstraction. From low-level like cache to high level
+abstraction like API working with document store entities.
 
      ---------------------------------------------------
-    |                 Boson Key-Value API               | 
+    |                     Boson API                     |      -  API Layer (Key/Value)
      ---------------------------------------------------
                 |                           |
      -----------------------     -----------------------
-    |    Database Storage   |   |    Index (B+ Tree)    |
+    |    Database Storage   |   |    Index (B+ Tree)    |      -  Storage and Index Layer
      -----------------------     -----------------------
                 |                           |
      ---------------------------------------------------
-    |              Cached File IO (LRU/FBW)             | 
+    |              Cached File IO (LRU/FBW)             |      -  Memory Cache Layer
      ---------------------------------------------------
                               |
      ---------------------------------------------------
-    |                   Database File                   |
+    |                   Database File                   |      -  File-System Layer
      --------------------------------------------------- 
 
 
