@@ -20,14 +20,14 @@ using namespace Boson;
 *
 */
 CachedFileIO::CachedFileIO() {
+	this->maxPagesCount = 0;
+	this->pageCounter = 0;
+	this->cacheList.clear();
+	this->cacheMap.clear();
 	this->fileHandler = nullptr;
-	this->cachePagesCount = 0;
-	this->cachePagesInfo = nullptr;
-	this->cachePagesData = nullptr;
 	this->readOnly = false;
 	this->cacheRequests = 0;
 	this->cacheMisses = 0;
-	this->mostAgedPageIndex = 0;
 }
 
 
@@ -55,6 +55,7 @@ CachedFileIO::~CachedFileIO() {
 bool CachedFileIO::open(char* fileName, size_t cacheSize, bool isReadOnly) {
 	// if current file still open, close it
 	if (this->fileHandler != nullptr) close();
+
 	// try to open existing file for binary read/update (file must exist)
 	this->fileHandler = fopen(fileName, "r+b");
 	// if file does not exist or another problem
@@ -67,6 +68,7 @@ bool CachedFileIO::open(char* fileName, size_t cacheSize, bool isReadOnly) {
 		if (this->fileHandler == nullptr) return false;
 	}
 
+	// save path to file
 	this->pathToFile = fileName;
 
 	// set mode to no buffering, we will manage buffers and caching by our selves
@@ -76,13 +78,11 @@ bool CachedFileIO::open(char* fileName, size_t cacheSize, bool isReadOnly) {
 	if (cacheSize < MINIMAL_CACHE_SIZE) cacheSize = MINIMAL_CACHE_SIZE;
 
 	// Allocate cache memory aligned to page size
-	this->cachePagesCount = cacheSize / DEFAULT_CACHE_PAGE_SIZE;
-	this->cachePagesInfo = new CachePageInfo[cachePagesCount];
-	this->cachePagesData = new CachePageData[cachePagesCount];
+	this->maxPagesCount = cacheSize / DEFAULT_CACHE_PAGE_SIZE;
 
-	// Set cache memory to zero
-	memset(this->cachePagesInfo, 0, cachePagesCount * sizeof(CachePageInfo));
-	memset(this->cachePagesData, 0, cachePagesCount * sizeof(CachePageData));
+	// Clear cache pages list and map
+	this->cacheList.clear();
+	this->cacheMap.clear();
 
 	// Set readOnly flag
 	this->readOnly = isReadOnly;
@@ -115,9 +115,21 @@ bool CachedFileIO::close() {
 	// close file
 	fclose(fileHandler);
 
-	// Release cache memory
-	delete[] cachePagesInfo;
-	delete[] cachePagesData;
+	//std::cout << "Cache pages allocated: " << pageCounter;
+
+	// Release cache pages memory
+	while (!cacheList.empty()) {
+		CachePage* page = cacheList.back();
+		cacheList.pop_back();
+		delete page;
+		this->pageCounter--;
+	}
+
+	//std::cout << " Not released: " << pageCounter << std::endl;
+
+	// Release cache map and list memory
+	cacheList.clear();
+	cacheMap.clear();
 
 	// mark that file is closed
 	this->fileHandler = nullptr;
@@ -165,11 +177,9 @@ size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 	size_t lastPageNo = (position + length) / DEFAULT_CACHE_PAGE_SIZE;
 	
 	// Initialize local variables
-	CachePageInfo* pageInfo = nullptr;
-	CachePageData* pageData = nullptr;
+	CachePage* pageInfo = nullptr;
 	uint8_t* src = nullptr;
 	uint8_t* dst = (uint8_t*) dataBuffer;
-	size_t cacheIndex = PAGE_NOT_FOUND;
 	size_t bytesToCopy = 0, bytesRead = 0;	
 	size_t pageDataLength = 0;
 	
@@ -177,15 +187,14 @@ size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 	for (size_t filePage = firstPageNo; filePage <= lastPageNo; filePage++) {
 		
 		// Lookup or load file page to cache
-		cacheIndex = searchPageInCache(filePage);
-		if (cacheIndex == PAGE_NOT_FOUND) {
-			cacheIndex = loadPageToCache(filePage);
-			if (cacheIndex == PAGE_NOT_FOUND) return 0;
+		pageInfo = searchPageInCache(filePage);
+		if (pageInfo == nullptr) {
+			pageInfo = loadPageToCache(filePage);
+			if (pageInfo == nullptr) return 0;
 		}
 		
 		// Get cached page description and data
-		pageInfo = &cachePagesInfo[cacheIndex];
-		pageData = &cachePagesData[cacheIndex];
+		//pageInfo = &cachePages[cacheIndex];
 		pageDataLength = pageInfo->availableDataLength;
 		
 		// Calculate source pointers and data length to copy
@@ -193,7 +202,7 @@ size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 
 			// Case 1: if reading first page
 			size_t firstPageOffset = position % DEFAULT_CACHE_PAGE_SIZE;   
-			src = (uint8_t*) &pageData->data[firstPageOffset];             
+			src = &pageInfo->data[firstPageOffset];             
 			if (firstPageOffset < pageDataLength)                          
 				if (firstPageOffset + length > pageDataLength)             
 					bytesToCopy = pageDataLength - firstPageOffset;        
@@ -204,7 +213,7 @@ size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 
 			// Case 2: if reading last page
 			size_t remainingBytes = (position + length) % DEFAULT_CACHE_PAGE_SIZE;
-			src = (uint8_t*) pageData->data;                               
+			src = pageInfo->data;                               
 			if (remainingBytes < pageDataLength)                           
 				bytesToCopy = remainingBytes;                              
 			else bytesToCopy = pageDataLength;  
@@ -212,7 +221,7 @@ size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 		} else {                       
 
 			// Case 3: if reading middle page 
-			src = (uint8_t*)pageData->data;
+			src = pageInfo->data;
 			bytesToCopy = DEFAULT_CACHE_PAGE_SIZE;
 
 		}
@@ -250,11 +259,9 @@ size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t lengt
 	size_t lastPageNo = (position + length) / DEFAULT_CACHE_PAGE_SIZE;
 
 	// Initialize local variables
-	CachePageInfo* pageInfo = nullptr;
-	CachePageData* pageData = nullptr;
+	CachePage* pageInfo = nullptr;
 	uint8_t* src = (uint8_t*)dataBuffer;
 	uint8_t* dst = nullptr;
-	size_t cacheIndex = PAGE_NOT_FOUND;
 	size_t bytesToCopy = 0, bytesWritten = 0;
 	size_t pageDataLength = 0;
 
@@ -262,30 +269,29 @@ size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t lengt
 	for (size_t filePage = firstPageNo; filePage <= lastPageNo; filePage++) {
 
 		// Fetch-before-write (FBW)
-		cacheIndex = searchPageInCache(filePage);
-		if (cacheIndex == PAGE_NOT_FOUND) {
-			cacheIndex = loadPageToCache(filePage);
-			if (cacheIndex == PAGE_NOT_FOUND) return 0;
+		pageInfo = searchPageInCache(filePage);
+		if (pageInfo == nullptr) {
+			pageInfo = loadPageToCache(filePage);
+			if (pageInfo == nullptr) return 0;
 		}
 
 		// Get cached page description and data
-		pageInfo = &cachePagesInfo[cacheIndex];
-		pageData = &cachePagesData[cacheIndex];
+		//pageInfo = &cachePages[cacheIndex];
 		pageDataLength = pageInfo->availableDataLength;
 
 		// Calculate source pointers and data length to write
 		if (filePage == firstPageNo) {
 			// Case 1: if writing first page
 			size_t firstPageOffset = position % DEFAULT_CACHE_PAGE_SIZE;
-			dst = (uint8_t*)&pageData->data[firstPageOffset];
+			dst = &pageInfo->data[firstPageOffset];
 			bytesToCopy = std::min(length, DEFAULT_CACHE_PAGE_SIZE - firstPageOffset);
 		} else if (filePage == lastPageNo) {
 			// Case 2: if writing last page
-			dst = (uint8_t*)pageData->data;
+			dst = pageInfo->data;
 			bytesToCopy = length - bytesWritten;
 		} else {
 			// Case 3: if reading middle page 
-			dst = (uint8_t*)pageData->data;
+			dst = pageInfo->data;
 			bytesToCopy = DEFAULT_CACHE_PAGE_SIZE;
 		}
 
@@ -293,8 +299,7 @@ size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t lengt
 		if (bytesToCopy > 0) {
 			
 			memcpy(dst, src, bytesToCopy);       // copy user buffer data to cache page
-			
-			pageInfo->age = 0;                   // reset cache page age to zero
+	
 			pageInfo->state = PageState::DIRTY;  // mark page as "dirty" (rewritten)
 			pageInfo->availableDataLength = std::max(pageDataLength, bytesToCopy);       // wrong!
 			
@@ -323,9 +328,9 @@ size_t CachedFileIO::flush() {
 	// Suppose all pages will be persisted
 	bool allDirtyPagesPersisted = true;
 
-	// Persist all "dirty" pages one by one
-	for (size_t cacheIndex = 0; cacheIndex < cachePagesCount; cacheIndex++) {
-		allDirtyPagesPersisted = allDirtyPagesPersisted && freeCachePage(cacheIndex);
+	// Persist pages to storage device
+	for (CachePage* node : cacheList) {
+		allDirtyPagesPersisted = allDirtyPagesPersisted && clearCachePage(node);
 	}
 
 	return allDirtyPagesPersisted;
@@ -340,19 +345,16 @@ size_t CachedFileIO::flush() {
 *  @return current file size in bytes
 * 
 */
-size_t CachedFileIO::resizeFile(size_t size) {
-
-	
+bool CachedFileIO::resizeFile(size_t size) {
+	// if file not open or read only do nothing
+	if (fileHandler == nullptr || readOnly) return false;
 	// Persist cached pages
 	this->flush();
-
 	// Check page size alignment
 	size_t alignedSize = (size / DEFAULT_CACHE_PAGE_SIZE) * DEFAULT_CACHE_PAGE_SIZE;
-
 	// Resize file
 	std::filesystem::resize_file(pathToFile, alignedSize);
-
-	return 0;
+	return true;
 }
 
 
@@ -383,95 +385,110 @@ double CachedFileIO::cacheMissRate() {
 
 /**
 *
-* @brief Returns free or most aged cache page
+* @brief Returns free page: allocates new or return most aged cache page if cache limit reached
+* 
 *
-* @return free cache page or most aged page index
+* @return most aged page reference
 *
 */
-size_t CachedFileIO::getFreeCachePageIndex() {
+CachePage* CachedFileIO::getFreeCachePage() {
+	if (cacheList.size() < maxPagesCount) {
 
-	// Search for free cache page
-	for (size_t cacheIndex = 0; cacheIndex < cachePagesCount; cacheIndex++) {
-		if (cachePagesInfo[cacheIndex].state == PageState::FREE) return cacheIndex;
+		// Allocate memory for cache page
+		CachePage* newPage = new CachePage();
+		this->pageCounter++;
+
+		// Clear cache page info fields
+		newPage->state = PageState::FREE;
+		newPage->filePageNo = PAGE_NOT_FOUND;
+		newPage->availableDataLength = 0;
+
+		// Return reference to new page
+		return newPage;
+
+	} else {
+		// get most aged cache page (back of the list)
+		CachePage* freePage = this->cacheList.back();
+		// clear cache page state
+		clearCachePage(freePage);
+		// remove cache page from list back
+		this->cacheList.pop_back();
+		// return cache page reference
+		return freePage;
 	}
-
-	// if there is no free pages in the cache, free and return most aged page
-	freeCachePage(this->mostAgedPageIndex);
-
-	return this->mostAgedPageIndex;
 }
 
 
 
 /**
 * 
-* @brief Lookup cache page index of requested file page if it exists
+* @brief Lookup cache page of requested file page if it exists
 * 
 * @param requestedFilePageNo - requested file page number
-* @return cache page index of requested file page or returns PAGE_NOT_FOUND
+* @return cache page reference of requested file page or returns nullptr
 * 
 */
-size_t CachedFileIO::searchPageInCache(size_t requestedFilePageNo) {
+CachePage* CachedFileIO::searchPageInCache(size_t filePageNo) {
 	
+	// increment total cache lookup requests
 	cacheRequests++;
 
 	// Search file page in index map and return if its found
-	auto result = cacheMap.find(requestedFilePageNo);
+	auto result = cacheMap.find(filePageNo);
 	if (result != cacheMap.end()) return result->second;
 	
+	// increment cache misses counter
 	cacheMisses++;
 
-	return PAGE_NOT_FOUND;
+	return nullptr;
 }
 
 
 
 /**
 * 
-*  @brief Loads requested page from storage device to cache and returns cache index
+*  @brief Loads requested page from storage device to cache and returns cache page
 * 
 *  @param requestedFilePageNo - file page number to load
-*  @return loaded page cache index or PAGE_NOT_FOUND if file is not open.
+*  @return loaded page cache index or nullptr if file is not open.
 * 
 */
-size_t CachedFileIO::loadPageToCache(size_t requestedFilePageNo) {
+CachePage* CachedFileIO::loadPageToCache(size_t filePageNo) {
 
-	if (fileHandler == nullptr) return PAGE_NOT_FOUND;
-
-	// increment all pages age
-	ageCachePages();
+	if (fileHandler == nullptr) return nullptr;
 
 	// get free cache page index
-	size_t cachePageIndex = getFreeCachePageIndex();
+	CachePage* cachePage = getFreeCachePage();
 
 	// calculate offset and initialize variables
-	uint8_t* cachePage = cachePagesData[cachePageIndex].data;
-	size_t offset = requestedFilePageNo * DEFAULT_CACHE_PAGE_SIZE;
+	size_t offset = filePageNo * DEFAULT_CACHE_PAGE_SIZE;
 	size_t bytesToRead = DEFAULT_CACHE_PAGE_SIZE;
 	size_t bytesRead = 0;
 
 	// Fetch page from storage device
 	_fseeki64(fileHandler, offset, SEEK_SET);
-	bytesRead = fread(cachePage, 1, bytesToRead, fileHandler);
+	bytesRead = fread(cachePage->data, 1, bytesToRead, fileHandler);
 	
 
 	// if available data less than page size
 	if (bytesRead < DEFAULT_CACHE_PAGE_SIZE) {
 		// fill remaining part of page with zero to avoid artifacts
-		memset(cachePage + bytesRead, 0, DEFAULT_CACHE_PAGE_SIZE - bytesRead);
+		memset(&(cachePage->data[bytesRead]), 0, DEFAULT_CACHE_PAGE_SIZE - bytesRead);
 	}
 
 	// fill loaded page description info
-	CachePageInfo& loadedPage = cachePagesInfo[cachePageIndex];
-	loadedPage.state = PageState::CLEAN;
-	loadedPage.filePageNo = requestedFilePageNo;
-	loadedPage.age = 0;
-	loadedPage.availableDataLength = bytesRead;
+	cachePage->state = PageState::CLEAN;
+	cachePage->filePageNo = filePageNo;
+	cachePage->availableDataLength = bytesRead;
+
+	// insert page index to cache list
+	cacheList.push_front(cachePage);
 
 	// Add filePage/cachePage key-value pair to the map
-	cacheMap.insert({ requestedFilePageNo, cachePageIndex });
+	cacheMap.insert({ filePageNo, cachePage });
+	
 
-	return cachePageIndex;
+	return cachePage;
 }
 
 
@@ -484,21 +501,20 @@ size_t CachedFileIO::loadPageToCache(size_t requestedFilePageNo) {
 *  @return true - page successfuly persisted, false - write failed or file is not open
 * 
 */ 
-bool CachedFileIO::persistCachePage(size_t cachePageIndex) {
+bool CachedFileIO::persistCachePage(CachePage* cachedPage) {
 
 	if (fileHandler == nullptr) return false;
 
 	// Get file page number of cached page and calculate offset in the file
-	size_t offset = cachePagesInfo[cachePageIndex].filePageNo * DEFAULT_CACHE_PAGE_SIZE;
+	size_t offset = cachedPage->filePageNo * DEFAULT_CACHE_PAGE_SIZE;
 	size_t bytesToWrite = DEFAULT_CACHE_PAGE_SIZE;
 	size_t bytesWritten = 0;
-	void*  cachedPage = &cachePagesData[cachePageIndex];
-
+	
 	// Go to calculated offset in the file
 	_fseeki64(fileHandler, offset, SEEK_SET);
 
 	// Write cached page to file
-	bytesWritten = fwrite(cachedPage, 1, bytesToWrite, fileHandler);
+	bytesWritten = fwrite(cachedPage->data, 1, bytesToWrite, fileHandler);
 
 	// Check success
 	return bytesWritten == bytesToWrite;
@@ -514,44 +530,22 @@ bool CachedFileIO::persistCachePage(size_t cachePageIndex) {
 *  @return true - if page cleared, false - if can't persist page to storage
 * 
 */
-bool CachedFileIO::freeCachePage(size_t cachePageIndex) {
-
-	CachePageInfo& pageInfo = cachePagesInfo[cachePageIndex];
+bool CachedFileIO::clearCachePage(CachePage* pageInfo) {
 	
 	// if cache page has been rewritten persist page to storage device
-	if (pageInfo.state == PageState::DIRTY) {
-		if (!persistCachePage(cachePageIndex)) return false;
+	if (pageInfo->state == PageState::DIRTY) {
+		if (!persistCachePage(pageInfo)) return false;
 	}
 
 	// Remove from index map
-	cacheMap.erase(pageInfo.filePageNo);
+	cacheMap.erase(pageInfo->filePageNo);
 
 	// Clear cache page info fields
-	pageInfo.state = PageState::FREE;
-	pageInfo.age = 0;
-	pageInfo.filePageNo = PAGE_NOT_FOUND;
-	pageInfo.availableDataLength = 0;
-
-		
+	pageInfo->state = PageState::FREE;
+	pageInfo->filePageNo = PAGE_NOT_FOUND;
+	pageInfo->availableDataLength = 0;
+			
 	// Cache page freed
 	return true;
 }
 
-
-
-/**
-* 
-*  @brief Increments all cache pages "age"
-* 
-*/
-void CachedFileIO::ageCachePages() {
-	size_t maxAge = 0;
-	
-	for (size_t cacheIndex = 0; cacheIndex < cachePagesCount; cacheIndex++) {
-		cachePagesInfo[cacheIndex].age++;
-		if (cachePagesInfo[cacheIndex].age > maxAge) {
-			maxAge = cachePagesInfo[cacheIndex].age;
-			this->mostAgedPageIndex = cacheIndex;
-		}
-	}
-}

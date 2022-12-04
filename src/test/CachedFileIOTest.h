@@ -11,37 +11,18 @@
 
 namespace Boson {
 
-
-
 	class CachedFileIOTest {
 	public:
-
 		CachedFileIOTest(char* path);
 		~CachedFileIOTest();
-
-		void generateFileData();
-		void randomReads();
-
-
-		void open(char* path, size_t cacheSize = DEFAULT_CACHE_SIZE);
-		
-		double sequencialReadTest(size_t readBufferSize);
-
-		double randomReadTest(size_t position, size_t bufferSize);
-		void sequencialWriteTest(size_t bufferSize);
-		void randomWriteTest();
-
-		void close();
-
-
-		double stdioSequencialRead(char* filename, size_t readBufferSize);
-		double stdioRandomRead(char* filename, size_t position, size_t readBufferSize);
-
+		bool run();
 	private:
-
 		CachedFileIO cf;
 		char* fileName;
-
+		double generateFileData();
+		double randNormal(double mean, double stddev);
+		double cachedRandomReads();
+		double stdioRandomReads();
 	};
 
 
