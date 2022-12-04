@@ -30,12 +30,24 @@ CachedFileIOTest::~CachedFileIOTest() {
 *  @brief Runs CachedFileIO tests and compares throughput to STDIO
 *  @return true if CachedFileIO to STDIO performance ratio > 1, false otherwise
 */
-bool CachedFileIOTest::run() {
+bool CachedFileIOTest::run(size_t samples, size_t jsonSize, double cacheRatio, double sigma) {
+	// initalize parameters
+	this->samplesCount = samples;
+	this->docSize = jsonSize;
+	this->cacheRatio = cacheRatio;
+	this->sigma = sigma;
+
+	std::cout << "[PARAMETERS] CachedFileIO test:" << std::endl;
+	std::cout << "  Samples count = " << samples << std::endl;
+	std::cout << "  JSON size = " << jsonSize << " bytes" << std::endl;;
+	std::cout << "  Cache size = " << cacheRatio * 100 << "% of database size" << std::endl;;
+	std::cout << "  Request distribution Sigma= " << sigma << "\n\n";
+
 	generateFileData();
 	double cachedThroughput = cachedRandomReads(); 
 	double stdioThroughput = stdioRandomReads();
 	double ratio = cachedThroughput / stdioThroughput; // more is better
-	std::cout << "Throughput ratio (STDIO/CACHED):" << std::setprecision(2) << ratio << "x - ";
+	std::cout << "[RESULT] Throughput ratio (STDIO/CACHED):" << std::setprecision(2) << ratio << "x - ";
 	if (ratio > 1.0) std::cout << "SUCCESS\n"; else std::cout << "FAILED\n";
 	return ratio > 1.0;
 }
@@ -58,10 +70,10 @@ double CachedFileIOTest::generateFileData() {
 	size_t length, pos = 0;
 	cf.open(this->fileName);
 	cf.resizeFile(0);
-	std::cout << "[TEST] Sequential write 1000000 of " << textLen + 12 << " byte blocks... ";
+	std::cout << "[TEST] Sequential write " << samplesCount << " of " << textLen + 12 << " byte blocks... ";
 	auto startTime = std::chrono::steady_clock::now();
 	
-	for (size_t i = 0; i < 1000000; i++) {
+	for (size_t i = 0; i < samplesCount; i++) {
 		_itoa(i, &buf[textLen], 10);
 		length = strlen(buf);
 		buf[length] = '\n';
@@ -142,17 +154,17 @@ double CachedFileIOTest::cachedRandomReads() {
 
 	size_t fileSize = std::filesystem::file_size(this->fileName);
 
-	cf.open(this->fileName, fileSize / 10);
+	cf.open(this->fileName, size_t(fileSize * cacheRatio));
 		
-	std::cout << "[TEST] Random read 1000000 of 760 byte blocks... ";
+	std::cout << "[TEST] CACHED random read " << samplesCount << " of " << docSize << " byte blocks... ";
 
 	auto startTime = std::chrono::steady_clock::now();
 	
-	length = 760;
+	length = docSize;
 
-	for (size_t i = 0; i < 1000000; i++) {
+	for (size_t i = 0; i < samplesCount; i++) {
 
-		offset = randNormal(0.5, 0.15) * (fileSize - length);
+		offset = randNormal(0.5, this->sigma) * (fileSize - length);
 
 		if (offset >= 0 && offset < fileSize) {
 			
@@ -195,15 +207,15 @@ double CachedFileIOTest::stdioRandomReads() {
 	file = fopen(this->fileName, "r+b");
 	size_t fileSize = std::filesystem::file_size(this->fileName);
 
-	std::cout << "[TEST] STDIO random read 1000000 of 760 byte blocks... ";
+	std::cout << "[TEST] STDIO random read " << samplesCount << " of " << docSize << " byte blocks... ";
 
 	auto startTime = std::chrono::steady_clock::now();
 
-	length = 760;
+	length = docSize;
 
-	for (size_t i = 0; i < 1000000; i++) {
+	for (size_t i = 0; i < samplesCount; i++) {
 
-		offset = randNormal(0.5, 0.15) * (fileSize - length);
+		offset = randNormal(0.5, sigma) * (fileSize - length);
 
 		if (offset >= 0 && offset < fileSize) {
 			fseek(file, offset, SEEK_SET);

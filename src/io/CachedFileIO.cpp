@@ -79,7 +79,7 @@ bool CachedFileIO::open(char* fileName, size_t cacheSize, bool isReadOnly) {
 
 	// Allocate cache memory aligned to page size
 	this->maxPagesCount = cacheSize / DEFAULT_CACHE_PAGE_SIZE;
-
+	
 	// Clear cache pages list and map
 	this->cacheList.clear();
 	this->cacheMap.clear();
@@ -115,17 +115,7 @@ bool CachedFileIO::close() {
 	// close file
 	fclose(fileHandler);
 
-	//std::cout << "Cache pages allocated: " << pageCounter;
-
-	// Release cache pages memory
-	while (!cacheList.empty()) {
-		CachePage* page = cacheList.back();
-		cacheList.pop_back();
-		delete page;
-		this->pageCounter--;
-	}
-
-	//std::cout << " Not released: " << pageCounter << std::endl;
+	this->releasePages();
 
 	// Release cache map and list memory
 	cacheList.clear();
@@ -383,6 +373,36 @@ double CachedFileIO::cacheMissRate() {
 //=============================================================================
 
 
+CachePage* CachedFileIO::allocatePage() {
+
+	// Allocate memory for cache page
+	CachePage* newPage = new CachePage();
+	this->pageCounter++;
+
+	// Clear cache page info fields
+	newPage->state = PageState::FREE;
+	newPage->filePageNo = PAGE_NOT_FOUND;
+	newPage->availableDataLength = 0;
+	
+	return newPage;
+}
+
+
+void CachedFileIO::releasePages() {
+	//std::cout << "Cache pages allocated: " << pageCounter;
+
+	// Release cache pages memory
+	while (!cacheList.empty()) {
+		CachePage* page = cacheList.back();
+		cacheList.pop_back();
+		delete page;
+		this->pageCounter--;
+	}
+
+	//std::cout << " Not released: " << pageCounter << std::endl;
+}
+
+
 /**
 *
 * @brief Returns free page: allocates new or return most aged cache page if cache limit reached
@@ -393,19 +413,7 @@ double CachedFileIO::cacheMissRate() {
 */
 CachePage* CachedFileIO::getFreeCachePage() {
 	if (cacheList.size() < maxPagesCount) {
-
-		// Allocate memory for cache page
-		CachePage* newPage = new CachePage();
-		this->pageCounter++;
-
-		// Clear cache page info fields
-		newPage->state = PageState::FREE;
-		newPage->filePageNo = PAGE_NOT_FOUND;
-		newPage->availableDataLength = 0;
-
-		// Return reference to new page
-		return newPage;
-
+		return allocatePage();
 	} else {
 		// get most aged cache page (back of the list)
 		CachePage* freePage = this->cacheList.back();

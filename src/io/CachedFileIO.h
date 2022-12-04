@@ -66,6 +66,8 @@ namespace Boson {
 
 	private:
 
+		CachePage* allocatePage();
+		void       releasePages();
 		CachePage* getFreeCachePage();                            
 		CachePage* searchPageInCache(size_t filePageNo);
 		CachePage* loadPageToCache(size_t filePageNo);
@@ -80,6 +82,7 @@ namespace Boson {
 		size_t          pageCounter;                             // Allocated pages counter
 		CachedPagesMap  cacheMap;                                // Cached pages map (file page, cache Page)
 		CacheLinkedList cacheList;                               // Cached pages double linked list
+		CachePage*      memoryPool;                              // Cache pages memory pool
 		
 		size_t          cacheRequests;                           // Cache requests counter
 		size_t          cacheMisses;                             // Cache misses counter
