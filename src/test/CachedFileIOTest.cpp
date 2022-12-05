@@ -38,17 +38,24 @@ bool CachedFileIOTest::run(size_t samples, size_t jsonSize, double cacheRatio, d
 	this->sigma = sigma;
 
 	std::cout << "[PARAMETERS] CachedFileIO test:" << std::endl;
-	std::cout << "  Samples count = " << samples << std::endl;
-	std::cout << "  JSON size = " << jsonSize << " bytes" << std::endl;;
-	std::cout << "  Cache size = " << cacheRatio * 100 << "% of database size" << std::endl;;
-	std::cout << "  Request distribution Sigma= " << sigma << "\n\n";
+	std::cout << "\tSamples count = " << samples << std::endl;
+	std::cout << "\tJSON size = " << jsonSize << " bytes" << std::endl;;
+	std::cout << "\tCache size = " << cacheRatio * 100 << "% of database size" << std::endl;;
+	std::cout << "\tRequest distribution sigma = " << sigma << "\n\n";
 
 	generateFileData();
 	double cachedThroughput = cachedRandomReads(); 
 	double stdioThroughput = stdioRandomReads();
 	double ratio = cachedThroughput / stdioThroughput; // more is better
-	std::cout << "[RESULT] Throughput ratio (STDIO/CACHED):" << std::setprecision(2) << ratio << "x - ";
-	if (ratio > 1.0) std::cout << "SUCCESS\n"; else std::cout << "FAILED\n";
+	std::cout << "[RESULT] Throughput ratio (CACHED/STDIO): " << std::setprecision(4);
+	if (ratio > 1.0) {
+		std::cout << "+" << (ratio - 1.0) * 100 << "% - ";
+		std::cout << "SUCCESS! :)\n";
+	}
+	else {
+		std::cout << (ratio - 1.0) * 100 << "% - ";
+		std::cout << "FAILED :(\n";
+	}
 	return ratio > 1.0;
 }
 
@@ -70,7 +77,7 @@ double CachedFileIOTest::generateFileData() {
 	size_t length, pos = 0;
 	cf.open(this->fileName);
 	cf.resizeFile(0);
-	std::cout << "[TEST] Sequential write " << samplesCount << " of " << textLen + 12 << " byte blocks... ";
+	std::cout << "[TEST]  Sequential write " << samplesCount << " of " << textLen + 12 << " byte blocks...\n\t";
 	auto startTime = std::chrono::steady_clock::now();
 	
 	for (size_t i = 0; i < samplesCount; i++) {
@@ -90,9 +97,8 @@ double CachedFileIOTest::generateFileData() {
 	cf.close();
 
 	double throughput = (pos / 1024.0 / 1024.0) / (cachedDuration / 1000.0);
-	
 	std::cout << pos << " bytes (" << cachedDuration << "ms), ";
-	std::cout << "Write: " << throughput << " Mb/sec\n";
+	std::cout << "Write: " << throughput << " Mb/sec\n\n";
 
 	return throughput;
 }
@@ -156,7 +162,7 @@ double CachedFileIOTest::cachedRandomReads() {
 
 	cf.open(this->fileName, size_t(fileSize * cacheRatio));
 		
-	std::cout << "[TEST] CACHED random read " << samplesCount << " of " << docSize << " byte blocks... ";
+	std::cout << "[TEST]  CACHED random read " << samplesCount << " of " << docSize << " byte blocks...\n\t";
 
 	auto startTime = std::chrono::steady_clock::now();
 	
@@ -181,8 +187,8 @@ double CachedFileIOTest::cachedRandomReads() {
 	double throughput = (bytesRead / 1024.0 / 1024.0) / (cachedDuration / 1000.0);
 
 	std::cout << bytesRead << " bytes (" << cachedDuration << "ms), ";
-	std::cout << "Cache hit: " << cf.cacheHitRate() << "%, ";
-	std::cout << "Read: " << throughput << " Mb/sec\n";
+	std::cout << "Read: " << throughput << " Mb/sec, (";
+	std::cout << "cache hit: " << cf.cacheHitRate() << "%)\n\n";
 
 	cf.close();
 
@@ -207,7 +213,7 @@ double CachedFileIOTest::stdioRandomReads() {
 	file = fopen(this->fileName, "r+b");
 	size_t fileSize = std::filesystem::file_size(this->fileName);
 
-	std::cout << "[TEST] STDIO random read " << samplesCount << " of " << docSize << " byte blocks... ";
+	std::cout << "[TEST]  STDIO random read " << samplesCount << " of " << docSize << " byte blocks...\n\t";
 
 	auto startTime = std::chrono::steady_clock::now();
 
@@ -232,7 +238,7 @@ double CachedFileIOTest::stdioRandomReads() {
 	double throughput = (pos / 1024.0 / 1024.0) / (cachedDuration / 1000.0);
 
 	std::cout << pos << " bytes (" << cachedDuration << "ms), ";
-	std::cout << "Read: " << throughput << " Mb/sec\n";
+	std::cout << "Read: " << throughput << " Mb/sec\n\n";
 
 	fclose(file);
 
