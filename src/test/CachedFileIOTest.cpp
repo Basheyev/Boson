@@ -153,7 +153,7 @@ double CachedFileIOTest::cachedRandomReads() {
 
 	CachedFileIO cachedFile;
 
-	char buf[2048] = { 0 };	
+	char buf[65536] = { 0 };	
 	size_t length, bytesRead = 0;
 	size_t offset;
 
@@ -172,8 +172,8 @@ double CachedFileIOTest::cachedRandomReads() {
 
 		offset = randNormal(0.5, this->sigma) * (fileSize - length);
 
-		if (offset >= 0 && offset < fileSize) {
-			
+		// offset always positive because its size_t
+		if (offset < fileSize) {	
 			cf.read(offset, buf, length);
 			buf[length+1] = 0;
 			bytesRead += length;
@@ -206,7 +206,7 @@ double CachedFileIOTest::stdioRandomReads() {
 
 	FILE* file;
 
-	char buf[2048] = { 0 };
+	char buf[65536] = { 0 };
 	size_t length, pos = 0;
 	size_t offset;
 
@@ -223,7 +223,8 @@ double CachedFileIOTest::stdioRandomReads() {
 
 		offset = randNormal(0.5, sigma) * (fileSize - length);
 
-		if (offset >= 0 && offset < fileSize) {
+		// offset always positive because its size_t
+		if (offset < fileSize) {
 			fseek(file, offset, SEEK_SET);
 			fread(buf, 1, length, file);
 			buf[length + 1] = 0;

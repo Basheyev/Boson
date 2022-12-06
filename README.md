@@ -48,7 +48,7 @@ abstraction like API working with document store entities.
 **CachedFileIO is designed to improve performance of file I/O 
 operations specifically for JSON document store case**. We assume 
 that almost all real world apps show some form of locality of 
-reference, so 10-15% of database size cache gives more than 95% 
+reference. 10-15% of database size cache gives more than 95% 
 cache hits. Most JSON documents size are less than 1000 bytes, 
 where median size is 1525 bytes. Most apps database read/write 
 operations ratio is 70% / 30%. Read/write operations are faster 

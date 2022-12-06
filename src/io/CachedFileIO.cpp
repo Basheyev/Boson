@@ -2,6 +2,22 @@
 *  
 *  CachedFileIO class implementation
 * 
+*  CachedFileIO is designed to improve performance of file I/O 
+*  operations. Almost all real world apps show some form of locality of 
+*  reference. Research say that 10-15% of database size cache gives 
+*  more than 95% cache hits.
+*
+*  Most JSON documents size are less than 1000 bytes, where median 
+*  size is 1525 bytes. Most apps database read/write operations ratio 
+*  is 70% / 30%. Read/write operations are faster when aligned to storage 
+*  device sector/block size and sequential. 
+*
+*  CachedFileIO uses LRU caching strategy that provide these features:
+*    - O(1) time complexity of look up
+*    - O(1) time complexity of insert / remove
+*    - 50%-99% cache read hits leads to 10%-500% performance growth (vs STDIO)
+*    - 1%-42% cache read hits to 1%-35% performance drop (vs STDIO) 
+* 
 *  (C) Bolat Basheyev 2022
 * 
 ******************************************************************************/
@@ -77,8 +93,9 @@ bool CachedFileIO::open(char* fileName, size_t cacheSize, bool isReadOnly) {
 	// Check minimal cache size
 	if (cacheSize < MINIMAL_CACHE_SIZE) cacheSize = MINIMAL_CACHE_SIZE;
 
-	// Allocate cache memory aligned to page size
+	// Allocate cache memory for cache pages
 	this->maxPagesCount = cacheSize / DEFAULT_CACHE_PAGE_SIZE;
+	this->allocatePool(this->maxPagesCount);
 	
 	// Clear cache pages list and map
 	this->cacheList.clear();
@@ -115,11 +132,8 @@ bool CachedFileIO::close() {
 	// close file
 	fclose(fileHandler);
 
-	this->releasePages();
-
-	// Release cache map and list memory
-	cacheList.clear();
-	cacheMap.clear();
+	// Release memory pool of cached pages
+	this->releasePool();
 
 	// mark that file is closed
 	this->fileHandler = nullptr;
@@ -373,33 +387,41 @@ double CachedFileIO::cacheMissRate() {
 //=============================================================================
 
 
-CachePage* CachedFileIO::allocatePage() {
-
-	// Allocate memory for cache page
-	CachePage* newPage = new CachePage();
-	this->pageCounter++;
-
-	// Clear cache page info fields
-	newPage->state = PageState::FREE;
-	newPage->filePageNo = PAGE_NOT_FOUND;
-	newPage->availableDataLength = 0;
-	
-	return newPage;
+/**
+* @brief Allocates memory pool for cache pages
+*/
+void CachedFileIO::allocatePool(size_t pagesCount) {
+	this->cacheMemoryPool = new CachePage[pagesCount];
 }
 
 
-void CachedFileIO::releasePages() {
-	//std::cout << "Cache pages allocated: " << pageCounter;
+/**
+* @brief Releases memory pool
+*/
+void CachedFileIO::releasePool() {
+	this->pageCounter = 0;
+	cacheList.clear();
+	cacheMap.clear();
+	delete[] cacheMemoryPool;
+}
 
-	// Release cache pages memory
-	while (!cacheList.empty()) {
-		CachePage* page = cacheList.back();
-		cacheList.pop_back();
-		delete page;
-		this->pageCounter--;
-	}
 
-	//std::cout << " Not released: " << pageCounter << std::endl;
+/**
+* @brief Allocates cache page from memory pool
+*/
+CachePage* CachedFileIO::allocatePage() {
+
+	if (pageCounter >= maxPagesCount) return nullptr;
+
+	// Allocate memory for cache page
+	CachePage* newPage = &cacheMemoryPool[pageCounter];
+	pageCounter++;
+
+	// Clear cache page info fields
+	newPage->filePageNo = PAGE_NOT_FOUND;
+	newPage->availableDataLength = 0;
+
+	return newPage;
 }
 
 
@@ -549,7 +571,6 @@ bool CachedFileIO::clearCachePage(CachePage* pageInfo) {
 	cacheMap.erase(pageInfo->filePageNo);
 
 	// Clear cache page info fields
-	pageInfo->state = PageState::FREE;
 	pageInfo->filePageNo = PAGE_NOT_FOUND;
 	pageInfo->availableDataLength = 0;
 			

@@ -33,7 +33,7 @@ int main()
 	using namespace std;
 	
 	CachedFileIOTest cft("F:\\database.bin");
-	cft.run();
+	cft.run(1000000, 1525);
 
 	return 0;
 }

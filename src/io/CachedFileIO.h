@@ -2,6 +2,22 @@
 *
 *  CachedFileIO class header
 *
+*  CachedFileIO is designed to improve performance of file I/O
+*  operations. Almost all real world apps show some form of locality of
+*  reference. Research say that 10-15% of database size cache gives
+*  more than 95% cache hits.
+*
+*  Most JSON documents size are less than 1000 bytes, where median
+*  size is 1525 bytes. Most apps database read/write operations ratio
+*  is 70% / 30%. Read/write operations are faster when aligned to storage
+*  device sector/block size and sequential.
+*
+*  CachedFileIO uses LRU caching strategy that provide these features:
+*    - O(1) time complexity of look up
+*    - O(1) time complexity of insert / remove
+*    - 50%-99% cache read hits leads to 10%-500% performance growth (vs STDIO)
+*    - 1%-42% cache read hits to 1%-35% performance drop (vs STDIO)
+*
 *  (C) Bolat Basheyev 2022
 *
 ******************************************************************************/
@@ -17,14 +33,13 @@
 namespace Boson {
 
 	//-------------------------------------------------------------------------
-	constexpr size_t DEFAULT_CACHE_PAGE_SIZE = 4 * 1024;       // 4096 bytes
-	constexpr size_t MINIMAL_CACHE_SIZE = 256 * 1024;          // 256 Kb minimal cache
-	constexpr size_t DEFAULT_CACHE_SIZE = 1 * 1024 * 1024;     // 1Mb default cache
-	constexpr size_t PAGE_NOT_FOUND = 0xFFFFFFFFFFFFFFFF;      // "Not found" signature
+	constexpr size_t DEFAULT_CACHE_PAGE_SIZE = 4 * 1024;   // 4096 bytes
+	constexpr size_t MINIMAL_CACHE_SIZE = 256 * 1024;      // 256 Kb minimal cache
+	constexpr size_t DEFAULT_CACHE_SIZE = 1 * 1024 * 1024; // 1Mb default cache
+	constexpr size_t PAGE_NOT_FOUND = 0xFFFFFFFFFFFFFFFF;  // "Not found" signature
 	//-------------------------------------------------------------------------
 
 	typedef enum {
-		FREE = 0,                                // Cache page is free (no data loaded)
 		CLEAN = 1,                               // Cache page has been rewritten after being loaded
 		DIRTY = 2                                // Cache page is changed, must be saved to storage device
 	} PageState;
@@ -66,8 +81,10 @@ namespace Boson {
 
 	private:
 
+		void       allocatePool(size_t pagesCount);
+		void       releasePool();
 		CachePage* allocatePage();
-		void       releasePages();
+		
 		CachePage* getFreeCachePage();                            
 		CachePage* searchPageInCache(size_t filePageNo);
 		CachePage* loadPageToCache(size_t filePageNo);
@@ -82,7 +99,7 @@ namespace Boson {
 		size_t          pageCounter;                             // Allocated pages counter
 		CachedPagesMap  cacheMap;                                // Cached pages map (file page, cache Page)
 		CacheLinkedList cacheList;                               // Cached pages double linked list
-		CachePage*      memoryPool;                              // Cache pages memory pool
+		CachePage*      cacheMemoryPool;                         // Cache pages memory pool (preallocated)
 		
 		size_t          cacheRequests;                           // Cache requests counter
 		size_t          cacheMisses;                             // Cache misses counter
