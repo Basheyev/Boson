@@ -7,16 +7,15 @@
 *  reference. Research say that 10-15% of database size cache gives 
 *  more than 95% cache hits.
 *
-*  Most JSON documents size are less than 1000 bytes, where median 
-*  size is 1525 bytes. Most apps database read/write operations ratio 
-*  is 70% / 30%. Read/write operations are faster when aligned to storage 
-*  device sector/block size and sequential. 
+*  Most JSON documents size are less than 1000 bytes. Most apps database 
+*  read/write operations ratio is 70% / 30%. Read/write operations are 
+*  faster when aligned to storage device sector/block size and sequential. 
 *
-*  CachedFileIO uses LRU caching strategy that provide these features:
+*  CachedFileIO comply LRU/FBW caching strategy:
 *    - O(1) time complexity of look up
 *    - O(1) time complexity of insert / remove
-*    - 50%-99% cache read hits leads to 10%-500% performance growth (vs STDIO)
-*    - 1%-42% cache read hits to 1%-35% performance drop (vs STDIO) 
+*    - 50%-99% cache read hits leads to 10%-490% performance growth (vs STDIO)
+*    - 1%-42% cache read hits leads to 1%-35% performance drop (vs STDIO) 
 * 
 *  (C) Bolat Basheyev 2022
 * 
@@ -36,12 +35,13 @@ using namespace Boson;
 *
 */
 CachedFileIO::CachedFileIO() {
-	this->maxPagesCount = 0;
-	this->pageCounter = 0;
-	this->cacheList.clear();
-	this->cacheMap.clear();
 	this->fileHandler = nullptr;
 	this->readOnly = false;
+	this->maxPagesCount = 0;
+	this->pageCounter = 0;
+	this->cacheMemoryPool = nullptr;
+	this->cacheList.clear();
+	this->cacheMap.clear();	
 	this->cacheRequests = 0;
 	this->cacheMisses = 0;
 }
@@ -61,40 +61,43 @@ CachedFileIO::~CachedFileIO() {
 *
 *  @brief Opens file and allocates cache memory
 * 
-*  @param[in] fileName   - the name of the file to be opened
-*  @param[in] cacheSize  - how much memory for cache to allocate 
+*  @param[in] fileName   - the name of the file to be opened (path)
+*  @param[in] cacheSize  - how much memory for cache to allocate (bytes) 
 *  @param[in] isReadOnly - if true, write operations are not allowed
 *
 *  @return true if file opened, false if can't open file
 *
 */
-bool CachedFileIO::open(char* fileName, size_t cacheSize, bool isReadOnly) {
+bool CachedFileIO::open(const char* path, size_t cache, bool isReadOnly) {
+	// if null pointer
+	if (path == nullptr) return false;
+
 	// if current file still open, close it
 	if (this->fileHandler != nullptr) close();
 
 	// try to open existing file for binary read/update (file must exist)
-	this->fileHandler = fopen(fileName, "r+b");
+	this->fileHandler = fopen(path, "r+b");
 	// if file does not exist or another problem
 	if (this->fileHandler == nullptr) {
 		// if can`t open file in read only mode return false
 		if (isReadOnly) return false;
 		// try to create new file for binary write/read
-		this->fileHandler = fopen(fileName, "w+b");
+		this->fileHandler = fopen(path, "w+b");
 		// if still can't create file return false
 		if (this->fileHandler == nullptr) return false;
 	}
 
 	// save path to file
-	this->pathToFile = fileName;
+	this->pathToFile = path;
 
 	// set mode to no buffering, we will manage buffers and caching by our selves
 	setvbuf(this->fileHandler, nullptr, _IONBF, 0);
 
 	// Check minimal cache size
-	if (cacheSize < MINIMAL_CACHE_SIZE) cacheSize = MINIMAL_CACHE_SIZE;
+	if (cache < MINIMAL_CACHE) cache = MINIMAL_CACHE;
 
-	// Allocate cache memory for cache pages
-	this->maxPagesCount = cacheSize / DEFAULT_CACHE_PAGE_SIZE;
+	// Allocate cache memory for cache pages (aligned to page size)
+	this->maxPagesCount = cache / PAGE_SIZE;
 	this->allocatePool(this->maxPagesCount);
 	
 	// Clear cache pages list and map
@@ -150,7 +153,7 @@ bool CachedFileIO::close() {
 *  @return actual file size in bytes
 *
 */
-size_t CachedFileIO::getFileSize() {
+size_t CachedFileIO::size() {
 	if (fileHandler == nullptr) return 0;
 	size_t currentPosition = ftell(fileHandler);
 	_fseeki64(fileHandler, 0, SEEK_END);
@@ -158,6 +161,27 @@ size_t CachedFileIO::getFileSize() {
 	_fseeki64(fileHandler, currentPosition, SEEK_SET);
 	return fileSize;
 }
+
+
+/**
+*
+*  @brief Truncates or extends file size to specified size aligned to page size
+*
+*  @return current file size in bytes
+*
+*/
+bool CachedFileIO::resize(size_t size) {
+	// if file not open or read only do nothing
+	if (fileHandler == nullptr || readOnly) return false;
+	// Persist cached pages
+	this->flush();
+	// Check page size alignment
+	size_t alignedSize = (size / PAGE_SIZE) * PAGE_SIZE;
+	// Resize file
+	std::filesystem::resize_file(pathToFile, alignedSize);
+	return true;
+}
+
 
 
 /**
@@ -177,8 +201,8 @@ size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 	if (fileHandler == nullptr || dataBuffer == nullptr || length == 0) return 0;
 	
 	// Calculate start and end page number in the file
-	size_t firstPageNo = position / DEFAULT_CACHE_PAGE_SIZE;
-	size_t lastPageNo = (position + length) / DEFAULT_CACHE_PAGE_SIZE;
+	size_t firstPageNo = position / PAGE_SIZE;
+	size_t lastPageNo = (position + length) / PAGE_SIZE;
 	
 	// Initialize local variables
 	CachePage* pageInfo = nullptr;
@@ -205,7 +229,7 @@ size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 		if (filePage == firstPageNo) {
 
 			// Case 1: if reading first page
-			size_t firstPageOffset = position % DEFAULT_CACHE_PAGE_SIZE;   
+			size_t firstPageOffset = position % PAGE_SIZE;   
 			src = &pageInfo->data[firstPageOffset];             
 			if (firstPageOffset < pageDataLength)                          
 				if (firstPageOffset + length > pageDataLength)             
@@ -216,7 +240,7 @@ size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 		} else if (filePage == lastPageNo) {  
 
 			// Case 2: if reading last page
-			size_t remainingBytes = (position + length) % DEFAULT_CACHE_PAGE_SIZE;
+			size_t remainingBytes = (position + length) % PAGE_SIZE;
 			src = pageInfo->data;                               
 			if (remainingBytes < pageDataLength)                           
 				bytesToCopy = remainingBytes;                              
@@ -226,7 +250,7 @@ size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 
 			// Case 3: if reading middle page 
 			src = pageInfo->data;
-			bytesToCopy = DEFAULT_CACHE_PAGE_SIZE;
+			bytesToCopy = PAGE_SIZE;
 
 		}
 
@@ -259,8 +283,8 @@ size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t lengt
 	if (fileHandler == nullptr || this->readOnly || dataBuffer == nullptr || length == 0) return 0;
 
 	// Calculate start and end page number in the file
-	size_t firstPageNo = position / DEFAULT_CACHE_PAGE_SIZE;
-	size_t lastPageNo = (position + length) / DEFAULT_CACHE_PAGE_SIZE;
+	size_t firstPageNo = position / PAGE_SIZE;
+	size_t lastPageNo = (position + length) / PAGE_SIZE;
 
 	// Initialize local variables
 	CachePage* pageInfo = nullptr;
@@ -286,9 +310,9 @@ size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t lengt
 		// Calculate source pointers and data length to write
 		if (filePage == firstPageNo) {
 			// Case 1: if writing first page
-			size_t firstPageOffset = position % DEFAULT_CACHE_PAGE_SIZE;
+			size_t firstPageOffset = position % PAGE_SIZE;
 			dst = &pageInfo->data[firstPageOffset];
-			bytesToCopy = std::min(length, DEFAULT_CACHE_PAGE_SIZE - firstPageOffset);
+			bytesToCopy = std::min(length, PAGE_SIZE - firstPageOffset);
 		} else if (filePage == lastPageNo) {
 			// Case 2: if writing last page
 			dst = pageInfo->data;
@@ -296,7 +320,7 @@ size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t lengt
 		} else {
 			// Case 3: if reading middle page 
 			dst = pageInfo->data;
-			bytesToCopy = DEFAULT_CACHE_PAGE_SIZE;
+			bytesToCopy = PAGE_SIZE;
 		}
 
 		// Copy available data from user's data buffer to cache page 
@@ -332,6 +356,14 @@ size_t CachedFileIO::flush() {
 	// Suppose all pages will be persisted
 	bool allDirtyPagesPersisted = true;
 
+	// Sort cache list by file page number for sequential write
+	cacheList.sort([](const CachePage* cp1, const CachePage* cp2)
+		{
+			if (cp1->filePageNo == cp2->filePageNo)
+				return cp1->filePageNo < cp2->filePageNo;
+			return cp1->filePageNo < cp2->filePageNo;
+		});
+
 	// Persist pages to storage device
 	for (CachePage* node : cacheList) {
 		allDirtyPagesPersisted = allDirtyPagesPersisted && clearCachePage(node);
@@ -343,37 +375,22 @@ size_t CachedFileIO::flush() {
 
 
 /**
-* 
-*  @brief Truncates or extends file size to specified size aligned to page size
-* 
-*  @return current file size in bytes
-* 
+* @brief Return stats
+* @param type - requested stats type
+* @return value of stats
 */
-bool CachedFileIO::resizeFile(size_t size) {
-	// if file not open or read only do nothing
-	if (fileHandler == nullptr || readOnly) return false;
-	// Persist cached pages
-	this->flush();
-	// Check page size alignment
-	size_t alignedSize = (size / DEFAULT_CACHE_PAGE_SIZE) * DEFAULT_CACHE_PAGE_SIZE;
-	// Resize file
-	std::filesystem::resize_file(pathToFile, alignedSize);
-	return true;
-}
-
-
-
-
-// @brief cache hit percentage (%)
-double CachedFileIO::cacheHitRate() {
-	return ((double)cacheRequests - (double)cacheMisses) / (double)cacheRequests * 100.0;
-}
-
-
-
-// @brief cache miss percentage (%)
-double CachedFileIO::cacheMissRate() {
-	return (double)cacheMisses / (double)cacheRequests * 100.0;
+double CachedFileIO::getStats(CacheStats type) {
+	double totalRequests = cacheRequests;
+	double totalCacheMisses = cacheMisses;
+	switch (type) {
+	case CacheStats::TOTAL_REQUESTS:
+		return totalRequests;
+	case CacheStats::CACHE_HITS_RATE:
+		return (totalRequests - totalCacheMisses) / totalRequests * 100.0;
+	case CacheStats::CACHE_MISSES_RATE:
+		return totalCacheMisses / totalRequests * 100.0;
+	}
+	return 0.0;
 }
 
 
@@ -491,19 +508,18 @@ CachePage* CachedFileIO::loadPageToCache(size_t filePageNo) {
 	CachePage* cachePage = getFreeCachePage();
 
 	// calculate offset and initialize variables
-	size_t offset = filePageNo * DEFAULT_CACHE_PAGE_SIZE;
-	size_t bytesToRead = DEFAULT_CACHE_PAGE_SIZE;
+	size_t offset = filePageNo * PAGE_SIZE;
+	size_t bytesToRead = PAGE_SIZE;	
 	size_t bytesRead = 0;
 
 	// Fetch page from storage device
 	_fseeki64(fileHandler, offset, SEEK_SET);
 	bytesRead = fread(cachePage->data, 1, bytesToRead, fileHandler);
 	
-
 	// if available data less than page size
-	if (bytesRead < DEFAULT_CACHE_PAGE_SIZE) {
+	if (bytesRead < PAGE_SIZE) {
 		// fill remaining part of page with zero to avoid artifacts
-		memset(&(cachePage->data[bytesRead]), 0, DEFAULT_CACHE_PAGE_SIZE - bytesRead);
+		memset(&(cachePage->data[bytesRead]), 0, PAGE_SIZE - bytesRead);
 	}
 
 	// fill loaded page description info
@@ -536,8 +552,8 @@ bool CachedFileIO::persistCachePage(CachePage* cachedPage) {
 	if (fileHandler == nullptr) return false;
 
 	// Get file page number of cached page and calculate offset in the file
-	size_t offset = cachedPage->filePageNo * DEFAULT_CACHE_PAGE_SIZE;
-	size_t bytesToWrite = DEFAULT_CACHE_PAGE_SIZE;
+	size_t offset = cachedPage->filePageNo * PAGE_SIZE;
+	size_t bytesToWrite = PAGE_SIZE;
 	size_t bytesWritten = 0;
 	
 	// Go to calculated offset in the file

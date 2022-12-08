@@ -27,13 +27,12 @@
 using namespace Boson;
 
 
-
 int main()
 {
 	using namespace std;
 	
 	CachedFileIOTest cft("F:\\database.bin");
-	cft.run(1000000, 1525);
+	cft.run(1000000, 896);
 
 	return 0;
 }
