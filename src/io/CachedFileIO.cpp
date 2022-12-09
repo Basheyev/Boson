@@ -68,7 +68,7 @@ CachedFileIO::~CachedFileIO() {
 *  @return true if file opened, false if can't open file
 *
 */
-bool CachedFileIO::open(const char* path, size_t cache, bool isReadOnly) {
+bool CachedFileIO::open(const char* path, size_t cacheSize, bool isReadOnly) {
 	// if null pointer
 	if (path == nullptr) return false;
 
@@ -93,23 +93,11 @@ bool CachedFileIO::open(const char* path, size_t cache, bool isReadOnly) {
 	// set mode to no buffering, we will manage buffers and caching by our selves
 	setvbuf(this->fileHandler, nullptr, _IONBF, 0);
 
-	// Check minimal cache size
-	if (cache < MINIMAL_CACHE) cache = MINIMAL_CACHE;
-
-	// Allocate cache memory for cache pages (aligned to page size)
-	this->maxPagesCount = cache / PAGE_SIZE;
-	this->allocatePool(this->maxPagesCount);
-	
-	// Clear cache pages list and map
-	this->cacheList.clear();
-	this->cacheMap.clear();
+	// Allocated cache
+	setCacheSize(cacheSize);
 
 	// Set readOnly flag
 	this->readOnly = isReadOnly;
-
-    // Reset stats
-	this->cacheRequests = 0;
-	this->cacheMisses = 0;
 
 	// file successfuly opened
 	return true;
@@ -143,25 +131,6 @@ bool CachedFileIO::close() {
 
 	return true;
 }
-
-
-
-/**
-*
-*  @brief Get current file size
-*
-*  @return actual file size in bytes
-*
-*/
-size_t CachedFileIO::size() {
-	if (fileHandler == nullptr) return 0;
-	size_t currentPosition = ftell(fileHandler);
-	_fseeki64(fileHandler, 0, SEEK_END);
-	size_t fileSize = ftell(fileHandler);
-	_fseeki64(fileHandler, currentPosition, SEEK_SET);
-	return fileSize;
-}
-
 
 
 
@@ -334,10 +303,12 @@ size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t lengt
 */
 size_t CachedFileIO::flush() {
 
+	if (fileHandler == nullptr || this->readOnly) return 0;
+
 	// Suppose all pages will be persisted
 	bool allDirtyPagesPersisted = true;
 
-	// Sort cache list by file page number for sequential write
+	// Sort cache list by file page number in ascending order for sequential write
 	cacheList.sort([](const CachePage* cp1, const CachePage* cp2)
 		{
 			if (cp1->filePageNo == cp2->filePageNo)
@@ -349,8 +320,12 @@ size_t CachedFileIO::flush() {
 	for (CachePage* node : cacheList) {
 		allDirtyPagesPersisted = allDirtyPagesPersisted && clearCachePage(node);
 	}
+	
+	// flush buffers to storage device
+	bool buffersFlushed = (fflush(fileHandler) == 0);
 
-	return allDirtyPagesPersisted;
+	return allDirtyPagesPersisted && buffersFlushed;
+
 }
 
 
@@ -361,7 +336,7 @@ size_t CachedFileIO::flush() {
 * @return value of stats
 */
 double CachedFileIO::getStats(CacheStats type) {
-	double totalRequests = (double) cacheRequests;
+	double totalRequests = (double)cacheRequests;
 	double totalCacheMisses = (double)cacheMisses;
 	switch (type) {
 	case CacheStats::TOTAL_REQUESTS:
@@ -376,6 +351,23 @@ double CachedFileIO::getStats(CacheStats type) {
 
 
 
+/**
+*
+*  @brief Get current file size
+*
+*  @return actual file size in bytes
+*
+*/
+size_t CachedFileIO::getFileSize() {
+	if (fileHandler == nullptr) return 0;
+	size_t currentPosition = ftell(fileHandler);
+	_fseeki64(fileHandler, 0, SEEK_END);
+	size_t fileSize = ftell(fileHandler);
+	_fseeki64(fileHandler, currentPosition, SEEK_SET);
+	return fileSize;
+}
+
+
 //=============================================================================
 // 
 // 
@@ -383,6 +375,53 @@ double CachedFileIO::getStats(CacheStats type) {
 // 
 // 
 //=============================================================================
+
+/**
+*
+*  @brief Get cache size in bytes
+*  @return actual cache size in bytes
+*
+*/
+size_t CachedFileIO::getCacheSize() {
+	return this->maxPagesCount * PAGE_SIZE;
+}
+
+
+
+/**
+*
+*  @brief Resize cache at runtime: releases memory and allocate new one
+*  @param cacheSize - new cache size
+*  @return actual cache size in bytes
+*
+*/
+size_t CachedFileIO::setCacheSize(size_t cacheSize) {
+	
+	// check if cache is already allocated
+	if (cacheMemoryPool != nullptr) {
+		// Persist all changed pages to storage device
+		this->flush();
+		// Release allocated memory, list and map
+		this->releasePool();
+	} 
+
+	// Check minimal cache size
+	if (cacheSize < MINIMAL_CACHE) cacheSize = MINIMAL_CACHE;
+	// Calculate pages count
+	this->pageCounter = 0;
+	this->maxPagesCount = cacheSize / PAGE_SIZE;
+	// Allocate new cache
+	this->allocatePool(this->maxPagesCount);
+	// Clear cache pages list and map
+	this->cacheList.clear();
+	this->cacheMap.clear();
+	// Reset stats
+	this->cacheRequests = 0;
+	this->cacheMisses = 0;
+	// Return cache size in bytes
+	return this->maxPagesCount * PAGE_SIZE;
+}
+
 
 
 /**
@@ -401,6 +440,7 @@ void CachedFileIO::releasePool() {
 	cacheList.clear();
 	cacheMap.clear();
 	delete[] cacheMemoryPool;
+	cacheMemoryPool = nullptr;
 }
 
 

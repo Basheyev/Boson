@@ -9,6 +9,7 @@
 #include <iostream>
 #include <locale>
 #include <chrono>
+#include <thread>
 
 
 #include "CachedFileIOTest.h"
@@ -44,19 +45,31 @@ bool CachedFileIOTest::run(size_t samples, size_t jsonSize, double cacheRatio, d
 	this->docSize = jsonSize;
 	this->cacheRatio = cacheRatio;
 	this->sigma = sigma;
-
+	
 	// thousands separator
 	std::cout.imbue(std::locale(std::locale::classic(), new NumberPunctuation()));
 		
 	std::cout << "[PARAMETERS] CachedFileIO test:" << std::endl;
 	std::cout << "\tSamples count = " << samples << std::endl;
-	std::cout << "\tJSON size = " << jsonSize << " bytes" << std::endl;;
+	std::cout << "\tJSON size = " << jsonSize << " bytes" << std::endl;
+	std::cout << "\tCache page = " << PAGE_SIZE << " bytes" << std::endl;
 	std::cout << "\tCache size = " << cacheRatio * 100 << "% of database size" << std::endl;;
 	std::cout << "\tRequest distribution sigma = " << sigma*100.0 << "%\n\n";
 
 	generateFileData();
+
+	std::this_thread::sleep_for(std::chrono::seconds(5));
+
+	double cachedThroughput = cachedRandomReads();
+
+	std::this_thread::sleep_for(std::chrono::seconds(5));
+
 	double stdioThroughput = stdioRandomReads();
-	double cachedThroughput = cachedRandomReads(); 
+
+	std::this_thread::sleep_for(std::chrono::seconds(5));
+
+
+
 	double ratio = cachedThroughput / stdioThroughput; 
 	std::cout << "[RESULT] Throughput ratio (CACHED/STDIO): " << std::setprecision(4);
 	if (ratio > 1.0) {
@@ -81,17 +94,24 @@ double CachedFileIOTest::generateFileData() {
 
 	CachedFileIO cachedFile;
 	
-	char buf[256] = "\n{\n\t\"name:\": \"unknown\",\n\t\"birthDate\": \"unknown\",\n\t"
-		            "\"GUID\" : \"6B29FC40-CA47-1067-B31D-00DD010662DA\",\n\t"
-		            "\"letters\": ['a','b','c','d','e','f','g'],\n\t\"id\": ";
+	char buf[256] = 
+		"\n{\n\t\"name:\": \"unknown\",\n\t\"birthDate\": \"unknown\",\n\t"
+		"\"GUID\" : \"6B29FC40-CA47-1067-B31D-00DD010662DA\",\n\t"
+		"\"letters\": ['a','b','c','d','e','f','g'],\n\t\"id\": ";
+
 	size_t textLen = strlen(buf);
 
 	size_t length, pos = 0;
 
-	std::filesystem::remove(this->fileName);
-
+	// delete file if exists
+	if (std::filesystem::exists(this->fileName)) {
+		std::filesystem::remove(this->fileName);
+	}
+	
 	cf.open(this->fileName);
-	std::cout << "[TEST]  Sequential write " << samplesCount << " of ~" << textLen + 10 << " byte blocks...\n\t";
+
+	std::cout << "[TEST]  Sequential write " << samplesCount;
+	std::cout << " of ~" << textLen + 10 << " byte blocks...\n\t";
 	auto startTime = std::chrono::steady_clock::now();
 	
 	for (int i = 0; i < samplesCount; i++) {
@@ -165,11 +185,12 @@ double CachedFileIOTest::cachedRandomReads() {
 	size_t offset;
 
 
-	size_t fileSize = std::filesystem::file_size(this->fileName);
-
-	cf.open(this->fileName, size_t(fileSize * cacheRatio));
+	cf.open(this->fileName);
+	size_t fileSize = cf.getFileSize();
+	cf.setCacheSize(fileSize * cacheRatio);
 		
-	std::cout << "[TEST]  CACHED random read " << samplesCount << " of " << docSize << " byte blocks...\n\t";
+	std::cout << "[TEST]  CACHED random read " << samplesCount;
+	std::cout << " of " << docSize << " byte blocks...\n\t";
 
 	auto startTime = std::chrono::steady_clock::now();
 	
@@ -194,8 +215,8 @@ double CachedFileIOTest::cachedRandomReads() {
 	double throughput = (bytesRead / 1024.0 / 1024.0) / (cachedDuration / 1000.0);
 
 	std::cout << bytesRead << " bytes (" << cachedDuration << "ms), ";
-	std::cout << "Read: " << throughput << " Mb/sec, (";
-	std::cout << "cache hit: " << cf.getStats(CacheStats::CACHE_HITS_RATE) << "%)\n\n";
+	std::cout << "Read: " << throughput << " Mb/sec, \n\t";
+	std::cout << "Cache Hit: " << cf.getStats(CacheStats::CACHE_HITS_RATE) << "%\n\n";
 
 	cf.close();
 
@@ -243,6 +264,8 @@ double CachedFileIOTest::stdioRandomReads() {
 		}
 
 	}
+
+	fflush(file);
 
 	auto endTime = std::chrono::steady_clock::now();
 	auto cachedDuration = (endTime - startTime).count() / 1000000.0;

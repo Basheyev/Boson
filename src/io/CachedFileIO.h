@@ -71,16 +71,18 @@ namespace Boson {
 	public:
 		CachedFileIO();
 		~CachedFileIO();
-
+		
 		bool open(const char* path, size_t cache = DEFAULT_CACHE, bool readOnly = false);
 		bool close();
-
-		size_t size();
 		size_t read(size_t position, void* dataBuffer, size_t length);
 		size_t write(size_t position, const void* dataBuffer, size_t length);
 		size_t flush();
-		
+
 		double getStats(CacheStats type);
+		size_t getFileSize();
+
+		size_t getCacheSize();
+		size_t setCacheSize(size_t cacheSize);
 
 	private:
 
