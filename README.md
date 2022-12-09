@@ -29,7 +29,7 @@ abstraction like API working with document store entities.
      -----------------------     -----------------------
                 |                           |
      ---------------------------------------------------
-    |              Cached File IO (LRU/FoW)             |      -  Memory Cache Layer
+    |              Cached File IO (LRU/FBW)             |      -  Memory Cache Layer
      ---------------------------------------------------
                               |
      ---------------------------------------------------
@@ -62,6 +62,7 @@ File accessed through aligned blocks of fixed size (pages) that
 loaded into the cache that implements LRU strategy (Least Recently 
 Used). If CachedFileIO has no free cache pages then cache page that 
 hasn't been used for the longest time will be evicted from the cache.
+LRU cache based on double linked list with O(1) insert/rease complexity.
 
 On every read operation CachedFileIO looks up for page in the cache
 **using hashtable with O(1) time complexity**. If there is a cache hit, 

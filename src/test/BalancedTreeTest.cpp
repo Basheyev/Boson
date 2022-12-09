@@ -184,7 +184,7 @@ bool BalancedTreeTest::deleteTree(BalancedTreeIndex<size_t, string>* bt, bool ve
 
 bool BalancedTreeTest::testPerformance(bool verbose) {
 
-	int entriesCount = 1000000;
+	size_t entriesCount = 1000000;
 	BalancedTreeIndex<size_t, string>* bt = new BalancedTreeIndex<size_t, string>(32);
 
 	cout << "-------------------------------------------------------------" << endl;

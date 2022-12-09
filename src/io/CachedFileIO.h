@@ -32,36 +32,36 @@
 namespace Boson {
 
 	//-------------------------------------------------------------------------
-	constexpr size_t PAGE_SIZE      = 8 * 1024;           // 8192 bytes
-	constexpr size_t MINIMAL_CACHE  = 256 * 1024;         // 256Kb minimal cache
-	constexpr size_t DEFAULT_CACHE  = 1 * 1024 * 1024;    // 1Mb default cache
-	constexpr size_t PAGE_NOT_FOUND = 0xFFFFFFFFFFFFFFFF; // "Not found" signature
+	constexpr size_t PAGE_SIZE      = 8 * 1024;     // 8192 bytes page size
+	constexpr size_t MINIMAL_CACHE  = 256*1024;     // 256Kb minimal cache
+	constexpr size_t DEFAULT_CACHE  = 1*1024*1024;  // 1Mb default cache
+	constexpr size_t PAGE_NOT_FOUND = -1;           // "Not found" signature
 	//-------------------------------------------------------------------------
 
-	typedef enum {
-		CLEAN = 0,                               // Cache page has been rewritten after being loaded
-		DIRTY = 1                                // Cache page is changed, must be saved to storage device
+	typedef enum {                              // Cache Page State
+		CLEAN = 0,                              // Page has not been changed
+		DIRTY = 1                               // Cache page is rewritten
 	} PageState;
 
 	typedef struct {
-		uint64_t  filePageNo;		             // File page number of cached page
-		PageState state;                         // Current cached page state
-		size_t    availableDataLength;           // Available amount of data in cached page
-		uint8_t   data[PAGE_SIZE];               // Data payload
+		uint64_t  filePageNo;		            // Page number in file
+		PageState state;                        // Current page state
+		size_t    availableDataLength;          // Available amount of data
+		uint8_t   data[PAGE_SIZE];              // Data itself (payload)
 	} CachePage;
 
-	typedef                                      // Hash map for cache index:
-		std::unordered_map<size_t, CachePage*>   // Key - file page number
-		CachedPagesMap;                          // Value - cache page reference
+	typedef                                     // Hash map for cache index:
+		std::unordered_map<size_t, CachePage*>  // Key - file page number
+		CachedPagesMap;                         // Value - cache page pointer
 	
-	typedef	                                     // Double linked list for cached pages
-		std::list<CachePage*>                    // Page index
+	typedef	                                    // Double linked list 
+		std::list<CachePage*>                   // for cached pages
 		CacheLinkedList;
 
-	typedef enum {                               // Enumeration of CachedFileIO stats types
-		TOTAL_REQUESTS,
-		CACHE_HITS_RATE,
-		CACHE_MISSES_RATE
+	typedef enum {                              // CachedFileIO stats types
+		TOTAL_REQUESTS,                         // Total requests to cache
+		CACHE_HITS_RATE,                        // Cache hits rate (0-100%)
+		CACHE_MISSES_RATE                       // Cache misses rate (0-100%)
 	} CacheStats;                  
 
 	//-------------------------------------------------------------------------
@@ -76,7 +76,6 @@ namespace Boson {
 		bool close();
 
 		size_t size();
-		bool   resize(size_t size);
 		size_t read(size_t position, void* dataBuffer, size_t length);
 		size_t write(size_t position, const void* dataBuffer, size_t length);
 		size_t flush();
@@ -88,12 +87,11 @@ namespace Boson {
 		void       allocatePool(size_t pagesCount);
 		void       releasePool();
 		CachePage* allocatePage();
-		
 		CachePage* getFreeCachePage();                            
 		CachePage* searchPageInCache(size_t filePageNo);
 		CachePage* loadPageToCache(size_t filePageNo);
-		bool   persistCachePage(CachePage* pageInfo);
-		bool   clearCachePage(CachePage* pageInfo);
+		bool       persistCachePage(CachePage* pageInfo);
+		bool       clearCachePage(CachePage* pageInfo);
 				
 		std::filesystem::path pathToFile;                  // Path to file
 		std::FILE*      fileHandler;                       // OS file handler

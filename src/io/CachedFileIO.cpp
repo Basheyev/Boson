@@ -76,15 +76,15 @@ bool CachedFileIO::open(const char* path, size_t cache, bool isReadOnly) {
 	if (this->fileHandler != nullptr) close();
 
 	// try to open existing file for binary read/update (file must exist)
-	this->fileHandler = fopen(path, "r+b");
+	errno_t errNo = fopen_s(&(this->fileHandler), path, "r+b");
 	// if file does not exist or another problem
-	if (this->fileHandler == nullptr) {
+	if (errNo != 0 || this->fileHandler == nullptr) {
 		// if can`t open file in read only mode return false
 		if (isReadOnly) return false;
 		// try to create new file for binary write/read
-		this->fileHandler = fopen(path, "w+b");
+		errNo = fopen_s(&(this->fileHandler), path, "w+b");
 		// if still can't create file return false
-		if (this->fileHandler == nullptr) return false;
+		if (errNo != 0 || this->fileHandler == nullptr) return false;
 	}
 
 	// save path to file
@@ -162,25 +162,6 @@ size_t CachedFileIO::size() {
 	return fileSize;
 }
 
-
-/**
-*
-*  @brief Truncates or extends file size to specified size aligned to page size
-*
-*  @return current file size in bytes
-*
-*/
-bool CachedFileIO::resize(size_t size) {
-	// if file not open or read only do nothing
-	if (fileHandler == nullptr || readOnly) return false;
-	// Persist cached pages
-	this->flush();
-	// Check page size alignment
-	size_t alignedSize = (size / PAGE_SIZE) * PAGE_SIZE;
-	// Resize file
-	std::filesystem::resize_file(pathToFile, alignedSize);
-	return true;
-}
 
 
 
@@ -380,8 +361,8 @@ size_t CachedFileIO::flush() {
 * @return value of stats
 */
 double CachedFileIO::getStats(CacheStats type) {
-	double totalRequests = cacheRequests;
-	double totalCacheMisses = cacheMisses;
+	double totalRequests = (double) cacheRequests;
+	double totalCacheMisses = (double)cacheMisses;
 	switch (type) {
 	case CacheStats::TOTAL_REQUESTS:
 		return totalRequests;
@@ -482,7 +463,11 @@ CachePage* CachedFileIO::searchPageInCache(size_t filePageNo) {
 
 	// Search file page in index map and return if its found
 	auto result = cacheMap.find(filePageNo);
-	if (result != cacheMap.end()) return result->second;
+	if (result != cacheMap.end()) {
+		CachePage* cachePage = result->second;
+		// TODO: bubble up page to beginning of list
+		return cachePage;
+	}
 	
 	// increment cache misses counter
 	cacheMisses++;

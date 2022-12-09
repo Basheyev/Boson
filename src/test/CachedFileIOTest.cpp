@@ -21,6 +21,10 @@ using namespace Boson;
 
 CachedFileIOTest::CachedFileIOTest(char* path) {
 	this->fileName = path;
+	this->samplesCount = 1000000;
+	this->docSize = 384;
+	this->cacheRatio = 0.1;
+	this->sigma = 0.045;
 }
 
 
@@ -83,13 +87,15 @@ double CachedFileIOTest::generateFileData() {
 	size_t textLen = strlen(buf);
 
 	size_t length, pos = 0;
+
+	std::filesystem::remove(this->fileName);
+
 	cf.open(this->fileName);
-	cf.resize(0);
 	std::cout << "[TEST]  Sequential write " << samplesCount << " of ~" << textLen + 10 << " byte blocks...\n\t";
 	auto startTime = std::chrono::steady_clock::now();
 	
-	for (size_t i = 0; i < samplesCount; i++) {
-		_itoa(i, &buf[textLen], 10);
+	for (int i = 0; i < samplesCount; i++) {
+		_itoa_s(i, &buf[textLen], sizeof(buf)-textLen, 10);
 		length = strlen(buf);
 		buf[length] = '\n';
 		buf[length + 1] = '}';
@@ -154,7 +160,7 @@ double CachedFileIOTest::cachedRandomReads() {
 
 	CachedFileIO cachedFile;
 
-	char buf[65536] = { 0 };	
+	char *buf = new char[PAGE_SIZE * 4];
 	size_t length, bytesRead = 0;
 	size_t offset;
 
@@ -171,7 +177,7 @@ double CachedFileIOTest::cachedRandomReads() {
 
 	for (size_t i = 0; i < samplesCount; i++) {
 
-		offset = randNormal(0.5, this->sigma) * (fileSize - length);
+		offset = size_t(randNormal(0.5, this->sigma) * double(fileSize - length));
 
 		// offset always positive because its size_t
 		if (offset < fileSize) {	
@@ -193,6 +199,8 @@ double CachedFileIOTest::cachedRandomReads() {
 
 	cf.close();
 
+	delete[] buf;
+
 	return throughput;
 }
 
@@ -205,13 +213,15 @@ double CachedFileIOTest::cachedRandomReads() {
 */
 double CachedFileIOTest::stdioRandomReads() {
 
-	FILE* file;
+	FILE* file = nullptr;
 
-	char buf[65536] = { 0 };
+	char* buf = new char[PAGE_SIZE * 4];
 	size_t length, pos = 0;
 	size_t offset;
 
-	file = fopen(this->fileName, "r+b");
+	errno_t result = fopen_s(&file, this->fileName, "r+b");
+	if (result != 0 || file == nullptr) return -1;
+
 	size_t fileSize = std::filesystem::file_size(this->fileName);
 
 	std::cout << "[TEST]  STDIO random read " << samplesCount << " of " << docSize << " byte blocks...\n\t";
@@ -226,7 +236,7 @@ double CachedFileIOTest::stdioRandomReads() {
 
 		// offset always positive because its size_t
 		if (offset < fileSize) {
-			fseek(file, offset, SEEK_SET);
+			_fseeki64(file, offset, SEEK_SET);
 			fread(buf, 1, length, file);
 			buf[length + 1] = 0;
 			pos += length;
@@ -243,6 +253,8 @@ double CachedFileIOTest::stdioRandomReads() {
 	std::cout << "Read: " << throughput << " Mb/sec\n\n";
 
 	fclose(file);
+
+	delete[] buf;
 
 	return throughput;
 }
