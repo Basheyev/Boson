@@ -10,6 +10,7 @@
 #include <locale>
 #include <chrono>
 #include <thread>
+#include <filesystem>
 
 
 #include "CachedFileIOTest.h"

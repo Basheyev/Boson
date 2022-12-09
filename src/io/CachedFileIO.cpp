@@ -4,7 +4,7 @@
 * 
 *  CachedFileIO is designed to improve performance of file I/O 
 *  operations. Almost all real world apps show some form of locality of 
-*  reference. Research say that 10-15% of database size cache gives 
+*  reference. Research says that 10-15% of database size cache gives 
 *  more than 95% cache hits.
 *
 *  Most JSON documents size are less than 1000 bytes. Most apps database 
@@ -25,7 +25,7 @@
 
 #include <algorithm>
 #include <iostream>
-#include <filesystem>
+#include <chrono>
 
 using namespace Boson;
 
@@ -83,9 +83,6 @@ bool CachedFileIO::open(const char* path, size_t cacheSize, bool isReadOnly) {
 		// if still can't create file return false
 		if (errNo != 0 || this->fileHandler == nullptr) return false;
 	}
-
-	// save path to file
-	this->pathToFile = path;
 
 	// set mode to no buffering, we will manage buffers and caching by our selves
 	setvbuf(this->fileHandler, nullptr, _IONBF, 0);

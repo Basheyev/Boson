@@ -4,7 +4,7 @@
 *
 *  CachedFileIO is designed to improve performance of file I/O
 *  operations. Almost all real world apps show some form of locality of
-*  reference. Research say that 10-15% of database size cache gives
+*  reference. Research says that 10-15% of database size cache gives
 *  more than 95% cache hits.
 *
 *  Most JSON documents size are less than 1000 bytes. Most apps database
@@ -24,7 +24,6 @@
 #pragma once
 
 #include <cstdio>
-#include <filesystem>
 #include <cstring>
 #include <cstdint>
 #include <unordered_map>
@@ -101,7 +100,6 @@ namespace Boson {
 		bool       persistCachePage(CachePage* pageInfo);
 		bool       clearCachePage(CachePage* pageInfo);		
 				
-		std::filesystem::path pathToFile;        // Path to file
 		std::FILE*      fileHandler;             // OS file handler
 		bool            readOnly;                // Read only flag
 
