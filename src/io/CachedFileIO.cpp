@@ -37,13 +37,10 @@ using namespace Boson;
 CachedFileIO::CachedFileIO() {
 	this->fileHandler = nullptr;
 	this->readOnly = false;
+	this->cacheMemoryPool = nullptr;
 	this->maxPagesCount = 0;
 	this->pageCounter = 0;
-	this->cacheMemoryPool = nullptr;
-	this->cacheList.clear();
-	this->cacheMap.clear();	
-	this->cacheRequests = 0;
-	this->cacheMisses = 0;
+	clearStats();
 }
 
 
@@ -99,6 +96,9 @@ bool CachedFileIO::open(const char* path, size_t cacheSize, bool isReadOnly) {
 	// Set readOnly flag
 	this->readOnly = isReadOnly;
 
+	// Clear statistics
+	this->clearStats();
+
 	// file successfuly opened
 	return true;
 }
@@ -149,7 +149,10 @@ size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 	
 	// Check if file handler, data buffer and length are not null
 	if (fileHandler == nullptr || dataBuffer == nullptr || length == 0) return 0;
-	
+
+	// Time point A
+	auto startTime = std::chrono::steady_clock::now();
+		
 	// Calculate start and end page number in the file
 	size_t firstPageNo = position / PAGE_SIZE;
 	size_t lastPageNo = (position + length) / PAGE_SIZE;
@@ -211,6 +214,14 @@ size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 			dst += bytesToCopy;              // increment pointer in user buffer
 		}
 	}
+
+	// Time point B
+	auto endTime = std::chrono::steady_clock::now();
+	// Calculate and increment read duration
+	this->totalReadDuration += (endTime - startTime).count();
+	// Increment bytes read
+	this->totalBytesRead += bytesRead;
+
 	return bytesRead;
 }
 
@@ -231,6 +242,9 @@ size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t lengt
 
 	// Check if file handler, data buffer and length are not null
 	if (fileHandler == nullptr || this->readOnly || dataBuffer == nullptr || length == 0) return 0;
+
+	// Time point A
+	auto startTime = std::chrono::steady_clock::now();
 
 	// Calculate start and end page number in the file
 	size_t firstPageNo = position / PAGE_SIZE;
@@ -288,6 +302,13 @@ size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t lengt
 
 	}
 
+	// Time point B
+	auto endTime = std::chrono::steady_clock::now();
+	// Calculate and increment write duration
+	this->totalWriteDuration += (endTime - startTime).count();
+	// Increment bytes written
+	this->totalBytesWritten += bytesWritten;
+
 	return bytesWritten;
 
 }
@@ -331,20 +352,56 @@ size_t CachedFileIO::flush() {
 
 
 /**
-* @brief Return stats
+* @brief Clear IO statistics
+* @param type - requested stats type
+* @return value of stats
+*/
+void CachedFileIO::clearStats() {
+	this->cacheRequests = 0;
+	this->cacheMisses = 0;
+	this->totalBytesRead = 0;
+	this->totalBytesWritten = 0;
+	this->totalReadDuration = 0;
+	this->totalWriteDuration = 0;
+}
+
+
+
+/**
+* @brief Return IO statistics
 * @param type - requested stats type
 * @return value of stats
 */
 double CachedFileIO::getStats(CacheStats type) {
+
 	double totalRequests = (double)cacheRequests;
 	double totalCacheMisses = (double)cacheMisses;
+	double seconds = 0;
+	double megabytes = 0;
+
 	switch (type) {
 	case CacheStats::TOTAL_REQUESTS:
 		return totalRequests;
 	case CacheStats::CACHE_HITS_RATE:
+		if (totalRequests == 0) return 0;
 		return (totalRequests - totalCacheMisses) / totalRequests * 100.0;
 	case CacheStats::CACHE_MISSES_RATE:
+		if (totalRequests == 0) return 0;
 		return totalCacheMisses / totalRequests * 100.0;
+	case CacheStats::READ_THROUGHPUT:
+		if (this->totalReadDuration == 0) return 0;
+		seconds = double(this->totalReadDuration) / 1000000000.0;
+		megabytes = double(this->totalBytesRead) / (1024 * 1024);
+		return megabytes / seconds;
+	case CacheStats::WRITE_THROUGHPUT:
+		if (this->totalWriteDuration == 0) return 0;
+		seconds = double(this->totalWriteDuration) / 1000000000.0;
+		megabytes = double(this->totalBytesWritten) / (1024 * 1024);
+		return megabytes / seconds;
+	case CacheStats::WRITE_TIME_NS:
+		return double(totalWriteDuration);
+	case CacheStats::READ_TIME_NS:
+		return double(totalReadDuration);
 	}
 	return 0.0;
 }
@@ -360,9 +417,9 @@ double CachedFileIO::getStats(CacheStats type) {
 */
 size_t CachedFileIO::getFileSize() {
 	if (fileHandler == nullptr) return 0;
-	size_t currentPosition = ftell(fileHandler);
+	size_t currentPosition = _ftelli64(fileHandler);
 	_fseeki64(fileHandler, 0, SEEK_END);
-	size_t fileSize = ftell(fileHandler);
+	size_t fileSize = _ftelli64(fileHandler);
 	_fseeki64(fileHandler, currentPosition, SEEK_SET);
 	return fileSize;
 }
@@ -618,4 +675,6 @@ bool CachedFileIO::clearCachePage(CachePage* pageInfo) {
 	// Cache page freed
 	return true;
 }
+
+
 

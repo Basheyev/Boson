@@ -44,7 +44,7 @@ namespace Boson {
 	} PageState;
 
 	typedef struct {
-		uint64_t  filePageNo;		            // Page number in file
+		uint64_t  filePageNo;                   // Page number in file
 		PageState state;                        // Current page state
 		size_t    availableDataLength;          // Available amount of data
 		uint8_t   data[PAGE_SIZE];              // Data itself (payload)
@@ -54,15 +54,20 @@ namespace Boson {
 		std::unordered_map<size_t, CachePage*>  // Key - file page number
 		CachedPagesMap;                         // Value - cache page pointer
 	
-	typedef	                                    // Double linked list 
+	typedef                                     // Double linked list 
 		std::list<CachePage*>                   // for cached pages
 		CacheLinkedList;
 
 	typedef enum {                              // CachedFileIO stats types
 		TOTAL_REQUESTS,                         // Total requests to cache
 		CACHE_HITS_RATE,                        // Cache hits rate (0-100%)
-		CACHE_MISSES_RATE                       // Cache misses rate (0-100%)
+		CACHE_MISSES_RATE,                      // Cache misses rate (0-100%)
+		WRITE_THROUGHPUT,                       // Write throughput Mb/sec
+		READ_THROUGHPUT,                        // Read throughput Mb/sec
+		WRITE_TIME_NS,                          // Total write time (ns)
+		READ_TIME_NS                            // Total read time (ns)
 	} CacheStats;                  
+
 
 	//-------------------------------------------------------------------------
 	// Binary random access cached file IO
@@ -78,6 +83,7 @@ namespace Boson {
 		size_t write(size_t position, const void* dataBuffer, size_t length);
 		size_t flush();
 
+		void   clearStats();
 		double getStats(CacheStats type);
 		size_t getFileSize();
 
@@ -93,20 +99,24 @@ namespace Boson {
 		CachePage* searchPageInCache(size_t filePageNo);
 		CachePage* loadPageToCache(size_t filePageNo);
 		bool       persistCachePage(CachePage* pageInfo);
-		bool       clearCachePage(CachePage* pageInfo);
+		bool       clearCachePage(CachePage* pageInfo);		
 				
-		std::filesystem::path pathToFile;                  // Path to file
-		std::FILE*      fileHandler;                       // OS file handler
-		bool            readOnly;                          // Read only flag
+		std::filesystem::path pathToFile;        // Path to file
+		std::FILE*      fileHandler;             // OS file handler
+		bool            readOnly;                // Read only flag
 
-		size_t          maxPagesCount;                     // Maximum cache capacity (pages)
-		size_t          pageCounter;                       // Allocated pages counter
-		CachedPagesMap  cacheMap;                          // Cached pages map 
-		CacheLinkedList cacheList;                         // Cached pages double linked list
-		CachePage*      cacheMemoryPool;                   // Cache pages memory pool
+		size_t          maxPagesCount;           // Maximum cache capacity (pages)
+		size_t          pageCounter;             // Allocated pages counter
+		CachedPagesMap  cacheMap;                // Cached pages map 
+		CacheLinkedList cacheList;               // Cached pages double linked list
+		CachePage*      cacheMemoryPool;         // Cache pages memory pool
 		
-		size_t          cacheRequests;                     // Cache requests counter
-		size_t          cacheMisses;                       // Cache misses counter
+		size_t          cacheRequests;           // Cache requests counter
+		size_t          cacheMisses;             // Cache misses counter
+		size_t          totalBytesRead;          // Total bytes read
+		size_t          totalBytesWritten;       // Total bytes written
+		size_t          totalReadDuration;       // Time of read operations (ns)
+		size_t          totalWriteDuration;      // Time of write operations (ns)
 		
 	};
 

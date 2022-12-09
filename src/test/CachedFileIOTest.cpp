@@ -112,7 +112,6 @@ double CachedFileIOTest::generateFileData() {
 
 	std::cout << "[TEST]  Sequential write " << samplesCount;
 	std::cout << " of ~" << textLen + 10 << " byte blocks...\n\t";
-	auto startTime = std::chrono::steady_clock::now();
 	
 	for (int i = 0; i < samplesCount; i++) {
 		_itoa_s(i, &buf[textLen], sizeof(buf)-textLen, 10);
@@ -125,12 +124,12 @@ double CachedFileIOTest::generateFileData() {
 		pos += length;
 	}
 	cf.flush();
-	auto endTime = std::chrono::steady_clock::now();
-	auto cachedDuration = (endTime - startTime).count() / 1000000.0;
 	
+
 	cf.close();
 
-	double throughput = (pos / 1024.0 / 1024.0) / (cachedDuration / 1000.0);
+	double cachedDuration = cf.getStats(CacheStats::WRITE_TIME_NS) / 1000000.0;
+	double throughput = cf.getStats(CacheStats::WRITE_THROUGHPUT);
 	std::cout << pos << " bytes (" << cachedDuration << "ms), ";
 	std::cout << "Write: " << throughput << " Mb/sec\n\n";
 
@@ -187,12 +186,10 @@ double CachedFileIOTest::cachedRandomReads() {
 
 	cf.open(this->fileName);
 	size_t fileSize = cf.getFileSize();
-	cf.setCacheSize(fileSize * cacheRatio);
+	cf.setCacheSize(size_t(fileSize * cacheRatio));
 		
 	std::cout << "[TEST]  CACHED random read " << samplesCount;
 	std::cout << " of " << docSize << " byte blocks...\n\t";
-
-	auto startTime = std::chrono::steady_clock::now();
 	
 	length = docSize;
 
@@ -208,13 +205,9 @@ double CachedFileIOTest::cachedRandomReads() {
 		}
 
 	}
-	
-	auto endTime = std::chrono::steady_clock::now();
-	auto cachedDuration = (endTime - startTime).count() / 1000000.0;
-
-	double throughput = (bytesRead / 1024.0 / 1024.0) / (cachedDuration / 1000.0);
-
-	std::cout << bytesRead << " bytes (" << cachedDuration << "ms), ";
+	double readTime = (cf.getStats(CacheStats::READ_TIME_NS) / 1000000.0);
+	double throughput = cf.getStats(CacheStats::READ_THROUGHPUT);
+	std::cout << bytesRead << " bytes (" << readTime << "ms), ";
 	std::cout << "Read: " << throughput << " Mb/sec, \n\t";
 	std::cout << "Cache Hit: " << cf.getStats(CacheStats::CACHE_HITS_RATE) << "%\n\n";
 
@@ -246,10 +239,11 @@ double CachedFileIOTest::stdioRandomReads() {
 	size_t fileSize = std::filesystem::file_size(this->fileName);
 
 	std::cout << "[TEST]  STDIO random read " << samplesCount << " of " << docSize << " byte blocks...\n\t";
-
-	auto startTime = std::chrono::steady_clock::now();
-
+		
 	length = docSize;
+
+	std::chrono::steady_clock::time_point startTime, endTime;
+	size_t stdioDuration = 0;
 
 	for (size_t i = 0; i < samplesCount; i++) {
 
@@ -257,8 +251,11 @@ double CachedFileIOTest::stdioRandomReads() {
 
 		// offset always positive because its size_t
 		if (offset < fileSize) {
+			startTime = std::chrono::steady_clock::now();
 			_fseeki64(file, offset, SEEK_SET);
 			fread(buf, 1, length, file);
+			endTime = std::chrono::steady_clock::now();
+			stdioDuration += (endTime - startTime).count();
 			buf[length + 1] = 0;
 			pos += length;
 		}
@@ -267,12 +264,10 @@ double CachedFileIOTest::stdioRandomReads() {
 
 	fflush(file);
 
-	auto endTime = std::chrono::steady_clock::now();
-	auto cachedDuration = (endTime - startTime).count() / 1000000.0;
+		
+	double throughput = (pos / 1024.0 / 1024.0) / (stdioDuration / 1000000000.0);
 
-	double throughput = (pos / 1024.0 / 1024.0) / (cachedDuration / 1000.0);
-
-	std::cout << pos << " bytes (" << cachedDuration << "ms), ";
+	std::cout << pos << " bytes (" << stdioDuration / 1000000.0 << "ms), ";
 	std::cout << "Read: " << throughput << " Mb/sec\n\n";
 
 	fclose(file);
