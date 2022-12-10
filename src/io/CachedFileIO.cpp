@@ -627,15 +627,18 @@ CachePage* CachedFileIO::getFreeCachePage() {
 * 
 */
 CachePage* CachedFileIO::searchPageInCache(size_t filePageNo) {
-	
 	// increment total cache lookup requests
 	cacheRequests++;
-
-	// Search file page in index map and return if its found
+	// Search file page in index map
 	auto result = cacheMap.find(filePageNo);
+	// if page found in cache
 	if (result != cacheMap.end()) {
 		CachePage* cachePage = result->second;
+		
 		// TODO: bubble up page to beginning of list
+		//cacheList.remove(cachePage);  // FIXME: O(N) -> O(1)
+		//cacheList.push_front(cachePage);
+
 		return cachePage;
 	}
 	
@@ -682,13 +685,11 @@ CachePage* CachedFileIO::loadPageToCache(size_t filePageNo) {
 	cachePage->filePageNo = filePageNo;
 	cachePage->availableDataLength = bytesRead;
 
-	// insert page index to cache list
+	// Insert page index to cache list and
 	cacheList.push_front(cachePage);
-
 	// Add filePage/cachePage key-value pair to the map
 	cacheMap.insert({ filePageNo, cachePage });
 	
-
 	return cachePage;
 }
 

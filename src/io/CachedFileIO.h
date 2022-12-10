@@ -49,14 +49,15 @@ namespace Boson {
 		uint8_t   *data;                        // Data itself (payload)
 	} CachePage;
 
-	typedef                                     // Hash map for cache index:
-		std::unordered_map<size_t, CachePage*>  // Key - file page number
-		CachedPagesMap;                         // Value - cache page pointer
-	
 	typedef                                     // Double linked list 
 		std::list<CachePage*>                   // for cached pages
 		CacheLinkedList;
 
+	typedef                                     // Hash map for cache index:
+		std::unordered_map<size_t, CachePage*>  // Key - file page number
+		CachedPagesMap;                         // Value - cache page pointer
+	
+	
 	typedef enum {                              // CachedFileIO stats types
 		TOTAL_REQUESTS,                         // Total requests to cache
 		CACHE_HITS_RATE,                        // Cache hits rate (0-100%)

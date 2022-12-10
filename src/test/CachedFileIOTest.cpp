@@ -55,7 +55,8 @@ bool CachedFileIOTest::run(size_t samples, size_t jsonSize, double cacheRatio, d
 	std::cout << "\tJSON size = " << jsonSize << " bytes" << std::endl;
 	std::cout << "\tCache page = " << PAGE_SIZE << " bytes" << std::endl;
 	std::cout << "\tCache size = " << cacheRatio * 100 << "% of database size" << std::endl;;
-	std::cout << "\tRequest distribution sigma = " << sigma*100.0 << "%\n\n";
+	std::cout << "\tDistribution Sigma = " << sigma * 100.0;
+	std::cout << "% (95% of requests localized in " << sigma * 100.0 * 4 << "% of database)\n\n";
 
 	generateFileData();
 
