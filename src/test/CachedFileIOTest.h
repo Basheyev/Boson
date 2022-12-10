@@ -28,6 +28,8 @@ namespace Boson {
 		double randNormal(double mean, double stddev);
 		double cachedRandomReads();
 		double stdioRandomReads();
+		double cachedRandomPageReads();
+		double stdioRandomPageReads();
 	};
 
 	//------------------------------------------------------------------

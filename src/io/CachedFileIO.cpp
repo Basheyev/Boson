@@ -35,9 +35,9 @@ using namespace Boson;
 *
 */
 CachedFileIO::CachedFileIO() {
-	this->fileHandler = nullptr;
 	this->readOnly = false;
-	this->cacheMemoryPool = nullptr;
+	this->fileHandler = nullptr;
+	this->cacheMemoryPool = nullptr;		
 	this->maxPagesCount = 0;
 	this->pageCounter = 0;
 	clearStats();
@@ -66,12 +66,10 @@ CachedFileIO::~CachedFileIO() {
 *
 */
 bool CachedFileIO::open(const char* path, size_t cacheSize, bool isReadOnly) {
-	// if null pointer
+	// return if null pointer
 	if (path == nullptr) return false;
-
 	// if current file still open, close it
 	if (this->fileHandler != nullptr) close();
-
 	// try to open existing file for binary read/update (file must exist)
 	errno_t errNo = fopen_s(&(this->fileHandler), path, "r+b");
 	// if file does not exist or another problem
@@ -83,19 +81,14 @@ bool CachedFileIO::open(const char* path, size_t cacheSize, bool isReadOnly) {
 		// if still can't create file return false
 		if (errNo != 0 || this->fileHandler == nullptr) return false;
 	}
-
 	// set mode to no buffering, we will manage buffers and caching by our selves
 	setvbuf(this->fileHandler, nullptr, _IONBF, 0);
-
 	// Allocated cache
 	setCacheSize(cacheSize);
-
 	// Set readOnly flag
 	this->readOnly = isReadOnly;
-
 	// Clear statistics
 	this->clearStats();
-
 	// file successfuly opened
 	return true;
 }
@@ -110,22 +103,16 @@ bool CachedFileIO::open(const char* path, size_t cacheSize, bool isReadOnly) {
 *
 */
 bool CachedFileIO::close() {
-	
 	// check if file was opened
 	if (fileHandler == nullptr) return false;
-	
 	// flush buffers
 	this->flush();
-	
 	// close file
 	fclose(fileHandler);
-
 	// Release memory pool of cached pages
 	this->releasePool();
-
 	// mark that file is closed
 	this->fileHandler = nullptr;
-
 	return true;
 }
 
@@ -172,12 +159,10 @@ size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 		}
 		
 		// Get cached page description and data
-		//pageInfo = &cachePages[cacheIndex];
 		pageDataLength = pageInfo->availableDataLength;
 		
 		// Calculate source pointers and data length to copy
 		if (filePage == firstPageNo) {
-
 			// Case 1: if reading first page
 			size_t firstPageOffset = position % PAGE_SIZE;   
 			src = &pageInfo->data[firstPageOffset];             
@@ -185,23 +170,18 @@ size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 				if (firstPageOffset + length > pageDataLength)             
 					bytesToCopy = pageDataLength - firstPageOffset;        
 				else bytesToCopy = length;                                 
-			else bytesToCopy = 0;  
-
+			else bytesToCopy = 0;
 		} else if (filePage == lastPageNo) {  
-
 			// Case 2: if reading last page
 			size_t remainingBytes = (position + length) % PAGE_SIZE;
 			src = pageInfo->data;                               
 			if (remainingBytes < pageDataLength)                           
 				bytesToCopy = remainingBytes;                              
 			else bytesToCopy = pageDataLength;  
-
 		} else {                       
-
 			// Case 3: if reading middle page 
 			src = pageInfo->data;
 			bytesToCopy = PAGE_SIZE;
-
 		}
 
 		// Copy available data from cache page to user's data buffer
@@ -218,7 +198,7 @@ size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 	this->totalReadDuration += (endTime - startTime).count();
 	// Increment bytes read
 	this->totalBytesRead += bytesRead;
-
+	// return bytes read
 	return bytesRead;
 }
 
@@ -242,7 +222,7 @@ size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t lengt
 
 	// Time point A
 	auto startTime = std::chrono::steady_clock::now();
-
+	
 	// Calculate start and end page number in the file
 	size_t firstPageNo = position / PAGE_SIZE;
 	size_t lastPageNo = (position + length) / PAGE_SIZE;
@@ -265,7 +245,6 @@ size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t lengt
 		}
 
 		// Get cached page description and data
-		//pageInfo = &cachePages[cacheIndex];
 		pageDataLength = pageInfo->availableDataLength;
 
 		// Calculate source pointers and data length to write
@@ -286,28 +265,111 @@ size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t lengt
 
 		// Copy available data from user's data buffer to cache page 
 		if (bytesToCopy > 0) {
-			
 			memcpy(dst, src, bytesToCopy);       // copy user buffer data to cache page
-	
 			pageInfo->state = PageState::DIRTY;  // mark page as "dirty" (rewritten)
-			pageInfo->availableDataLength = std::max(pageDataLength, bytesToCopy);       // wrong!
-			
+			pageInfo->availableDataLength = std::max(pageDataLength, bytesToCopy);
 			bytesWritten += bytesToCopy;         // increment written bytes counter
 			src += bytesToCopy;                  // increment pointer in user buffer
-			
 		}
-
 	}
-
 	// Time point B
 	auto endTime = std::chrono::steady_clock::now();
 	// Calculate and increment write duration
 	this->totalWriteDuration += (endTime - startTime).count();
 	// Increment bytes written
 	this->totalBytesWritten += bytesWritten;
-
+	// return bytes written
 	return bytesWritten;
+}
 
+
+
+/**
+*
+*  @brief Read page from cached file to user buffer
+*
+*  @param[in]  pageNo - file page number
+*  @param[out] userPageBuffer - data buffer (Boson::PAGE_SIZE)
+*
+*  @return total bytes amount actually read to the data buffer
+*
+*/
+size_t CachedFileIO::readPage(size_t pageNo, void* userPageBuffer) {
+
+	// Check if file handler, data buffer and length are not null
+	if (fileHandler == nullptr || userPageBuffer == nullptr) return 0;
+
+	// Time point A
+	auto startTime = std::chrono::steady_clock::now();
+
+	// Lookup or load file page to cache
+	CachePage* pageInfo = searchPageInCache(pageNo);
+	if (pageInfo == nullptr) {
+		pageInfo = loadPageToCache(pageNo);
+		if (pageInfo == nullptr) return 0;
+	}
+
+	uint8_t *src = pageInfo->data;
+	uint8_t* dst = (uint8_t*) userPageBuffer;
+	size_t availableData = pageInfo->availableDataLength;
+
+	// Copy available data from cache page to user's data buffer
+	if (availableData > 0) memcpy(dst, src, availableData);
+		
+	// Time point B
+	auto endTime = std::chrono::steady_clock::now();
+	// Calculate and increment read duration
+	this->totalReadDuration += (endTime - startTime).count();
+	// Increment bytes read
+	this->totalBytesRead += availableData;
+
+	return availableData;
+}
+
+
+
+/**
+*
+*  @brief Writes page from user buffer to cached file
+*
+*  @param[in]  position   - offset from beginning of the file
+*  @param[in]  dataBuffer - data buffer with write data
+*  @param[in]  length     - data amount to write
+*
+*  @return total bytes amount written to the cached file
+*
+*/
+size_t CachedFileIO::writePage(size_t pageNo, const void* userPageBuffer) {
+	// Check if file handler and data buffer are not null, and write is allowed
+	if (fileHandler == nullptr || this->readOnly || userPageBuffer == nullptr) return 0;
+
+	// Time point A
+	auto startTime = std::chrono::steady_clock::now();
+
+	// Fetch-before-write (FBW)
+	CachePage* pageInfo = searchPageInCache(pageNo);
+	if (pageInfo == nullptr) {
+		pageInfo = loadPageToCache(pageNo);
+		if (pageInfo == nullptr) return 0;
+	}
+
+	// Initialize local variables
+	uint8_t* src = (uint8_t*)userPageBuffer;
+	uint8_t* dst = nullptr;
+	size_t bytesToCopy = PAGE_SIZE;
+
+	memcpy(dst, src, bytesToCopy);               // copy user buffer data to cache page
+	pageInfo->state = PageState::DIRTY;          // mark page as "dirty" (rewritten)
+	pageInfo->availableDataLength = bytesToCopy; // set available data as PAGE_SIZE
+
+	// Time point B
+	auto endTime = std::chrono::steady_clock::now();
+	// Calculate and increment write duration
+	this->totalWriteDuration += (endTime - startTime).count();
+	// Increment bytes written
+	this->totalBytesWritten += bytesToCopy;
+
+	return bytesToCopy;
 }
 
 
@@ -322,6 +384,9 @@ size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t lengt
 size_t CachedFileIO::flush() {
 
 	if (fileHandler == nullptr || this->readOnly) return 0;
+
+	// Time point A
+	auto startTime = std::chrono::steady_clock::now();
 
 	// Suppose all pages will be persisted
 	bool allDirtyPagesPersisted = true;
@@ -341,6 +406,11 @@ size_t CachedFileIO::flush() {
 	
 	// flush buffers to storage device
 	bool buffersFlushed = (fflush(fileHandler) == 0);
+
+	// Time point B
+	auto endTime = std::chrono::steady_clock::now();
+	// Calculate and increment write duration
+	this->totalWriteDuration += (endTime - startTime).count();
 
 	return allDirtyPagesPersisted && buffersFlushed;
 

@@ -59,19 +59,27 @@ bool CachedFileIOTest::run(size_t samples, size_t jsonSize, double cacheRatio, d
 
 	generateFileData();
 
-	std::this_thread::sleep_for(std::chrono::seconds(5));
+	std::this_thread::sleep_for(std::chrono::seconds(3));
 
-	double cachedThroughput = cachedRandomReads();
+	/*double cachedThroughput = cachedRandomReads();
 
-	std::this_thread::sleep_for(std::chrono::seconds(5));
-
+	std::this_thread::sleep_for(std::chrono::seconds(3));
+	
 	double stdioThroughput = stdioRandomReads();
 
-	std::this_thread::sleep_for(std::chrono::seconds(5));
+	std::this_thread::sleep_for(std::chrono::seconds(3));*/
 
+	double cachedPageThroughput = cachedRandomPageReads();
 
+	std::this_thread::sleep_for(std::chrono::seconds(3));
 
-	double ratio = cachedThroughput / stdioThroughput; 
+	double stdioPageThroughput = stdioRandomPageReads();
+
+	std::this_thread::sleep_for(std::chrono::seconds(3));
+
+	//double ratio = cachedThroughput / stdioThroughput; 
+	double ratio = cachedPageThroughput / stdioPageThroughput;
+
 	std::cout << "[RESULT] Throughput ratio (CACHED/STDIO): " << std::setprecision(4);
 	if (ratio > 1.0) {
 		std::cout << "+" << (ratio - 1.0) * 100 << "% - ";
@@ -195,17 +203,17 @@ double CachedFileIOTest::cachedRandomReads() {
 	length = docSize;
 
 	for (size_t i = 0; i < samplesCount; i++) {
-
+		// generate random
 		offset = size_t(randNormal(0.5, this->sigma) * double(fileSize - length));
-
 		// offset always positive because its size_t
-		if (offset < fileSize) {	
+		if (offset < fileSize) {
 			cf.read(offset, buf, length);
 			buf[length+1] = 0;
 			bytesRead += length;
 		}
 
 	}
+
 	double readTime = (cf.getStats(CacheStats::READ_TIME_NS) / 1000000.0);
 	double throughput = cf.getStats(CacheStats::READ_THROUGHPUT);
 	std::cout << bytesRead << " bytes (" << readTime << "ms), ";
@@ -263,9 +271,11 @@ double CachedFileIOTest::stdioRandomReads() {
 
 	}
 
+	startTime = std::chrono::steady_clock::now();
 	fflush(file);
+	endTime = std::chrono::steady_clock::now();
+	stdioDuration += (endTime - startTime).count();
 
-		
 	double throughput = (pos / 1024.0 / 1024.0) / (stdioDuration / 1000000000.0);
 
 	std::cout << pos << " bytes (" << stdioDuration / 1000000.0 << "ms), ";
@@ -279,3 +289,106 @@ double CachedFileIOTest::stdioRandomReads() {
 }
 
 
+
+/**
+*
+*  @brief Random page reads using cache as 10% size of file
+*  @return random read throughput in Mb/s
+*
+*/
+double CachedFileIOTest::cachedRandomPageReads() {
+
+	CachedFileIO cachedFile;
+
+	char* buf = new char[PAGE_SIZE];
+	size_t bytesRead = 0;
+	size_t pageNo;
+
+	cf.open(this->fileName);
+	size_t fileSize = cf.getFileSize();
+	size_t maxPages = fileSize / PAGE_SIZE;
+	cf.setCacheSize(size_t(fileSize * cacheRatio));
+
+	std::cout << "[TEST]  CACHED random page aligned read " << samplesCount;
+	std::cout << " of " << PAGE_SIZE << " byte blocks...\n\t";
+
+	for (size_t i = 0; i < samplesCount; i++) {
+		// generate random page number
+		pageNo = size_t(randNormal(0.5, this->sigma) * double(maxPages));
+		// offset always positive because its size_t
+		if (pageNo < maxPages) {
+			bytesRead += cf.readPage(pageNo, buf);
+		}
+
+	}
+	double readTime = (cf.getStats(CacheStats::READ_TIME_NS) / 1000000.0);
+	double throughput = cf.getStats(CacheStats::READ_THROUGHPUT);
+	std::cout << bytesRead << " bytes (" << readTime << "ms), ";
+	std::cout << "Read: " << throughput << " Mb/sec, \n\t";
+	std::cout << "Cache Hit: " << cf.getStats(CacheStats::CACHE_HITS_RATE) << "%\n\n";
+
+	cf.close();
+
+	delete[] buf;
+
+	return throughput;
+}
+
+
+/**
+*
+*  @brief Random page reads using STDIO
+*  @return random page read throughput in Mb/s
+*/
+double CachedFileIOTest::stdioRandomPageReads() {
+
+	FILE* file = nullptr;
+
+	errno_t result = fopen_s(&file, this->fileName, "r+b");
+	if (result != 0 || file == nullptr) return -1;
+	
+	std::cout << "[TEST]  STDIO random read " << samplesCount;
+	std::cout << " of " << PAGE_SIZE << " byte blocks...\n\t";
+
+	char* buf = new char[PAGE_SIZE];
+	size_t fileSize = std::filesystem::file_size(this->fileName);
+	size_t maxPages = fileSize / PAGE_SIZE;
+	size_t bytesRead = 0;
+	size_t pageNo = 0;
+
+	std::chrono::steady_clock::time_point startTime, endTime;
+	size_t stdioDuration = 0;
+
+	for (size_t i = 0; i < samplesCount; i++) {
+
+		pageNo = size_t(randNormal(0.5, this->sigma) * double(maxPages));
+
+		// offset always positive because its size_t
+		if (pageNo < maxPages) {
+			startTime = std::chrono::steady_clock::now();
+			_fseeki64(file, pageNo * PAGE_SIZE, SEEK_SET);
+			bytesRead += fread(buf, 1, PAGE_SIZE, file);
+			endTime = std::chrono::steady_clock::now();
+			stdioDuration += (endTime - startTime).count();
+			
+		}
+
+	}
+
+	startTime = std::chrono::steady_clock::now();
+	fflush(file);
+	endTime = std::chrono::steady_clock::now();
+	stdioDuration += (endTime - startTime).count();
+
+
+	double throughput = (bytesRead / 1024.0 / 1024.0) / (stdioDuration / 1000000000.0);
+
+	std::cout << bytesRead << " bytes (" << stdioDuration / 1000000.0 << "ms), ";
+	std::cout << "Read: " << throughput << " Mb/sec\n\n";
+
+	fclose(file);
+
+	delete[] buf;
+
+	return throughput;
+}
