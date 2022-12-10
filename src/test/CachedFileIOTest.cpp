@@ -61,13 +61,13 @@ bool CachedFileIOTest::run(size_t samples, size_t jsonSize, double cacheRatio, d
 
 	std::this_thread::sleep_for(std::chrono::seconds(3));
 
-	/*double cachedThroughput = cachedRandomReads();
+	double cachedThroughput = cachedRandomReads();
 
 	std::this_thread::sleep_for(std::chrono::seconds(3));
 	
 	double stdioThroughput = stdioRandomReads();
 
-	std::this_thread::sleep_for(std::chrono::seconds(3));*/
+	std::this_thread::sleep_for(std::chrono::seconds(3));
 
 	double cachedPageThroughput = cachedRandomPageReads();
 
@@ -77,10 +77,10 @@ bool CachedFileIOTest::run(size_t samples, size_t jsonSize, double cacheRatio, d
 
 	std::this_thread::sleep_for(std::chrono::seconds(3));
 
-	//double ratio = cachedThroughput / stdioThroughput; 
-	double ratio = cachedPageThroughput / stdioPageThroughput;
+	double ratio = cachedThroughput / stdioThroughput; 
+	double pageRatio = cachedPageThroughput / stdioPageThroughput;
 
-	std::cout << "[RESULT] Throughput ratio (CACHED/STDIO): " << std::setprecision(4);
+	std::cout << "[RESULT] Throughput ratio in RANDOM OFFSET test (CACHED/STDIO): " << std::setprecision(4);
 	if (ratio > 1.0) {
 		std::cout << "+" << (ratio - 1.0) * 100 << "% - ";
 		std::cout << "SUCCESS! :)\n";
@@ -89,6 +89,17 @@ bool CachedFileIOTest::run(size_t samples, size_t jsonSize, double cacheRatio, d
 		std::cout << (ratio - 1.0) * 100 << "% - ";
 		std::cout << "FAILED :(\n";
 	}
+
+	std::cout << "[RESULT] Throughput ratio in PAGE ALIGNED test (CACHED/STDIO): " << std::setprecision(4);
+	if (pageRatio > 1.0) {
+		std::cout << "+" << (pageRatio - 1.0) * 100 << "% - ";
+		std::cout << "SUCCESS! :)\n";
+	}
+	else {
+		std::cout << (pageRatio - 1.0) * 100 << "% - ";
+		std::cout << "FAILED :(\n";
+	}
+
 	return ratio > 1.0;
 }
 
@@ -309,7 +320,7 @@ double CachedFileIOTest::cachedRandomPageReads() {
 	size_t maxPages = fileSize / PAGE_SIZE;
 	cf.setCacheSize(size_t(fileSize * cacheRatio));
 
-	std::cout << "[TEST]  CACHED random page aligned read " << samplesCount;
+	std::cout << "[TEST]  CACHED random PAGE ALIGNED read " << samplesCount;
 	std::cout << " of " << PAGE_SIZE << " byte blocks...\n\t";
 
 	for (size_t i = 0; i < samplesCount; i++) {
@@ -347,7 +358,7 @@ double CachedFileIOTest::stdioRandomPageReads() {
 	errno_t result = fopen_s(&file, this->fileName, "r+b");
 	if (result != 0 || file == nullptr) return -1;
 	
-	std::cout << "[TEST]  STDIO random read " << samplesCount;
+	std::cout << "[TEST]  STDIO random PAGE ALIGNED read " << samplesCount;
 	std::cout << " of " << PAGE_SIZE << " byte blocks...\n\t";
 
 	char* buf = new char[PAGE_SIZE];

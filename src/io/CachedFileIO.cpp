@@ -37,7 +37,8 @@ using namespace Boson;
 CachedFileIO::CachedFileIO() {
 	this->readOnly = false;
 	this->fileHandler = nullptr;
-	this->cacheMemoryPool = nullptr;		
+	this->cachePageInfoPool = nullptr;		
+	this->cachePageDataPool = nullptr;
 	this->maxPagesCount = 0;
 	this->pageCounter = 0;
 	clearStats();
@@ -522,7 +523,7 @@ size_t CachedFileIO::getCacheSize() {
 size_t CachedFileIO::setCacheSize(size_t cacheSize) {
 	
 	// check if cache is already allocated
-	if (cacheMemoryPool != nullptr) {
+	if (cachePageInfoPool != nullptr) {
 		// Persist all changed pages to storage device
 		this->flush();
 		// Release allocated memory, list and map
@@ -551,8 +552,9 @@ size_t CachedFileIO::setCacheSize(size_t cacheSize) {
 /**
 * @brief Allocates memory pool for cache pages
 */
-void CachedFileIO::allocatePool(size_t pagesCount) {
-	this->cacheMemoryPool = new CachePage[pagesCount];
+void CachedFileIO::allocatePool(size_t pagesToAllocate) {
+	this->cachePageInfoPool = new CachePage[pagesToAllocate];
+	this->cachePageDataPool = new uint8_t[pagesToAllocate * PAGE_SIZE];
 }
 
 
@@ -563,8 +565,10 @@ void CachedFileIO::releasePool() {
 	this->pageCounter = 0;
 	cacheList.clear();
 	cacheMap.clear();
-	delete[] cacheMemoryPool;
-	cacheMemoryPool = nullptr;
+	delete[] cachePageInfoPool;
+	delete[] cachePageDataPool;
+	cachePageInfoPool = nullptr;
+	cachePageDataPool = nullptr;
 }
 
 
@@ -576,12 +580,14 @@ CachePage* CachedFileIO::allocatePage() {
 	if (pageCounter >= maxPagesCount) return nullptr;
 
 	// Allocate memory for cache page
-	CachePage* newPage = &cacheMemoryPool[pageCounter];
-	pageCounter++;
-
+	CachePage* newPage = &cachePageInfoPool[pageCounter];
 	// Clear cache page info fields
 	newPage->filePageNo = PAGE_NOT_FOUND;
+	newPage->state = PageState::CLEAN;
 	newPage->availableDataLength = 0;
+	newPage->data = &cachePageDataPool[pageCounter * PAGE_SIZE];
+	// Increment page counter
+	pageCounter++;
 
 	return newPage;
 }

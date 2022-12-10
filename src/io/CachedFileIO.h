@@ -46,7 +46,7 @@ namespace Boson {
 		uint64_t  filePageNo;                   // Page number in file
 		PageState state;                        // Current page state
 		size_t    availableDataLength;          // Available amount of data
-		uint8_t   data[PAGE_SIZE];              // Data itself (payload)
+		uint8_t   *data;                        // Data itself (payload)
 	} CachePage;
 
 	typedef                                     // Hash map for cache index:
@@ -109,8 +109,9 @@ namespace Boson {
 		size_t          pageCounter;             // Allocated pages counter
 		CachedPagesMap  cacheMap;                // Cached pages map 
 		CacheLinkedList cacheList;               // Cached pages double linked list
-		CachePage*      cacheMemoryPool;         // Cache pages memory pool
-		
+		CachePage*      cachePageInfoPool;       // Cache pages info memory pool
+		uint8_t*        cachePageDataPool;       // Cache pages data memory pool
+				
 		size_t          cacheRequests;           // Cache requests counter
 		size_t          cacheMisses;             // Cache misses counter
 		size_t          totalBytesRead;          // Total bytes read
