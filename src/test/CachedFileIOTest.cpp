@@ -56,27 +56,27 @@ bool CachedFileIOTest::run(size_t samples, size_t jsonSize, double cacheRatio, d
 	std::cout << "\tCache page = " << PAGE_SIZE << " bytes" << std::endl;
 	std::cout << "\tCache size = " << cacheRatio * 100 << "% of database size" << std::endl;;
 	std::cout << "\tDistribution Sigma = " << sigma * 100.0;
-	std::cout << "% (95% of requests localized in " << sigma * 100.0 * 4 << "% of database)\n\n";
+	std::cout << "% (93.3% of requests localized in " << sigma * 100.0 * 6 << "% of database)\n\n";
 
 	generateFileData();
 
-	std::this_thread::sleep_for(std::chrono::seconds(3));
+	std::this_thread::sleep_for(std::chrono::seconds(1));
 
 	double cachedThroughput = cachedRandomReads();
 
-	std::this_thread::sleep_for(std::chrono::seconds(3));
+	std::this_thread::sleep_for(std::chrono::seconds(1));
 	
 	double stdioThroughput = stdioRandomReads();
 
-	std::this_thread::sleep_for(std::chrono::seconds(3));
+	std::this_thread::sleep_for(std::chrono::seconds(1));
 
 	double cachedPageThroughput = cachedRandomPageReads();
 
-	std::this_thread::sleep_for(std::chrono::seconds(3));
+	std::this_thread::sleep_for(std::chrono::seconds(1));
 
 	double stdioPageThroughput = stdioRandomPageReads();
 
-	std::this_thread::sleep_for(std::chrono::seconds(3));
+	std::this_thread::sleep_for(std::chrono::seconds(1));
 
 	double ratio = cachedThroughput / stdioThroughput; 
 	double pageRatio = cachedPageThroughput / stdioPageThroughput;

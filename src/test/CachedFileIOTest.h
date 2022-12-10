@@ -15,7 +15,7 @@ namespace Boson {
 	public:
 		CachedFileIOTest(char* path);
 		~CachedFileIOTest();
-		bool run(size_t samples = 1000000, size_t jsonSize = 384, double cacheRatio = 0.15, double sigma = 0.05);
+		bool run(size_t samples = 1000000, size_t jsonSize = 384, double cacheRatio = 0.15, double sigma = 0.03);
 	private:
 		CachedFileIO cf;
 		char* fileName;
