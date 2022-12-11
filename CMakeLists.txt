@@ -23,7 +23,7 @@ add_executable (Boson
      "src/io/CachedFileIO.h" 
      "src/io/CachedFileIO.cpp" 
      "src/test/CachedFileIOTest.h" 
-     "src/test/CachedFileIOTest.cpp")
+     "src/test/CachedFileIOTest.cpp" )
 
 set_property(TARGET Boson 
     PROPERTY 

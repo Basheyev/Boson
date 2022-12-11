@@ -32,10 +32,12 @@ int main()
 	using namespace std;
 	
 	CachedFileIOTest cft("F://database.bin");
-	for (size_t i = 1; i <= 3; i++) {
+	cft.run(1000000,384,0.05,0.05);
+
+	/*for (size_t i = 1; i <= 3; i++) {
 		cout << "\n======================================================================\n\n";
 		cft.run(i * 300000);
-	}
+	}*/
 
 	return 0;
 }

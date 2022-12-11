@@ -15,7 +15,7 @@
 *    - O(1) time complexity of look up
 *    - O(1) time complexity of insert / remove
 *    - 50%-99% cache read hits leads to 10%-490% performance growth (vs STDIO)
-*    - 1%-42% cache read hits leads to 1%-35% performance drop (vs STDIO) 
+*    - Cache read hits less than 30% leads to 10%-35% performance drop (vs STDIO) 
 * 
 *  (C) Bolat Basheyev 2022
 * 
@@ -540,6 +540,7 @@ size_t CachedFileIO::setCacheSize(size_t cacheSize) {
 	// Clear cache pages list and map
 	this->cacheList.clear();
 	this->cacheMap.clear();
+	this->cacheMap.reserve(maxPagesCount);
 	// Reset stats
 	this->cacheRequests = 0;
 	this->cacheMisses = 0;
@@ -595,23 +596,21 @@ CachePage* CachedFileIO::allocatePage() {
 
 /**
 *
-* @brief Returns free page: allocates new or return most aged cache page if cache limit reached
-* 
-*
-* @return most aged page reference
+* @brief Returns free page: allocates new or return most aged cache page if page limit reached
+* @return new allocated or most aged CachePage pointer
 *
 */
 CachePage* CachedFileIO::getFreeCachePage() {
 	if (cacheList.size() < maxPagesCount) {
 		return allocatePage();
 	} else {
-		// get most aged cache page (back of the list)
+		// get most aged page (back of the list)
 		CachePage* freePage = this->cacheList.back();
-		// clear cache page state
+		// clear page state
 		clearCachePage(freePage);
-		// remove cache page from list back
+		// remove page from list back
 		this->cacheList.pop_back();
-		// return cache page reference
+		// return page reference
 		return freePage;
 	}
 }
@@ -634,11 +633,9 @@ CachePage* CachedFileIO::searchPageInCache(size_t filePageNo) {
 	// if page found in cache
 	if (result != cacheMap.end()) {
 		CachePage* cachePage = result->second;
-		
-		// TODO: bubble up page to beginning of list
-		//cacheList.remove(cachePage);  // FIXME: O(N) -> O(1)
-		//cacheList.push_front(cachePage);
-
+		cacheList.erase(cachePage->it);
+		cacheList.push_front(cachePage);
+		cachePage->it = cacheList.begin();
 		return cachePage;
 	}
 	
@@ -662,7 +659,7 @@ CachePage* CachedFileIO::loadPageToCache(size_t filePageNo) {
 
 	if (fileHandler == nullptr) return nullptr;
 
-	// get free cache page index
+	// get new allocated page or most aged one (remove it from the list)
 	CachePage* cachePage = getFreeCachePage();
 
 	// calculate offset and initialize variables
@@ -685,11 +682,11 @@ CachePage* CachedFileIO::loadPageToCache(size_t filePageNo) {
 	cachePage->filePageNo = filePageNo;
 	cachePage->availableDataLength = bytesRead;
 
-	// Insert page index to cache list and
+	// Insert cache page into list and key/value pair to hashmap
 	cacheList.push_front(cachePage);
-	// Add filePage/cachePage key-value pair to the map
-	cacheMap.insert({ filePageNo, cachePage });
-	
+	cachePage->it = cacheList.begin();
+	cacheMap[filePageNo] = cachePage;
+
 	return cachePage;
 }
 
