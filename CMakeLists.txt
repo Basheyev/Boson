@@ -16,14 +16,14 @@ add_executable (Boson
     "src/test/BalancedTreeTest.cpp"
     "src/test/BalancedTreeTest.h" 
      
-     "src/index/DBIndex.h"   
-     "src/storage/DatabaseStorage.h" 
-     "src/storage/DatabaseStorage.cpp"   
+    "src/index/DBIndex.h"   
+    "src/storage/StorageIO.h" 
+    "src/storage/StorageIO.cpp"   
 
-     "src/io/CachedFileIO.h" 
-     "src/io/CachedFileIO.cpp" 
-     "src/test/CachedFileIOTest.h" 
-     "src/test/CachedFileIOTest.cpp" )
+    "src/storage/CachedFileIO.h" 
+    "src/storage/CachedFileIO.cpp" 
+    "src/test/CachedFileIOTest.h" 
+    "src/test/CachedFileIOTest.cpp" )
 
 set_property(TARGET Boson 
     PROPERTY 

@@ -1,28 +1,20 @@
-/*=================================================================================================
+/******************************************************************************
 *
-*    Database Storage Header
+*  StorageIO class header
 *
-*    
-*     -----------------------
-*    |    Database Storage   |
-*     -----------------------
-*                |
-*     -----------------------
-*    |     Cached Pager      | 
-*     -----------------------
-*                |
-*     -----------------------
-*    |       Data File       |
-*     ----------------------- 
+*  StorageIO is designed to improve provide document storage level
+*  of abstraction to file. Accessing files
 *
-* 
-*    BOSON embedded database
-*    (C) Bolat Basheyev 2022
+*  DatabaseStorage features:
+*    - Records and collection abstraction level read/write/navigate
+*    - 
 *
-=================================================================================================*/
+*  (C) Bolat Basheyev 2022
+*
+******************************************************************************/
 #pragma once
 
-#include "io/CachedFileIO.h"
+#include "CachedFileIO.h"
 
 #include <vector>
 #include <string>
@@ -52,12 +44,12 @@ namespace Boson {
 	// Record structure
 	//------------------------------------------------------------------------------------------------
 	typedef struct {
-		size_t    next;                    // Next record position in data file
-		size_t    previous;                // Previous record position in data file
-		uint64_t  documentID;              // 64-bit document ID (8-bit collection, 56-bit docID)
+		uint64_t  next;                    // Next record position in data file
+		uint64_t  previous;                // Previous record position in data file
+		uint64_t  documentID;              // 64-bit document ID (16-bit for collection, 48-bit docID)
 		uint32_t  capacity;                // Record length in bytes including padding
 		uint32_t  length;                  // Data length in bytes
-		char*     data;                    // Document data itself
+		uint8_t*  data;                    // Document data itself
 	} DBRecord;
 
 
@@ -75,10 +67,12 @@ namespace Boson {
 		bool close();                                           // close database file
 
 		bool first();                                           // jump to first record
+		bool last();                                            // jump to last record
 		bool next();                                            // jump to next record
 		bool previous();                                        // jump to previous record
-		bool last();                                            // jump to last record
+		
 				
+		bool insert(DBRecord& record);
 		bool write(DBRecord& record);                           // writes record to database
 		bool read(DBRecord& record);                            // reads record from database
 		bool erase();                                           // erases record in database
@@ -89,7 +83,7 @@ namespace Boson {
 
 	protected:
 
-		CachedFileIOPager pager;
+		CachedFileIO pager;
 		
 		bool seek(size_t position);
 		size_t getFreeRecord(size_t capacity);

@@ -25,9 +25,9 @@ abstraction like API working with document store entities.
      ---------------------------------------------------
                 |                           |
      -----------------------     -----------------------
-    |    Database Storage   |   |    Index (B+ Tree)    |      -  Storage and Index Layer
+    |       Storage IO      |---|    Index (B+ Tree)    |      -  Storage and Index Layer
      -----------------------     -----------------------
-                |                           |
+                |                           
      ---------------------------------------------------
     |              Cached File IO (LRU/FBW)             |      -  Memory Cache Layer
      ---------------------------------------------------

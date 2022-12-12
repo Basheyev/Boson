@@ -70,7 +70,7 @@ namespace Boson {
 
 	typedef                                     
 		std::unordered_map<size_t, CachePage*>             
-		CachedPagesMap;                         // Hash map for cache index
+		CachedPagesMap;                         // Hashmap for cache index
 
 	//-------------------------------------------------------------------------
 	// Binary random access LRU cached file IO

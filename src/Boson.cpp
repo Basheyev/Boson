@@ -15,24 +15,19 @@
 
 #include "Boson.h"
 
-#include "io/CachedFileIO.h"
-#include "test/CachedFileIOTest.h"
-
-#include "core/BalancedTreeIndex.h"
-#include "BalancedTreeTest.h"
+#include "CachedFileIO.h"
+#include "CachedFileIOTest.h"
 
 #include <iostream>
-#include <ctime>
 
 using namespace Boson;
-
 
 int main()
 {
 	using namespace std;
 	
 	CachedFileIOTest cft("F://database.bin");
-	cft.run(1000000,384,0.05,0.05);
+	cft.run();
 
 	/*for (size_t i = 1; i <= 3; i++) {
 		cout << "\n======================================================================\n\n";
