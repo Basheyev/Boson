@@ -45,7 +45,7 @@ abstraction like API working with document store entities.
 
 ## 3. Internal algorithms and performance strategies
 
-### 3.1. Cached File IO
+### 3.1. Cached File I/O (Pages)
 
 #### 3.1.1. Motivation
 
@@ -87,5 +87,16 @@ cache, CachedFileIO frees most aged pages. When the page is freed,
 if it has "dirty" mark, page persisted on the storage device.
 
 
+### 3.2. Storage I/O (Documents)
 
+Storage file consist of database header and **double linked list 
+of records**. Each record could be Free(0), Index(1) or Document(2) 
+record.
+
+
+#### 3.2.1. Records
+
+
+
+#### 3.2.2. Motivation
 
