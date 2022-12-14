@@ -104,6 +104,7 @@ namespace Boson {
 	// StorageIO
 	//----------------------------------------------------------------------------
 	class StorageIO {
+
 	public:
 
 		StorageIO();
@@ -121,11 +122,13 @@ namespace Boson {
 	private:
 
 		CachedFileIO*               pager;
+		
+		
 		size_t getFreeRecord(size_t capacity);
 		size_t putFreeRecord(size_t);
 	
-		friend class RecordCursor;
 		
+		friend class RecordCursor;
 	};
 
 
