@@ -4,19 +4,19 @@
 
 using namespace Boson;
 
-DatabaseStorage::DatabaseStorage() {
+StorageIO::StorageIO() {
 
 }
 
-DatabaseStorage::~DatabaseStorage() {
+StorageIO::~StorageIO() {
 
 }
 
-bool DatabaseStorage::open(std::string dbName, bool readOnly) {
+bool StorageIO::open(std::string dbName, bool readOnly) {
 	return false;
 }
 
 
-bool DatabaseStorage::close() {
+bool StorageIO::close() {
 	return false;
 }

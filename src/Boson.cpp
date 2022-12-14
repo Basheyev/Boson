@@ -18,6 +18,8 @@
 #include "CachedFileIO.h"
 #include "CachedFileIOTest.h"
 
+#include "StorageIO.h"
+
 #include <iostream>
 
 using namespace Boson;
@@ -29,10 +31,7 @@ int main()
 	CachedFileIOTest cft("F://database.bin");
 	cft.run();
 
-	/*for (size_t i = 1; i <= 3; i++) {
-		cout << "\n======================================================================\n\n";
-		cft.run(i * 300000);
-	}*/
+//	cout << sizeof RecordHeader << std::endl;
 
 	return 0;
 }

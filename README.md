@@ -23,17 +23,21 @@ abstraction like API working with document store entities.
      ---------------------------------------------------
     |                     Boson API                     |      -  API Layer (Key/Value)
      ---------------------------------------------------
-                |                           |
-     -----------------------     -----------------------
-    |       Storage IO      |---|    Index (B+ Tree)    |      -  Storage and Index Layer
-     -----------------------     -----------------------
-                |                           
+                              |
      ---------------------------------------------------
-    |              Cached File IO (LRU/FBW)             |      -  Memory Cache Layer
+    |             Schema and Index (B+ Tree)            |      -  Schema & Index Layer
+     ---------------------------------------------------
+                              |     
+     ---------------------------------------------------
+    |            Storage I/O (Document Records)         |      -  Storage Layer
+     ---------------------------------------------------
+                              |                           
+     ---------------------------------------------------
+    |              Cached File I/O (Pages)              |      -  Memory Cache Layer
      ---------------------------------------------------
                               |
      ---------------------------------------------------
-    |                   Database File                   |      -  File-System Layer
+    |                   Database File                   |      -  OS File System Layer
      --------------------------------------------------- 
 
 

@@ -34,7 +34,7 @@ namespace Boson {
 	constexpr size_t PAGE_SIZE      = 8 * 1024;     // 8192 bytes page size
 	constexpr size_t MINIMAL_CACHE  = 256*1024;     // 256Kb minimal cache
 	constexpr size_t DEFAULT_CACHE  = 1*1024*1024;  // 1Mb default cache
-	constexpr size_t PAGE_NOT_FOUND = -1;           // "Not found" signature
+	constexpr size_t NOT_FOUND = -1;           // "Not found" signature
 	//-------------------------------------------------------------------------
 
 	typedef enum {                              // Cache Page State

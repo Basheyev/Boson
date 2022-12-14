@@ -583,7 +583,7 @@ CachePage* CachedFileIO::allocatePage() {
 	// Allocate memory for cache page
 	CachePage* newPage = &cachePageInfoPool[pageCounter];
 	// Clear cache page info fields
-	newPage->filePageNo = PAGE_NOT_FOUND;
+	newPage->filePageNo = NOT_FOUND;
 	newPage->state = PageState::CLEAN;
 	newPage->availableDataLength = 0;
 	newPage->data = &cachePageDataPool[pageCounter * PAGE_SIZE];
@@ -740,7 +740,7 @@ bool CachedFileIO::clearCachePage(CachePage* pageInfo) {
 	cacheMap.erase(pageInfo->filePageNo);
 
 	// Clear cache page info fields
-	pageInfo->filePageNo = PAGE_NOT_FOUND;
+	pageInfo->filePageNo = NOT_FOUND;
 	pageInfo->availableDataLength = 0;
 			
 	// Cache page freed
