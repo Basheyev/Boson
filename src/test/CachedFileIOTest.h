@@ -25,7 +25,7 @@ namespace Boson {
 	public:
 		CachedFileIOTest(char* path);
 		~CachedFileIOTest();
-		bool run(size_t samples = 1000000, size_t jsonSize = 384, double cacheRatio = 0.1, double sigma = 0.05);
+		bool run(size_t samples = 1000000, size_t jsonSize = 479, double cacheRatio = 0.15, double sigma = 0.04);
 	private:
 		CachedFileIO cf;
 		char* fileName;
@@ -42,16 +42,5 @@ namespace Boson {
 		double cachedRandomPageReads();
 		double stdioRandomPageReads();
 	};
-
-	//------------------------------------------------------------------
-
-	class NumberPunctuation : public std::numpunct<char>
-	{
-	protected:
-		virtual char do_thousands_sep() const { return ','; }
-		virtual std::string do_grouping() const { return "\03"; }
-	};
-
-	//------------------------------------------------------------------
 
 }

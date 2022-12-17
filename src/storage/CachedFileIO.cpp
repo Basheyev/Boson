@@ -134,30 +134,30 @@ bool CachedFileIO::close() {
 * 
 */
 size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
-	
+
 	// Check if file handler, data buffer and length are not null
 	if (fileHandler == nullptr || dataBuffer == nullptr || length == 0) return 0;
 
 	// Time point A
 	auto startTime = std::chrono::steady_clock::now();
-		
+
 	// Calculate start and end page number in the file
 	size_t firstPageNo = position / PAGE_SIZE;
 	size_t lastPageNo = (position + length) / PAGE_SIZE;
-	
+
 	// Initialize local variables
 	CachePage* pageInfo = nullptr;
 	uint8_t* src = nullptr;
-	uint8_t* dst = (uint8_t*) dataBuffer;
-	size_t bytesToCopy = 0, bytesRead = 0;	
+	uint8_t* dst = (uint8_t*)dataBuffer;
+	size_t bytesToCopy = 0, bytesRead = 0;
 	size_t pageDataLength = 0;
-	
+
 	// Iterate through requested file pages
 	for (size_t filePage = firstPageNo; filePage <= lastPageNo; filePage++) {
 		
 		// Lookup or load file page to cache
 		pageInfo = searchPageInCache(filePage);
-	//	if (pageInfo == nullptr) return 0;
+	    // if (pageInfo == nullptr) return 0;
 				
 		// Get cached page description and data
 		pageDataLength = pageInfo->availableDataLength;
@@ -165,14 +165,14 @@ size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 		// Calculate source pointers and data length to copy
 		if (filePage == firstPageNo) {
 			// Case 1: if reading first page
-			size_t firstPageOffset = position % PAGE_SIZE;   
-			src = &pageInfo->data[firstPageOffset];             
-			if (firstPageOffset < pageDataLength)                          
-				if (firstPageOffset + length > pageDataLength)             
-					bytesToCopy = pageDataLength - firstPageOffset;        
-				else bytesToCopy = length;                                 
+			size_t firstPageOffset = position % PAGE_SIZE;
+			src = &pageInfo->data[firstPageOffset];
+			if (firstPageOffset < pageDataLength)
+				if (firstPageOffset + length > pageDataLength)
+					bytesToCopy = pageDataLength - firstPageOffset;
+				else bytesToCopy = length;
 			else bytesToCopy = 0;
-		} else if (filePage == lastPageNo) {  
+		} else if (filePage == lastPageNo) {
 			// Case 2: if reading last page
 			size_t remainingBytes = (position + length) % PAGE_SIZE;
 			src = pageInfo->data;                               
@@ -239,7 +239,7 @@ size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t lengt
 
 		// Fetch-before-write (FBW)
 		pageInfo = searchPageInCache(filePage);
-		if (pageInfo == nullptr) return 0;
+		//if (pageInfo == nullptr) return 0;
 
 		// Get cached page description and data
 		pageDataLength = pageInfo->availableDataLength;
@@ -300,14 +300,14 @@ size_t CachedFileIO::readPage(size_t pageNo, void* userPageBuffer) {
 
 	// Lookup or load file page to cache
 	CachePage* pageInfo = searchPageInCache(pageNo);
-	if (pageInfo == nullptr) return 0;
+	//if (pageInfo == nullptr) return 0;
 
 	uint8_t *src = pageInfo->data;
 	uint8_t* dst = (uint8_t*) userPageBuffer;
 	size_t availableData = pageInfo->availableDataLength;
 
 	// Copy available data from cache page to user's data buffer
-	if (availableData > 0) memcpy(dst, src, availableData);
+	memcpy(dst, src, availableData);
 		
 	// Time point B
 	auto endTime = std::chrono::steady_clock::now();
@@ -341,7 +341,7 @@ size_t CachedFileIO::writePage(size_t pageNo, const void* userPageBuffer) {
 
 	// Fetch-before-write (FBW)
 	CachePage* pageInfo = searchPageInCache(pageNo);
-	if (pageInfo == nullptr) return 0;
+	//if (pageInfo == nullptr) return 0;
 
 	// Initialize local variables
 	uint8_t* src = (uint8_t*)userPageBuffer;
@@ -647,7 +647,7 @@ CachePage* CachedFileIO::searchPageInCache(size_t filePageNo) {
 */
 CachePage* CachedFileIO::loadPageToCache(size_t filePageNo) {
 
-	if (fileHandler == nullptr) return nullptr;
+	//if (fileHandler == nullptr) return nullptr;
 
 	// get new allocated page or most aged one (remove it from the list)
 	CachePage* cachePage = getFreeCachePage();
@@ -660,12 +660,8 @@ CachePage* CachedFileIO::loadPageToCache(size_t filePageNo) {
 	// Fetch page from storage device
 	_fseeki64(fileHandler, offset, SEEK_SET);
 	bytesRead = fread(cachePage->data, 1, bytesToRead, fileHandler);
-	
-	// if available data less than page size
-	if (bytesRead < PAGE_SIZE) {
-		// fill remaining part of page with zero to avoid artifacts
-		memset(&(cachePage->data[bytesRead]), 0, PAGE_SIZE - bytesRead);
-	}
+	// fill remaining part of page with zero to avoid artifacts
+	memset(&(cachePage->data[bytesRead]), 0, PAGE_SIZE - bytesRead);
 
 	// fill loaded page description info
 	cachePage->filePageNo = filePageNo;
@@ -692,7 +688,7 @@ CachePage* CachedFileIO::loadPageToCache(size_t filePageNo) {
 */ 
 bool CachedFileIO::persistCachePage(CachePage* cachedPage) {
 
-	if (fileHandler == nullptr) return false;
+	//if (fileHandler == nullptr) return false;
 
 	// Get file page number of cached page and calculate offset in the file
 	size_t offset = cachedPage->filePageNo * PAGE_SIZE;
@@ -726,15 +722,13 @@ bool CachedFileIO::clearCachePage(CachePage* pageInfo) {
 		if (!persistCachePage(pageInfo)) return false;
 	}
 
-
 	// Remove from index hashmap
 	cacheMap.erase(pageInfo->filePageNo);
 
 	// Clear cache page info fields
 	pageInfo->filePageNo = NOT_FOUND;
 	pageInfo->availableDataLength = 0;
-
-			
+				
 	// Cache page freed
 	return true;
 }

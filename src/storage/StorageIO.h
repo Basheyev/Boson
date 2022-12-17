@@ -23,24 +23,38 @@
 
 
 namespace Boson {
+
+	constexpr uint64_t SIGNATURE = 0x0042444E4F534F42; // "BOSONDB\x00" signature
 	
 
 	//----------------------------------------------------------------------------
 	// Database header structure
 	//----------------------------------------------------------------------------
 	typedef struct {
-		uint64_t      signature;           // Signature "BOSONDB" + 0x00
-		uint16_t      version;             // Database version
 		
-				
-		uint8_t       reserved;            // Reserved
+		uint64_t      signature;           // BOSONDB signature
+		uint16_t      pageSize;            // Database page size (8192)
+		uint16_t      version;             // Database format version
+		uint32_t      encoding;            // Database encoding UTF-8 default - 0
+		uint64_t      databaseSize;        // Database size in pages
+		uint64_t      changeCounter;       // File change counter
 
+		uint64_t      indexNodePayload;    // Elements in index node
 		uint64_t      indexRoot;           // Index root record offset
 
-		uint64_t      firstRecord;         // First record offset
-		uint64_t      lastRecord;          // Last record offset
-		uint64_t      freeRecord;          // Free list first record offset
+		uint64_t      firstDataRecord;     // First record offset
+		uint64_t      lastDataRecord;      // Last record offset
 
+		uint64_t      totalFreePages;      // Total number of free records
+		uint64_t      firstFreeRecord;     // First free record offset
+		uint64_t      lastFreeRecord;      // Last free record offset
+
+		uint64_t      reserved0;
+		uint64_t      reserved1;
+		uint64_t      reserved2;
+		uint64_t      reserved3;
+		uint64_t      reserved4;
+		
 	} StorageHeader;
 
 
@@ -55,7 +69,7 @@ namespace Boson {
 
 
 	//----------------------------------------------------------------------------
-	// Record header structure (linked list)
+	// Record header structure (double linked list)
 	//----------------------------------------------------------------------------
 	typedef struct {
 		uint64_t    next;              // Next record position in data file
@@ -67,7 +81,7 @@ namespace Boson {
 		uint32_t    checksum;          // Checksum for data consistency check
 	} RecordHeader;
 
-
+	
 	//----------------------------------------------------------------------------
 	// Cursor (storage linked list iterator)
 	//----------------------------------------------------------------------------
@@ -84,8 +98,8 @@ namespace Boson {
 		size_t prev();                             // go to previous record
 		size_t seek(size_t fileOffset);            // jump to desired offset
 
-		size_t insertDocument(std::string& doc);   // create document
-		size_t eraseDocument();                    // delete document
+		size_t insert(std::string& doc);           // create document
+		size_t erase();                            // delete document
 
 		size_t getDocumentID();                    // get document ID
 		size_t getRecordCapacity();                // get record capacity

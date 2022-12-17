@@ -28,11 +28,13 @@ int main()
 {
 	using namespace std;
 	
-	CachedFileIOTest cft("F://database.bin");
-	cft.run();
+	CachedFileIO cf;
 
+	cf.open("F:/sign.txt");
+	cf.write(0, &Boson::SIGNATURE, sizeof(uint64_t));
+	cf.close();
 
-	//cout << sizeof std::list<CachePage*>::iterator << endl;
+	cout << sizeof Boson::StorageHeader << endl;
 
 	return 0;
 }

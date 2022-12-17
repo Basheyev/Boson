@@ -51,7 +51,7 @@ bool CachedFileIOTest::run(size_t samples, size_t jsonSize, double cacheRatio, d
 	std::cout << "\tDistribution Sigma = " << sigma * 100.0;
 	std::cout << "% (93.3% of requests localized in " << sigma * 100.0 * 6 << "% of database)\n\n";
 
-	double cachedPageWriteThroughput = cachedRandomPageWrites();
+	//double cachedPageWriteThroughput = cachedRandomPageWrites();
 
 	std::this_thread::sleep_for(std::chrono::seconds(1));
 
@@ -167,13 +167,11 @@ double CachedFileIOTest::cachedRandomWrites() {
 		length = strlen(buf);
 		buf[length] = '\n';
 		buf[length + 1] = '}';
-		buf[length + 2] = 0;
+		buf[length + 2] = '\n';
 		length += 3;
 		cf.write(pos, buf, length);
 		pos += length;
 	}
-	cf.flush();
-	
 
 	cf.close();
 

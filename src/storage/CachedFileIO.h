@@ -11,7 +11,7 @@
 *  read/write operations ratio is 70% / 30%. Read/write operations are
 *  faster when aligned to storage device sector/block size and sequential.
 *
-*  CachedFileIO LRU/FBW caching strategy gives:
+*  CachedFileIO LRU/FBW (Linked list + Hashmap) caching strategy gives:
 *    - O(1) time complexity of page look up
 *    - O(1) time complexity of page insert
 *    - O(1) time complexity of page remove
@@ -27,7 +27,7 @@
 
 #pragma once
 
-#define _ITERATOR_DEBUG_LEVEL 0             // Speed up debug code performance
+#define _ITERATOR_DEBUG_LEVEL 0             // MSVC debug performance fix
 
 #include <cstdio>
 #include <cstring>
@@ -37,8 +37,8 @@
 namespace Boson {
 
 	//-------------------------------------------------------------------------
-	constexpr size_t PAGE_SIZE      = 8 * 1024;     // 8192 bytes page size
-	constexpr size_t MINIMAL_CACHE  = 256*1024;     // 256Kb minimal cache
+	constexpr size_t PAGE_SIZE      = 8192;         // 8192 bytes page size
+	constexpr size_t MINIMAL_CACHE  = 256 * 1024;   // 256Kb minimal cache
 	constexpr size_t DEFAULT_CACHE  = 1*1024*1024;  // 1Mb default cache
 	constexpr size_t NOT_FOUND      = -1;           // "Not found" signature
 	//-------------------------------------------------------------------------
