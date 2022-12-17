@@ -1,9 +1,7 @@
+#define _ITERATOR_DEBUG_LEVEL 0
 
 #include "BalancedTreeIndex.h"
 #include "BalancedTreeTest.h"
-
-#include <chrono>
-#include <iostream>
 
 using namespace Boson;
 using namespace std;

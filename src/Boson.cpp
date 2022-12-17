@@ -31,7 +31,8 @@ int main()
 	CachedFileIOTest cft("F://database.bin");
 	cft.run();
 
-//	cout << sizeof RecordHeader << std::endl;
+
+	//cout << sizeof std::list<CachePage*>::iterator << endl;
 
 	return 0;
 }

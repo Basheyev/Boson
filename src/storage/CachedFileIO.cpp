@@ -2,29 +2,32 @@
 *  
 *  CachedFileIO class implementation
 * 
-*  CachedFileIO is designed to improve performance of file I/O 
-*  operations. Almost all real world apps show some form of locality of 
-*  reference. Research says that 10-15% of database size cache gives 
+*  CachedFileIO is designed to improve performance of file I/O
+*  operations. Almost all real world apps show some form of locality of
+*  reference. Research says that 10-15% of database size cache gives
 *  more than 95% cache hits.
 *
-*  Most JSON documents size are less than 1000 bytes. Most apps database 
-*  read/write operations ratio is 70% / 30%. Read/write operations are 
-*  faster when aligned to storage device sector/block size and sequential. 
+*  Most JSON documents size are less than 1000 bytes. Most apps database
+*  read/write operations ratio is 70% / 30%. Read/write operations are
+*  faster when aligned to storage device sector/block size and sequential.
 *
-*  CachedFileIO comply LRU/FBW caching strategy:
-*    - O(1) time complexity of look up
-*    - O(1) time complexity of insert / remove
-*    - 50%-99% cache read hits leads to 10%-490% performance growth (vs STDIO)
-*    - Cache read hits less than 30% leads to 10%-35% performance drop (vs STDIO) 
-* 
-*  (C) Bolat Basheyev 2022
-* 
+*  CachedFileIO LRU/FBW caching strategy gives:
+*    - O(1) time complexity of page look up
+*    - O(1) time complexity of page insert
+*    - O(1) time complexity of page remove
+*
+*  CachedFileIO vs STDIO performance tests (Release Mode):
+*    - 50%-97% cache read hits leads to 50%-600% performance growth
+*    - 35%-49% cache read hits leads to 12%-36% performance growth
+*    - 1%-25%  cache read hits leads to 5%-20% performance drop
+*
+*  (C) Boson Database, Bolat Basheyev 2022
+*
 ******************************************************************************/
 
 #include "CachedFileIO.h"
 
 #include <algorithm>
-#include <iostream>
 #include <chrono>
 
 using namespace Boson;
@@ -41,7 +44,7 @@ CachedFileIO::CachedFileIO() {
 	this->cachePageDataPool = nullptr;
 	this->maxPagesCount = 0;
 	this->pageCounter = 0;
-	clearStats();
+	resetStats();
 }
 
 
@@ -89,7 +92,7 @@ bool CachedFileIO::open(const char* path, size_t cacheSize, bool isReadOnly) {
 	// Set readOnly flag
 	this->readOnly = isReadOnly;
 	// Clear statistics
-	this->clearStats();
+	this->resetStats();
 	// file successfuly opened
 	return true;
 }
@@ -154,11 +157,8 @@ size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 		
 		// Lookup or load file page to cache
 		pageInfo = searchPageInCache(filePage);
-		if (pageInfo == nullptr) {
-			pageInfo = loadPageToCache(filePage);
-			if (pageInfo == nullptr) return 0;
-		}
-		
+	//	if (pageInfo == nullptr) return 0;
+				
 		// Get cached page description and data
 		pageDataLength = pageInfo->availableDataLength;
 		
@@ -185,12 +185,11 @@ size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 			bytesToCopy = PAGE_SIZE;
 		}
 
-		// Copy available data from cache page to user's data buffer
-		if (bytesToCopy > 0) {			
-			memcpy(dst, src, bytesToCopy);   // copy data to user buffer
-			bytesRead += bytesToCopy;        // increment read bytes counter
-			dst += bytesToCopy;              // increment pointer in user buffer
-		}
+		// Copy available data from cache page to user's data buffer 		
+		memcpy(dst, src, bytesToCopy);   // copy data to user buffer
+		bytesRead += bytesToCopy;        // increment read bytes counter
+		dst += bytesToCopy;              // increment pointer in user buffer
+
 	}
 
 	// Time point B
@@ -240,10 +239,7 @@ size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t lengt
 
 		// Fetch-before-write (FBW)
 		pageInfo = searchPageInCache(filePage);
-		if (pageInfo == nullptr) {
-			pageInfo = loadPageToCache(filePage);
-			if (pageInfo == nullptr) return 0;
-		}
+		if (pageInfo == nullptr) return 0;
 
 		// Get cached page description and data
 		pageDataLength = pageInfo->availableDataLength;
@@ -265,13 +261,12 @@ size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t lengt
 		}
 
 		// Copy available data from user's data buffer to cache page 
-		if (bytesToCopy > 0) {
-			memcpy(dst, src, bytesToCopy);       // copy user buffer data to cache page
-			pageInfo->state = PageState::DIRTY;  // mark page as "dirty" (rewritten)
-			pageInfo->availableDataLength = std::max(pageDataLength, bytesToCopy);
-			bytesWritten += bytesToCopy;         // increment written bytes counter
-			src += bytesToCopy;                  // increment pointer in user buffer
-		}
+		memcpy(dst, src, bytesToCopy);       // copy user buffer data to cache page
+		pageInfo->state = PageState::DIRTY;  // mark page as "dirty" (rewritten)
+		pageInfo->availableDataLength = std::max(pageDataLength, bytesToCopy);
+		bytesWritten += bytesToCopy;         // increment written bytes counter
+		src += bytesToCopy;                  // increment pointer in user buffer
+
 	}
 	// Time point B
 	auto endTime = std::chrono::steady_clock::now();
@@ -305,10 +300,7 @@ size_t CachedFileIO::readPage(size_t pageNo, void* userPageBuffer) {
 
 	// Lookup or load file page to cache
 	CachePage* pageInfo = searchPageInCache(pageNo);
-	if (pageInfo == nullptr) {
-		pageInfo = loadPageToCache(pageNo);
-		if (pageInfo == nullptr) return 0;
-	}
+	if (pageInfo == nullptr) return 0;
 
 	uint8_t *src = pageInfo->data;
 	uint8_t* dst = (uint8_t*) userPageBuffer;
@@ -349,14 +341,11 @@ size_t CachedFileIO::writePage(size_t pageNo, const void* userPageBuffer) {
 
 	// Fetch-before-write (FBW)
 	CachePage* pageInfo = searchPageInCache(pageNo);
-	if (pageInfo == nullptr) {
-		pageInfo = loadPageToCache(pageNo);
-		if (pageInfo == nullptr) return 0;
-	}
+	if (pageInfo == nullptr) return 0;
 
 	// Initialize local variables
 	uint8_t* src = (uint8_t*)userPageBuffer;
-	uint8_t* dst = nullptr;
+	uint8_t* dst = pageInfo->data;
 	size_t bytesToCopy = PAGE_SIZE;
 
 	memcpy(dst, src, bytesToCopy);               // copy user buffer data to cache page
@@ -420,11 +409,11 @@ size_t CachedFileIO::flush() {
 
 
 /**
-* @brief Clear IO statistics
+* @brief Reset IO statistics
 * @param type - requested stats type
 * @return value of stats
 */
-void CachedFileIO::clearStats() {
+void CachedFileIO::resetStats() {
 	this->cacheRequests = 0;
 	this->cacheMisses = 0;
 	this->totalBytesRead = 0;
@@ -537,7 +526,7 @@ size_t CachedFileIO::setCacheSize(size_t cacheSize) {
 	this->maxPagesCount = cacheSize / PAGE_SIZE;
 	// Allocate new cache
 	this->allocatePool(this->maxPagesCount);
-	// Clear cache pages list and map
+	// Clear cache pages list and hashmap
 	this->cacheList.clear();
 	this->cacheMap.clear();
 	this->cacheMap.reserve(maxPagesCount);
@@ -608,7 +597,7 @@ CachePage* CachedFileIO::getFreeCachePage() {
 		CachePage* freePage = this->cacheList.back();
 		// clear page state
 		clearCachePage(freePage);
-		// remove page from list back
+		// remove page from list's back
 		this->cacheList.pop_back();
 		// return page reference
 		return freePage;
@@ -619,7 +608,7 @@ CachePage* CachedFileIO::getFreeCachePage() {
 
 /**
 * 
-* @brief Lookup cache page of requested file page if it exists
+* @brief Lookup cache page of requested file page if it exists or loads from storage
 * 
 * @param requestedFilePageNo - requested file page number
 * @return cache page reference of requested file page or returns nullptr
@@ -631,18 +620,19 @@ CachePage* CachedFileIO::searchPageInCache(size_t filePageNo) {
 	// Search file page in index map
 	auto result = cacheMap.find(filePageNo);
 	// if page found in cache
-	if (result != cacheMap.end()) {
-		CachePage* cachePage = result->second;
-		cacheList.erase(cachePage->it);
-		cacheList.push_front(cachePage);
-		cachePage->it = cacheList.begin();
-		return cachePage;
+	if (result != cacheMap.end()) {               // Move page to the front of list (LRU):
+		CachePage* cachePage = result->second;    // 1) Get page pointer
+		cacheList.erase(cachePage->it);           // 2) Erase page from list by iterator
+		cacheList.push_front(cachePage);          // 3) Push page in the front of the list
+		cachePage->it = cacheList.begin();        // 4) update page's list iterator 
+		return cachePage;                         // 5) return page (hashmap pointer is valid)
 	}
 	
 	// increment cache misses counter
 	cacheMisses++;
 
-	return nullptr;
+	// try to load page to cache from storage
+	return loadPageToCache(filePageNo);
 }
 
 
@@ -678,11 +668,11 @@ CachePage* CachedFileIO::loadPageToCache(size_t filePageNo) {
 	}
 
 	// fill loaded page description info
-	cachePage->state = PageState::CLEAN;
 	cachePage->filePageNo = filePageNo;
+	cachePage->state = PageState::CLEAN;
 	cachePage->availableDataLength = bytesRead;
 
-	// Insert cache page into list and key/value pair to hashmap
+	// Insert cache page into the list and to the hashmap
 	cacheList.push_front(cachePage);
 	cachePage->it = cacheList.begin();
 	cacheMap[filePageNo] = cachePage;
@@ -723,7 +713,7 @@ bool CachedFileIO::persistCachePage(CachePage* cachedPage) {
 
 /**
 * 
-*  @brief Clears cache page state and persists its data to storage if page has been changed
+*  @brief Clears cache page state, persists if changed and removes from hashmap
 * 
 *  @param cachePageIndex - index of the page in cache to clear
 *  @return true - if page cleared, false - if can't persist page to storage
@@ -736,12 +726,14 @@ bool CachedFileIO::clearCachePage(CachePage* pageInfo) {
 		if (!persistCachePage(pageInfo)) return false;
 	}
 
-	// Remove from index map
+
+	// Remove from index hashmap
 	cacheMap.erase(pageInfo->filePageNo);
 
 	// Clear cache page info fields
 	pageInfo->filePageNo = NOT_FOUND;
 	pageInfo->availableDataLength = 0;
+
 			
 	// Cache page freed
 	return true;

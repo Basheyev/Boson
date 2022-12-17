@@ -3,6 +3,8 @@
 
 #pragma once
 
+#define _ITERATOR_DEBUG_LEVEL 0
+
 #include <iostream>
 
 // TODO: установите здесь ссылки на дополнительные заголовки, требующиеся для программы.

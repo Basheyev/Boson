@@ -5,13 +5,6 @@
 *  (C) Bolat Basheyev 2022
 *
 ******************************************************************************/
-#include <cstdio>
-#include <iostream>
-#include <locale>
-#include <chrono>
-#include <thread>
-#include <filesystem>
-
 
 #include "CachedFileIOTest.h"
 
@@ -48,7 +41,7 @@ bool CachedFileIOTest::run(size_t samples, size_t jsonSize, double cacheRatio, d
 	this->sigma = sigma;
 	
 	// thousands separator
-	std::cout.imbue(std::locale(std::locale::classic(), new NumberPunctuation()));
+//	std::cout.imbue(std::locale(std::locale::classic(), new NumberPunctuation()));
 		
 	std::cout << "[PARAMETERS] CachedFileIO test:" << std::endl;
 	std::cout << "\tSamples count = " << samples << std::endl;
@@ -58,7 +51,11 @@ bool CachedFileIOTest::run(size_t samples, size_t jsonSize, double cacheRatio, d
 	std::cout << "\tDistribution Sigma = " << sigma * 100.0;
 	std::cout << "% (93.3% of requests localized in " << sigma * 100.0 * 6 << "% of database)\n\n";
 
-	generateFileData();
+	double cachedPageWriteThroughput = cachedRandomPageWrites();
+
+	std::this_thread::sleep_for(std::chrono::seconds(1));
+
+	double cachedWriteThroughput = cachedRandomWrites();
 
 	std::this_thread::sleep_for(std::chrono::seconds(1));
 
@@ -77,11 +74,11 @@ bool CachedFileIOTest::run(size_t samples, size_t jsonSize, double cacheRatio, d
 	double stdioPageThroughput = stdioRandomPageReads();
 
 	std::this_thread::sleep_for(std::chrono::seconds(1));
-
+		
 	double ratio = cachedThroughput / stdioThroughput; 
 	double pageRatio = cachedPageThroughput / stdioPageThroughput;
 
-	std::cout << "[RESULT] Throughput ratio in RANDOM OFFSET test (CACHED/STDIO): " << std::setprecision(4);
+	std::cout << "[RESULT] Read throughput ratio in RANDOM OFFSET test (CACHED/STDIO): " << std::setprecision(4);
 	if (ratio > 1.0) {
 		std::cout << "+" << (ratio - 1.0) * 100 << "% - ";
 		std::cout << "SUCCESS! :)\n";
@@ -91,7 +88,7 @@ bool CachedFileIOTest::run(size_t samples, size_t jsonSize, double cacheRatio, d
 		std::cout << "FAILED :(\n";
 	}
 
-	std::cout << "[RESULT] Throughput ratio in PAGE ALIGNED test (CACHED/STDIO): " << std::setprecision(4);
+	std::cout << "[RESULT] Read throughput ratio in PAGE ALIGNED test (CACHED/STDIO): " << std::setprecision(4);
 	if (pageRatio > 1.0) {
 		std::cout << "+" << (pageRatio - 1.0) * 100 << "% - ";
 		std::cout << "SUCCESS! :)\n";
@@ -105,13 +102,44 @@ bool CachedFileIOTest::run(size_t samples, size_t jsonSize, double cacheRatio, d
 }
 
 
+double CachedFileIOTest::cachedRandomPageWrites() {
+	CachedFileIO cachedFile;
+	const size_t dataLen = PAGE_SIZE;
+	char buf[dataLen];
+	memset(buf, 'W', dataLen);
+	size_t pos = 0;
+
+	// delete file if exists
+	if (std::filesystem::exists(this->fileName)) {
+		std::filesystem::remove(this->fileName);
+	}
+
+	cf.open(this->fileName, 1024 * 1024 * 16);
+	std::cout << "[TEST]  Sequential PAGE ALIGNED write " << samplesCount / 8;
+	std::cout << " of ~" << dataLen << " byte blocks...\n\t";
+
+	for (int i = 0; i < samplesCount / 8; i++) {		
+		cf.write(pos, buf, dataLen);
+		pos += dataLen;
+	}
+	cf.flush();
+	cf.close();
+
+	double cachedDuration = cf.getStats(CacheStats::WRITE_TIME_NS) / 1000000.0;
+	double throughput = cf.getStats(CacheStats::WRITE_THROUGHPUT);
+	std::cout << pos << " bytes (" << cachedDuration << "ms), ";
+	std::cout << "Write: " << throughput << " Mb/sec\n\n";
+
+	return throughput;
+}
+
 /**
 *
 *  @brief Generates file with data
 *  @return sequential write throughput in Mb/s
 * 
 */
-double CachedFileIOTest::generateFileData() {
+double CachedFileIOTest::cachedRandomWrites() {
 
 	CachedFileIO cachedFile;
 	
@@ -129,7 +157,7 @@ double CachedFileIOTest::generateFileData() {
 		std::filesystem::remove(this->fileName);
 	}
 	
-	cf.open(this->fileName);
+	cf.open(this->fileName, 1024 * 1024 * 16);
 
 	std::cout << "[TEST]  Sequential write " << samplesCount;
 	std::cout << " of ~" << textLen + 10 << " byte blocks...\n\t";
