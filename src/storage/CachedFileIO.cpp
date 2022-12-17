@@ -121,6 +121,18 @@ bool CachedFileIO::close() {
 }
 
 
+/**
+*
+*  @brief Checks if file is open
+*
+*  @return true - if file open, false - otherwise
+*
+*/
+bool CachedFileIO::isOpen() {
+	return fileHandler != nullptr;
+}
+
+
 
 /**
 * 
