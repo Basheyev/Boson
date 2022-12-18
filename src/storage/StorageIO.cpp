@@ -182,11 +182,12 @@ size_t StorageIO::insert(const void* data, uint32_t length) {
 	size_t offset = getFromFreeList(length, newRecordHeader);
 	
 	// Fill record header fields and link to previous record
-	newRecordHeader.next = NOT_FOUND;
-	newRecordHeader.previous = storageHeader.lastDataRecord;
+	newRecordHeader.next = NOT_FOUND;                               
+	//newRecordHeader.previous = storageHeader.lastDataRecord;
 	newRecordHeader.recordID = generateID();
 	newRecordHeader.length = length;
 	newRecordHeader.checksum = checksum((uint8_t*) data, length);
+
 	// Update storage header
     // if its a first inserted record
 	if (storageHeader.firstDataRecord == NOT_FOUND) {
@@ -194,6 +195,7 @@ size_t StorageIO::insert(const void* data, uint32_t length) {
 	}
 	// pointer to last record and increment storage header counter
 	storageHeader.lastDataRecord = offset;	
+	storageHeader.endOfFile += length;
 	storageHeader.totalRecords++;
 	saveStorageHeader();
 
@@ -458,7 +460,7 @@ void StorageIO::initStorageHeader() {
 	
 	storageHeader.signature = BOSONDB_SIGNATURE;
 	storageHeader.version = BOSONDB_VERSION;
-	storageHeader.reserved = 0;
+	storageHeader.endOfFile = sizeof StorageHeader;
 
 	storageHeader.totalRecords = 0;
 	storageHeader.firstDataRecord = NOT_FOUND;
@@ -540,21 +542,28 @@ size_t StorageIO::getFromFreeList(uint32_t capacity, RecordHeader& result) {
 	size_t offset;
 	size_t freeRecordOffset;
 
-	// if there is no free pages yet
+	// if there is no free records yet
 	if (storageHeader.firstFreeRecord == NOT_FOUND) {
 		// if there is no records at all
 		if (storageHeader.lastDataRecord == NOT_FOUND) {
 			// clear record header
 			memset(&result, 0, sizeof RecordHeader);
 			// set value to capacity
+			result.next = NOT_FOUND;
+			result.previous = NOT_FOUND;
 			result.capacity = capacity;
+			result.length = 0;
+			
+			storageHeader.endOfFile += sizeof(RecordHeader) + capacity;
+			saveStorageHeader();
+
 			// calculate offset right after Storage header
 			freeRecordOffset = sizeof StorageHeader;
 			// return offset and record header
 			return freeRecordOffset;
 		}
 	} else {
-		
+		// If there are free records
 		RecordHeader freeRecord;
 		size_t counter = 0;
 		freeRecord.next = storageHeader.firstFreeRecord;
@@ -566,6 +575,15 @@ size_t StorageIO::getFromFreeList(uint32_t capacity, RecordHeader& result) {
 			// if found record with requested capacity
 			if (freeRecord.capacity >= capacity) {
 				memcpy(&result, &freeRecord, sizeof RecordHeader);
+
+				RecordHeader lastRecord;
+				getRecordHeader(storageHeader.lastDataRecord, lastRecord);
+				lastRecord.next = offset;
+				putRecordHeader(storageHeader.lastDataRecord, lastRecord);
+				result.next = NOT_FOUND;
+				result.previous = storageHeader.lastDataRecord;				
+				result.length = 0;
+
 				removeFromFreeList(freeRecord);
 				return offset;
 			}
@@ -574,19 +592,30 @@ size_t StorageIO::getFromFreeList(uint32_t capacity, RecordHeader& result) {
 		} 
 	}
 
-	// if there is no free records, but there are data records
-	RecordHeader lastRecord;
-
-
-
+	// if there is no free records, append to end of file
+	// BUG: find end of file!!!
 	// BUG: not always last data record is in the end!!!!!!!!!!
-	offset = storageHeader.lastDataRecord; 
-	getRecordHeader(offset, lastRecord);	
-	lastRecord.capacity = capacity;
-	// Copy 
-	memcpy(&result, &lastRecord, sizeof RecordHeader);
-	// return offset right after last record
-	freeRecordOffset = offset + (sizeof RecordHeader) + (lastRecord.capacity);
+
+	// update previous free record
+	RecordHeader lastRecord;
+	getRecordHeader(storageHeader.lastDataRecord, lastRecord);
+	lastRecord.next = freeRecordOffset = storageHeader.endOfFile;
+	putRecordHeader(storageHeader.lastDataRecord, lastRecord);	
+
+	result.next = NOT_FOUND;
+	result.previous = storageHeader.lastDataRecord;
+	result.capacity = capacity;
+	result.length = 0;
+
+	storageHeader.lastDataRecord = freeRecordOffset;
+	storageHeader.endOfFile += sizeof(RecordHeader) + capacity;
+	saveStorageHeader();
+
+	
+		
+
+	
+
 	return freeRecordOffset;
 
 }

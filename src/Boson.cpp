@@ -58,16 +58,22 @@ int main()
 	StorageIO db;
 	db.open(fileName);
 	db.first();
-
+	
 	int counter = 0;
+	size_t prev, next;
 	cout << "------------------------------------------ ASCENDING \n";
 	do {
 		size_t length = db.getLength();
-		cout << "Offset: " << db.getPosition() << " Length: " << length << " ID: " << db.getID() << endl;
+		prev = db.getPreviousPosition();
+		next = db.getNextPosition();
+		if (prev == NOT_FOUND) prev = 0;
+		if (next == NOT_FOUND) next = 0;
+		cout << "Offset: " << db.getPosition() << " Length: " << length << " ID: " << db.getID();
+		cout << " Previous: " << prev << " Next:" << next;
 		db.getData(buf, length);
 		buf[length] = 0;
-		cout << buf << "\n\n";
-		if (counter == 5) {
+		cout << " - " << buf << "\n\n";
+		if (counter == 5 || counter == 7) {
 			cout << "Record #5 - DELETED\n\n";
 			db.remove();
 		}
@@ -76,16 +82,27 @@ int main()
 
 	db.insert("INSERTED RECORD XXX", 19);
 	
-//	db.insert("INSERTED RECORD 2", 17); // NEED BUG DIX
+	//db.insert("INSERTED RECORD 2", 17); // NEED BUG DIX
 
+	db.last();
 	cout << "------------------------------------------ DESCENDING\n";
+
+
 	do  {
 		size_t length = db.getLength();
-		cout << "Offset: " << db.getPosition() << " Length: " << length << " ID: " << db.getID() << endl;
+		prev = db.getPreviousPosition();
+		next = db.getNextPosition();
+		if (prev == NOT_FOUND) prev = 0;
+		if (next == NOT_FOUND) next = 0;
+		cout << "Offset: " << db.getPosition() << " Length: " << length << " ID: " << db.getID();
+		cout << " Previous: " << prev << " Next:" << next;
 		db.getData(buf, length);
 		buf[length] = 0;
-		cout << buf << "\n\n";
+		cout << " - " << buf << "\n\n";
 	} while (db.previous());
+
+
+
 	cout << "------------------------------------------ FIRST\n";
 	{
 		db.first();

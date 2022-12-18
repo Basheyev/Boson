@@ -25,7 +25,7 @@ namespace Boson {
 	typedef struct {
 		uint64_t      signature;           // BOSONDB signature
 		uint32_t      version;             // Format version
-		uint32_t      reserved;
+		uint32_t      endOfFile;           // End of file
 
 		uint64_t      totalRecords;        // Total number of records
 		uint64_t      firstDataRecord;     // First data record
