@@ -97,6 +97,7 @@ namespace Boson {
 		size_t   putRecordHeader(size_t offset, const RecordHeader& result);
 		size_t   getFromFreeList(uint32_t capacity, RecordHeader& result);
 		bool     putToFreeList(size_t offset);
+		bool     removeFromFreeList(RecordHeader& freeRecord);
 
 		uint64_t generateID();
 		uint32_t checksum(const uint8_t* data, size_t length);

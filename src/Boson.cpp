@@ -28,18 +28,15 @@ using namespace std;
 
 void generateData(char* filename) {
 	StorageIO storage;
-	vector<string> myData;
-	stringstream ss;
-
+	vector<string> myData;	
 	for (int i = 0; i < 10; i++) {
-		ss.clear();
-		ss << "This is data record under number = ";
+		stringstream ss;		
+		ss << "Database record message #";
 		ss << i;
+		ss << " and " << std::rand() * 3;
 		myData.push_back(ss.str());
 	}
-
 	filesystem::remove("f:/records.bin");
-
 	if (storage.open("f:/records.bin")) {
 		for (string& str : myData) {
 			storage.insert(str.c_str(), (uint32_t)str.length());
@@ -61,8 +58,51 @@ int main()
 	StorageIO db;
 	db.open(fileName);
 	db.first();
-	while (db.next()) {
-		cout << " Offset: " << db.getPosition() << " Length: " << db.getLength() << endl;
+
+	int counter = 0;
+	cout << "------------------------------------------ ASCENDING \n";
+	do {
+		size_t length = db.getLength();
+		cout << "Offset: " << db.getPosition() << " Length: " << length << " ID: " << db.getID() << endl;
+		db.getData(buf, length);
+		buf[length] = 0;
+		cout << buf << "\n\n";
+		if (counter == 5) {
+			cout << "Record #5 - DELETED\n\n";
+			db.remove();
+		}
+		counter++;
+	} while (db.next());
+
+	db.insert("INSERTED RECORD XXX", 19);
+	
+//	db.insert("INSERTED RECORD 2", 17); // NEED BUG DIX
+
+	cout << "------------------------------------------ DESCENDING\n";
+	do  {
+		size_t length = db.getLength();
+		cout << "Offset: " << db.getPosition() << " Length: " << length << " ID: " << db.getID() << endl;
+		db.getData(buf, length);
+		buf[length] = 0;
+		cout << buf << "\n\n";
+	} while (db.previous());
+	cout << "------------------------------------------ FIRST\n";
+	{
+		db.first();
+		size_t length = db.getLength();
+		cout << "Offset: " << db.getPosition() << " Length: " << length << " ID: " << db.getID() << endl;
+		db.getData(buf, length);
+		buf[length] = 0;
+		cout << buf << "\n\n";
+	}
+	cout << "------------------------------------------ LAST\n";
+	{
+		db.last();
+		size_t length = db.getLength();
+		cout << "Offset: " << db.getPosition() << " Length: " << length << " ID: " << db.getID() << endl;
+		db.getData(buf, length);
+		buf[length] = 0;
+		cout << buf << "\n\n";
 	}
 	db.close();
 

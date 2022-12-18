@@ -554,16 +554,19 @@ size_t StorageIO::getFromFreeList(uint32_t capacity, RecordHeader& result) {
 			return freeRecordOffset;
 		}
 	} else {
-		// iterate through free list
+		
 		RecordHeader freeRecord;
 		size_t counter = 0;
 		freeRecord.next = storageHeader.firstFreeRecord;
 		offset = freeRecord.next;
 
+		// iterate through free list
 		while (freeRecord.next != NOT_FOUND && counter < storageHeader.totalFreeRecords) {
 			getRecordHeader(offset, freeRecord);
+			// if found record with requested capacity
 			if (freeRecord.capacity >= capacity) {
 				memcpy(&result, &freeRecord, sizeof RecordHeader);
+				removeFromFreeList(freeRecord);
 				return offset;
 			}
 			offset = freeRecord.next;
@@ -573,7 +576,11 @@ size_t StorageIO::getFromFreeList(uint32_t capacity, RecordHeader& result) {
 
 	// if there is no free records, but there are data records
 	RecordHeader lastRecord;
-	offset = storageHeader.lastDataRecord;
+
+
+
+	// BUG: not always last data record is in the end!!!!!!!!!!
+	offset = storageHeader.lastDataRecord; 
 	getRecordHeader(offset, lastRecord);	
 	lastRecord.capacity = capacity;
 	// Copy 
@@ -597,15 +604,85 @@ bool StorageIO::putToFreeList(size_t offset) {
 	freeRecord.recordID = NOT_FOUND;
 	freeRecord.length = 0;
 	freeRecord.checksum = 0;
-	getRecordHeader(offset, freeRecord);
+	putRecordHeader(offset, freeRecord);
+		
 	if (storageHeader.firstFreeRecord == NOT_FOUND) {
 		storageHeader.firstFreeRecord = offset;
 	}
+
+	storageHeader.lastFreeRecord = offset;
 	storageHeader.totalFreeRecords++;
 	saveStorageHeader();
 	return true;
 }
 
+
+/*
+*  @brief Remove record from free list
+*/
+bool StorageIO::removeFromFreeList(RecordHeader& freeRecord) {
+
+	size_t leftSiblingOffset = freeRecord.previous;
+	size_t rightSiblingOffset = freeRecord.next;
+	bool leftSiblingExists = (leftSiblingOffset != NOT_FOUND);
+	bool rightSiblingExists = (rightSiblingOffset != NOT_FOUND);
+	RecordHeader leftSiblingHeader;
+	RecordHeader rightSiblingHeader;
+	size_t returnOffset;
+
+	if (leftSiblingExists && rightSiblingExists) {
+		// Read left & right sibling record headers
+		getRecordHeader(freeRecord.previous, leftSiblingHeader);
+		getRecordHeader(freeRecord.next, rightSiblingHeader);
+		// Interlink left and right sibling
+		leftSiblingHeader.next = rightSiblingOffset;
+		rightSiblingHeader.previous = leftSiblingOffset;
+		// Save siblings headers to the storage
+		putRecordHeader(leftSiblingOffset, leftSiblingHeader);
+		putRecordHeader(rightSiblingOffset, rightSiblingHeader);
+		// Add deleted record to the free list
+		putToFreeList(cursorOffset);
+		// Return offset of the right sibling
+		returnOffset = rightSiblingOffset;
+	}
+	else if (leftSiblingExists) {
+		// removing last record
+		getRecordHeader(freeRecord.previous, leftSiblingHeader);
+		leftSiblingHeader.next = NOT_FOUND;
+		putRecordHeader(leftSiblingOffset, leftSiblingHeader);
+		// Add deleted record to the free list
+		putToFreeList(cursorOffset);
+		// Update storage header last record field
+		storageHeader.lastDataRecord = leftSiblingOffset;
+		// Return offset of the right sibling
+		returnOffset = leftSiblingOffset;
+	}
+	else if (rightSiblingExists) {
+		// removing first record
+		getRecordHeader(freeRecord.next, rightSiblingHeader);
+		rightSiblingHeader.previous = NOT_FOUND;
+		putRecordHeader(rightSiblingOffset, rightSiblingHeader);
+		// Add deleted record to the free list
+		putToFreeList(cursorOffset);
+		// Update storage header first record field
+		storageHeader.firstDataRecord = rightSiblingOffset;
+		// Return offset of the right sibling
+		returnOffset = rightSiblingOffset;
+	}
+	else {
+		// removing the only record		
+		// Update storage header first/last record field
+		storageHeader.firstFreeRecord = NOT_FOUND;
+		storageHeader.lastFreeRecord = NOT_FOUND;
+		// Return NOT_FOUND because it was the last record
+		returnOffset = NOT_FOUND;
+	}
+
+	storageHeader.totalFreeRecords--;
+	saveStorageHeader();
+
+	return true;
+}
 
 
 int idCounter = 0;
