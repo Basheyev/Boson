@@ -32,7 +32,7 @@ namespace Boson {
 		uint64_t      lastFreeRecord;      // Last free record offset
 	} StorageHeader;
 
-	constexpr uint64_t SIGNATURE = 0x0042444E4F534F42; // "BOSONDB\x00" signature
+	constexpr uint64_t BOSONDB = 0x0042444E4F534F42; // "BOSONDB\x00" signature
 
 	//----------------------------------------------------------------------------
 	// Record header structure (double linked list) and record structure itself
@@ -63,18 +63,24 @@ namespace Boson {
 		bool   first();
 		bool   last();
 		bool   next();
-		bool   prev();
+		bool   previous();
 
-		size_t insert(const void* data, size_t length, RecordHeader& result);
-		size_t update(const void* data, size_t length, RecordHeader& result);
-		size_t readHeader(RecordHeader& result);
-		size_t readData(void* data, size_t length);
+		size_t insert(const void* data, uint32_t length);
+		size_t update(const void* data, uint32_t length);
 		size_t remove();
+
+		size_t getID();		
+		size_t getLength();
+		size_t getCapacity();
+		size_t getNextPosition();
+		size_t getPreviousPosition();
+		size_t getData(void* data, uint32_t length);
 
 	private:
 
 		CachedFileIO  storageFile;
 		StorageHeader storageHeader;
+		RecordHeader  recordHeader;
 		size_t        cursorOffset;
 
 		bool loadStorageHeader();
@@ -84,7 +90,7 @@ namespace Boson {
 		void releaseRecord();
 
 		uint64_t generateID();
-		uint32_t checksum(void* data, size_t length);
+		uint32_t checksum(uint8_t* data, size_t length);
 
 	};
 

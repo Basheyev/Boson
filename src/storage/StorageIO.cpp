@@ -2,6 +2,9 @@
 
 #include "StorageIO.h"
 
+
+#include <algorithm>
+
 using namespace Boson;
 
 /*
@@ -12,7 +15,7 @@ using namespace Boson;
 StorageIO::StorageIO() {
 
 	memset(&storageHeader, 0, sizeof(storageHeader));
-	cursorOffset = 0;
+	cursorOffset = NOT_FOUND;
 }
 
 
@@ -62,18 +65,17 @@ bool StorageIO::close() {
 *
 */
 bool StorageIO::setPosition(uint64_t offset) {
-
-	if (!storageFile.isOpen()) return false;
-
-	RecordHeader header;
-	uint64_t oldOffset = cursorOffset;
-	cursorOffset = offset;
-	if (this->readHeader(header) == NOT_FOUND) {
-		cursorOffset = oldOffset;
-		return false;
-	}
+	if (!storageFile.isOpen()) return false;	
 	
+	RecordHeader header;
+	size_t bytesRead;	
+	bytesRead = storageFile.read(offset, &header, sizeof RecordHeader);
+	if (bytesRead != sizeof RecordHeader) return false;
+
 	// TODO: check data consistency by checksum
+
+	memcpy(&recordHeader, &header, sizeof RecordHeader);
+	cursorOffset = offset;
 
 	return true;
 }
@@ -125,10 +127,8 @@ bool StorageIO::last() {
 *
 */
 bool StorageIO::next() {
-	if (!storageFile.isOpen()) return false;
-	RecordHeader header;
-	if (readHeader(header) == NOT_FOUND) return false;
-	return setPosition(header.next);
+	if (!storageFile.isOpen() || cursorOffset==NOT_FOUND) return false;
+	return setPosition(recordHeader.next);
 }
 
 
@@ -138,12 +138,11 @@ bool StorageIO::next() {
 * @return true - if previous record exists, false - otherwise
 * 
 */
-bool StorageIO::prev() {
-	if (!storageFile.isOpen()) return false;
-	RecordHeader header;
-	if (readHeader(header) == NOT_FOUND) return false;
-	return setPosition(header.previous);
+bool StorageIO::previous() {
+	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return false;
+	return setPosition(recordHeader.previous);
 }
+
 
 
 /*
@@ -157,7 +156,15 @@ bool StorageIO::prev() {
 * @return returns offset of the new record or NOT_FOUND if fails
 *
 */
-size_t StorageIO::insert(const void* data, size_t length, RecordHeader& result) {
+size_t StorageIO::insert(const void* data, uint32_t length) {
+
+
+
+	// TODO:
+
+
+
+
 	return 0;
 }
 
@@ -174,38 +181,13 @@ size_t StorageIO::insert(const void* data, size_t length, RecordHeader& result) 
 * @return returns offset of the new record or NOT_FOUND if fails
 *
 */
-size_t StorageIO::update(const void* data, size_t length, RecordHeader& result) {
-	return 0;
-}
+size_t StorageIO::update(const void* data, uint32_t length) {
 
+	// TODO:
+	// if capcaity is larger than given length
+	// a) then just update data and header
+	// b) else delete record insert in new place with the same ID
 
-
-/*
-*
-* @brief Reads record header information in current position
-*
-* @param[out] result - record header information
-*
-* @return returns offset of the record or NOT_FOUND if fails
-*
-*/
-size_t StorageIO::readHeader(RecordHeader& result) {
-	return 0;
-}
-
-
-
-/*
-*
-* @brief Reads record data in current position
-*
-* @param[out] data - pointer to the user buffer
-* @param[in]  length - bytes to read to the user buffer
-*
-* @return returns offset of the record or NOT_FOUND if fails
-*
-*/
-size_t StorageIO::readData(void* data, size_t length) {
 	return 0;
 }
 
@@ -219,7 +201,91 @@ size_t StorageIO::readData(void* data, size_t length) {
 *
 */
 size_t StorageIO::remove() {
+
+	// TODO:
+
 	return 0;
+}
+
+
+
+/*
+*
+* @brief Get ID of current record
+* @return returns ID of current record or NOT_FOUND if fails
+*
+*/
+size_t StorageIO::getID() {
+	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return NOT_FOUND;
+	return recordHeader.recordID;
+}
+
+
+/*
+*
+* @brief Get actual data payload length in bytes of current record
+* @return returns data payload length in bytes or NOT_FOUND if fails
+*
+*/
+size_t StorageIO::getLength() {
+	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return NOT_FOUND;
+	return recordHeader.length;
+}
+
+
+/*
+*
+* @brief Get maximum capacity in bytes of current record
+* @return returns maximum capacity in bytes or NOT_FOUND if fails
+*
+*/
+size_t StorageIO::getCapacity() {
+	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return NOT_FOUND;
+	return recordHeader.capacity;
+}
+
+
+
+
+/*
+*
+* @brief Get current record's next neighbour
+* @return returns offset of next neighbour or NOT_FOUND if fails
+*
+*/
+size_t StorageIO::getNextPosition() {
+	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return NOT_FOUND;
+	return recordHeader.next;
+}
+
+
+/*
+*
+* @brief Get current record's previous neighbour
+* @return returns offset of previous neighbour or NOT_FOUND if fails
+*
+*/
+size_t StorageIO::getPreviousPosition() {
+	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return NOT_FOUND;
+	return recordHeader.previous;
+}
+
+
+/*
+*
+* @brief Reads record data in current position
+*
+* @param[out] data - pointer to the user buffer
+* @param[in]  length - bytes to read to the user buffer
+*
+* @return returns offset of the record or NOT_FOUND if fails
+*
+*/
+size_t StorageIO::getData(void* data, uint32_t length) {
+	size_t bytesToRead = std::min(recordHeader.length, length);
+	size_t dataOffset = cursorOffset + sizeof(recordHeader);
+	storageFile.read(dataOffset, data, bytesToRead);
+	return cursorOffset;
 }
 
 
@@ -235,21 +301,41 @@ size_t StorageIO::remove() {
 
 
 bool StorageIO::loadStorageHeader() {
-	return false;
+	StorageHeader sh;
+	size_t bytesRead = storageFile.read(0, &sh, sizeof StorageHeader);
+	// check read success
+	if (bytesRead != sizeof StorageHeader) return false;  
+	// check signature
+	if (sh.signature != BOSONDB) return false;            
+	
+
+	// TODO: another logical checks
+
+
+	// Copy header data to working structure
+	memcpy(&storageHeader, &sh, sizeof StorageHeader);
+	return true;
 }
 
 
 bool StorageIO::saveStorageHeader() {
+
+	// TODO:
+
 	return false;
 }
 
 
 void StorageIO::getFreeRecord(RecordHeader& info) {
+
+	// TODO:
 	
 }
 
 
 void StorageIO::releaseRecord() {
+
+	// TODO:
 
 }
 
@@ -257,9 +343,29 @@ void StorageIO::releaseRecord() {
 
 uint64_t StorageIO::generateID() {
 
+	// TODO:
+	return 0;
 }
 
 
-uint32_t StorageIO::checksum(void* data, size_t length) {
-	return 0;
+/**
+*  @brief Adler-32 checksum algoritm
+*  @param[in] data - byte array of data to be checksummed
+*  @param[in] length - length of data in bytes
+*  @return 32-bit checksum of given data
+*/
+uint32_t StorageIO::checksum(uint8_t* data, size_t length) {
+	
+	// FIXME: inefficient but straightforward
+
+	const uint32_t MOD_ADLER = 65521;
+	uint32_t a = 1, b = 0;
+	size_t index;
+	// Process each byte of the data in order
+	for (index = 0; index < length; ++index)
+	{
+		a = (a + data[index]) % MOD_ADLER;
+		b = (b + a) % MOD_ADLER;
+	}
+	return (b << 16) | a;
 }
