@@ -403,7 +403,9 @@ size_t CachedFileIO::flush() {
 
 	// Persist pages to storage device
 	for (CachePage* node : cacheList) {
-		allDirtyPagesPersisted = allDirtyPagesPersisted && clearCachePage(node);
+		if (node->state = PageState::DIRTY) {
+			allDirtyPagesPersisted = allDirtyPagesPersisted && persistCachePage(node);
+		}
 	}
 	
 	// flush buffers to storage device
@@ -712,9 +714,13 @@ bool CachedFileIO::persistCachePage(CachePage* cachedPage) {
 
 	// Write cached page to file
 	bytesWritten = fwrite(cachedPage->data, 1, bytesToWrite, fileHandler);
-
 	// Check success
-	return bytesWritten == bytesToWrite;
+	if (bytesWritten == bytesToWrite) {
+		cachedPage->state = PageState::CLEAN;
+		return true;
+	}
+	// if failed to write
+	return false;
 }
 
 

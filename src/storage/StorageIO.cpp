@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <iostream>
 
 using namespace Boson;
 
@@ -41,8 +42,8 @@ StorageIO::~StorageIO() {
 * @return true - if file opened, false - otherwise
 * 
 */
-bool StorageIO::open(std::string dbName) {
-	if (storageFile.open(dbName.c_str())) return false;
+bool StorageIO::open(const std::string& dbName) {
+	if (!storageFile.open(dbName.c_str())) return false;
 	if (storageFile.getFileSize() == 0) {
 		initStorageHeader();
 	}
@@ -62,7 +63,19 @@ bool StorageIO::close() {
 	if (!storageFile.isOpen()) return false;
 	// FIXME: consistency is not checked
 	bool headerSaved = saveStorageHeader();
+
 	return storageFile.close() && headerSaved;
+}
+
+
+/*
+*
+* @brief Get total number of records in storage
+* @return total number of records
+*
+*/
+size_t StorageIO::getTotalRecords() {
+	return storageHeader.totalRecords;
 }
 
 
@@ -181,13 +194,19 @@ size_t StorageIO::insert(const void* data, uint32_t length) {
 	}
 	// pointer to last record and increment storage header counter
 	storageHeader.lastDataRecord = offset;	
-	storageHeader.totalFreeRecords++;
+	storageHeader.totalRecords++;
 	saveStorageHeader();
 
 	// Write record header and data to the storage file
 	constexpr uint64_t HEADER_SIZE = sizeof RecordHeader;
 	storageFile.write(offset, &newRecordHeader, HEADER_SIZE);
 	storageFile.write(offset + HEADER_SIZE, data, length);
+	
+	// DEBUG
+	storageFile.flush();
+
+	memcpy(&recordHeader, &newRecordHeader, HEADER_SIZE);
+	cursorOffset = offset;
 
 	// Return offset of new record
 	return offset;
@@ -442,6 +461,8 @@ void StorageIO::initStorageHeader() {
 
 	saveStorageHeader();
 
+	// DEBUG
+	storageFile.flush();
 }
 
 
@@ -505,26 +526,73 @@ size_t StorageIO::putRecordHeader(size_t offset, const RecordHeader& header) {
 /*
 * @brief Get free record with desired capacity or allocate new one
 */
-size_t StorageIO::getFreeRecord(size_t capacity, RecordHeader& result) {
+size_t StorageIO::getFromFreeList(uint32_t capacity, RecordHeader& result) {
 
-	size_t freeRecordOffset = storageHeader.firstFreeRecord;
+	size_t offset;
+	size_t freeRecordOffset;
 
-	RecordHeader freeRecord;
+	// if there is no free pages yet
+	if (storageHeader.firstFreeRecord == NOT_FOUND) {
+		// if there is no records at all
+		if (storageHeader.lastDataRecord == NOT_FOUND) {
+			// clear record header
+			memset(&result, 0, sizeof RecordHeader);
+			// set value to capacity
+			result.capacity = capacity;
+			// calculate offset right after Storage header
+			freeRecordOffset = sizeof StorageHeader;
+			// return offset and record header
+			return freeRecordOffset;
+		}
+	} else {
+		// iterate through free list
+		RecordHeader freeRecord;
+		size_t counter = 0;
+		freeRecord.next = storageHeader.firstFreeRecord;
+		offset = freeRecord.next;
 
+		while (freeRecord.next != NOT_FOUND && counter < storageHeader.totalFreeRecords) {
+			getRecordHeader(offset, freeRecord);
+			if (freeRecord.capacity >= capacity) {
+				memcpy(&result, &freeRecord, sizeof RecordHeader);
+				return offset;
+			}
+			offset = freeRecord.next;
+			counter++;
+		} 
+	}
 
-	// TODO:
+	// if there is no free records, but there are data records
+	RecordHeader lastRecord;
+	offset = storageHeader.lastDataRecord;
+	getRecordHeader(offset, lastRecord);	
+	lastRecord.capacity = capacity;
+	// return offset right after last record
+	freeRecordOffset = offset + sizeof RecordHeader + lastRecord.capacity;
+	return freeRecordOffset;
 
-
-	return 0;
 }
 
 
 
-
-bool StorageIO::addRecordToFreeList(size_t offset) {
-
-	// TODO:
-	return false;
+/*
+*  @brief Put record to the free list
+*/
+bool StorageIO::putToFreeList(size_t offset) {
+	RecordHeader freeRecord;
+	if (getRecordHeader(offset, freeRecord) == NOT_FOUND) return false;
+	freeRecord.next = NOT_FOUND;
+	freeRecord.previous = storageHeader.lastFreeRecord;
+	freeRecord.recordID = NOT_FOUND;
+	freeRecord.length = 0;
+	freeRecord.checksum = 0;
+	getRecordHeader(offset, freeRecord);
+	if (storageHeader.firstFreeRecord == NOT_FOUND) {
+		storageHeader.firstFreeRecord = offset;
+	}
+	storageHeader.totalFreeRecords++;
+	saveStorageHeader();
+	return true;
 }
 
 

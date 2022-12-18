@@ -60,8 +60,9 @@ namespace Boson {
 		StorageIO();
 		~StorageIO();
 
-		bool   open(const std::string dbName);     	
+		bool   open(const std::string& dbName);     	
 		bool   close();
+		size_t getTotalRecords();
 
 		bool   setPosition(uint64_t offset);
 		size_t getPosition();
@@ -88,13 +89,14 @@ namespace Boson {
 		RecordHeader  recordHeader;
 		size_t        cursorOffset;
 
-		bool getStorageHeader();
-		bool putStorageHeader();
+		void     initStorageHeader();
+		bool     saveStorageHeader();
+		bool     loadStorageHeader();	
 				
-		size_t getRecordHeader(size_t offset, RecordHeader& result);
-		size_t putRecordHeader(size_t offset, const RecordHeader& result);
-		size_t getFreeRecord(size_t capacity, RecordHeader& result);
-		bool   addRecordToFreeList(size_t offset);
+		size_t   getRecordHeader(size_t offset, RecordHeader& result);
+		size_t   putRecordHeader(size_t offset, const RecordHeader& result);
+		size_t   getFromFreeList(uint32_t capacity, RecordHeader& result);
+		bool     putToFreeList(size_t offset);
 
 		uint64_t generateID();
 		uint32_t checksum(const uint8_t* data, size_t length);
