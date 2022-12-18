@@ -21,23 +21,21 @@
 #include "StorageIO.h"
 
 #include <iostream>
+#include <sstream>
 
 using namespace Boson;
+using namespace std;
 
-
-
-
-
-int main()
-{
-	using namespace std;
-
+void generateData(char* filename) {
 	StorageIO storage;
-
 	vector<string> myData;
-		
-	for (int i = 0; i < 3; i++) {
-		myData.push_back(string("This is data record."));
+	stringstream ss;
+
+	for (int i = 0; i < 10; i++) {
+		ss.clear();
+		ss << "This is data record under number = ";
+		ss << i;
+		myData.push_back(ss.str());
 	}
 
 	filesystem::remove("f:/records.bin");
@@ -51,6 +49,21 @@ int main()
 	else {
 		cout << "can't open file." << endl;
 	}
+}
 
+
+int main()
+{
+	char buf[1024] = { 0 };
+	char* fileName = "f:/records.bin";
+	generateData(fileName);
+
+	StorageIO db;
+	db.open(fileName);
+	db.first();
+	while (db.next()) {
+		cout << " Offset: " << db.getPosition() << " Length: " << db.getLength() << endl;
+	}
+	db.close();
 
 }

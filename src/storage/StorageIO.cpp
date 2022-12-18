@@ -202,6 +202,15 @@ size_t StorageIO::insert(const void* data, uint32_t length) {
 	storageFile.write(offset, &newRecordHeader, HEADER_SIZE);
 	storageFile.write(offset + HEADER_SIZE, data, length);
 	
+	// Update previous record
+ 	if (newRecordHeader.previous != NOT_FOUND) {
+		size_t leftSiblingOffset = newRecordHeader.previous;		
+		RecordHeader leftSiblingHeader;
+		getRecordHeader(leftSiblingOffset, leftSiblingHeader);
+		leftSiblingHeader.next = offset;
+		putRecordHeader(leftSiblingOffset, leftSiblingHeader);
+	}
+
 	// DEBUG
 	storageFile.flush();
 
@@ -567,8 +576,10 @@ size_t StorageIO::getFromFreeList(uint32_t capacity, RecordHeader& result) {
 	offset = storageHeader.lastDataRecord;
 	getRecordHeader(offset, lastRecord);	
 	lastRecord.capacity = capacity;
+	// Copy 
+	memcpy(&result, &lastRecord, sizeof RecordHeader);
 	// return offset right after last record
-	freeRecordOffset = offset + sizeof RecordHeader + lastRecord.capacity;
+	freeRecordOffset = offset + (sizeof RecordHeader) + (lastRecord.capacity);
 	return freeRecordOffset;
 
 }
@@ -597,16 +608,18 @@ bool StorageIO::putToFreeList(size_t offset) {
 
 
 
+int idCounter = 0;
 /*
 * @brief Generate 64-bit time sortable and locally unique ID
 * @return unsigned 64-bit ID (48-bit clock value, 16-bit random suffix)
 */
 uint64_t StorageIO::generateID() {
-	auto currentTime = std::chrono::steady_clock::now().time_since_epoch();
+	/*auto currentTime = std::chrono::steady_clock::now().time_since_epoch();
 	uint64_t timeSinceEpoch = currentTime.count();  // 48-bit steady clock
 	uint64_t randomNumber = std::rand();            // 16-bit random value
 	uint64_t almostUniqueID = (timeSinceEpoch << 16) | randomNumber;
-	return almostUniqueID;
+	return almostUniqueID;*/
+	return idCounter++;
 }
 
 

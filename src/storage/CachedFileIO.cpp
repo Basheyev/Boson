@@ -245,6 +245,7 @@ size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t lengt
 	uint8_t* dst = nullptr;
 	size_t bytesToCopy = 0, bytesWritten = 0;
 	size_t pageDataLength = 0;
+	size_t offset = 0;
 
 	// Iterate through file pages
 	for (size_t filePage = firstPageNo; filePage <= lastPageNo; filePage++) {
@@ -259,9 +260,9 @@ size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t lengt
 		// Calculate source pointers and data length to write
 		if (filePage == firstPageNo) {
 			// Case 1: if writing first page
-			size_t firstPageOffset = position % PAGE_SIZE;
-			dst = &pageInfo->data[firstPageOffset];
-			bytesToCopy = std::min(length, PAGE_SIZE - firstPageOffset);
+			offset = position % PAGE_SIZE;
+			dst = &pageInfo->data[offset];
+			bytesToCopy = std::min(length, PAGE_SIZE - offset);
 		} else if (filePage == lastPageNo) {
 			// Case 2: if writing last page
 			dst = pageInfo->data;
@@ -275,7 +276,7 @@ size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t lengt
 		// Copy available data from user's data buffer to cache page 
 		memcpy(dst, src, bytesToCopy);       // copy user buffer data to cache page
 		pageInfo->state = PageState::DIRTY;  // mark page as "dirty" (rewritten)
-		pageInfo->availableDataLength = std::max(pageDataLength, bytesToCopy);
+		pageInfo->availableDataLength = std::max(pageDataLength, offset + bytesToCopy);
 		bytesWritten += bytesToCopy;         // increment written bytes counter
 		src += bytesToCopy;                  // increment pointer in user buffer
 
