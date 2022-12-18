@@ -20,22 +20,27 @@
 namespace Boson {
 
 	//----------------------------------------------------------------------------
-	// Boson Database header structure
+	// Boson Database header structure (64 bytes)
 	//----------------------------------------------------------------------------
 	typedef struct {
 		uint64_t      signature;           // BOSONDB signature
+		uint32_t      version;             // Format version
+		uint32_t      reserved;
+
 		uint64_t      totalRecords;        // Total number of records
 		uint64_t      firstDataRecord;     // First data record
 		uint64_t      lastDataRecord;      // Last data record
+
 		uint64_t      totalFreeRecords;    // Total number of free records
 		uint64_t      firstFreeRecord;     // First free record offset
 		uint64_t      lastFreeRecord;      // Last free record offset
 	} StorageHeader;
 
-	constexpr uint64_t BOSONDB = 0x0042444E4F534F42; // "BOSONDB\x00" signature
+	constexpr uint64_t BOSONDB_SIGNATURE = 0x0042444E4F534F42;
+	constexpr uint32_t BOSONDB_VERSION   = 0x0001;
 
 	//----------------------------------------------------------------------------
-	// Record header structure (double linked list) and record structure itself
+	// Record header structure (36 bytes)
 	//----------------------------------------------------------------------------
 	typedef struct {
 		uint64_t    next;              // Next record position in data file
@@ -83,14 +88,16 @@ namespace Boson {
 		RecordHeader  recordHeader;
 		size_t        cursorOffset;
 
-		bool loadStorageHeader();
-		bool saveStorageHeader();
-
-		void getFreeRecord(RecordHeader& info);
-		void releaseRecord();
+		bool getStorageHeader();
+		bool putStorageHeader();
+				
+		size_t getRecordHeader(size_t offset, RecordHeader& result);
+		size_t putRecordHeader(size_t offset, const RecordHeader& result);
+		size_t getFreeRecord(size_t capacity, RecordHeader& result);
+		bool   addRecordToFreeList(size_t offset);
 
 		uint64_t generateID();
-		uint32_t checksum(uint8_t* data, size_t length);
+		uint32_t checksum(const uint8_t* data, size_t length);
 
 	};
 
