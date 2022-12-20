@@ -26,21 +26,40 @@
 using namespace Boson;
 using namespace std;
 
+
+uint64_t callStack1, callStack2;
+
+
 void generateData(char* filename) {
 	StorageIO storage;
 	vector<string> myData;	
-	for (int i = 0; i < 10; i++) {
+	
+	for (int i = 0; i < 100; i++) {
 		stringstream ss;		
-		ss << "Database record message #";
+		ss << "Database record message #";		
 		ss << i;
-		ss << " and " << std::rand() * 3;
+		ss << " and " << (int64_t(std::rand()) * 100);
 		myData.push_back(ss.str());
+
+		
 	}
+
+	
+
 	filesystem::remove("f:/records.bin");
 	if (storage.open("f:/records.bin")) {
-		for (string& str : myData) {
-			storage.insert(str.c_str(), (uint32_t)str.length());
+		int counter = 0;
+		for (string& str : myData) {			
+			if (counter == 721) {
+				cout << "CHECK! STACk CORRUPTED" << endl;
+			}
+			storage.insert(str.c_str(), (uint32_t)str.length());			
+			//callStack2 = (uint64_t)&a;
+			//cout << "Stack size: " << callStack1 - callStack2 << " bytes\n";
+			cout << "record #" << counter << endl;
+			counter++;
 		}
+
 		storage.close();
 	}
 	else {
@@ -51,10 +70,14 @@ void generateData(char* filename) {
 
 int main()
 {
+	int var1;
+	callStack1 = (uint64_t) &var1;
 	char buf[1024] = { 0 };
 	char* fileName = "f:/records.bin";
 	generateData(fileName);
 
+
+	/*
 	StorageIO db;
 	db.open(fileName);
 	db.first();
@@ -63,7 +86,7 @@ int main()
 	size_t prev, next;
 	cout << "------------------------------------------ ASCENDING \n";
 	do {
-		size_t length = db.getLength();
+		uint32_t length = db.getLength();
 		prev = db.getPreviousPosition();
 		next = db.getNextPosition();
 		if (prev == NOT_FOUND) prev = 0;
@@ -89,7 +112,7 @@ int main()
 
 
 	do  {
-		size_t length = db.getLength();
+		uint32_t length = db.getLength();
 		prev = db.getPreviousPosition();
 		next = db.getNextPosition();
 		if (prev == NOT_FOUND) prev = 0;
@@ -106,7 +129,7 @@ int main()
 	cout << "------------------------------------------ FIRST\n";
 	{
 		db.first();
-		size_t length = db.getLength();
+		uint32_t length = db.getLength();
 		cout << "Offset: " << db.getPosition() << " Length: " << length << " ID: " << db.getID() << endl;
 		db.getData(buf, length);
 		buf[length] = 0;
@@ -115,12 +138,12 @@ int main()
 	cout << "------------------------------------------ LAST\n";
 	{
 		db.last();
-		size_t length = db.getLength();
+		uint32_t length = db.getLength();
 		cout << "Offset: " << db.getPosition() << " Length: " << length << " ID: " << db.getID() << endl;
 		db.getData(buf, length);
 		buf[length] = 0;
 		cout << buf << "\n\n";
 	}
-	db.close();
+	db.close();*/
 
 }

@@ -62,25 +62,26 @@ namespace Boson {
 
 		bool   open(const std::string& dbName);     	
 		bool   close();
-		size_t getTotalRecords();
+		uint64_t getTotalRecords();
+		uint64_t getTotalFreeRecords();
 
 		bool   setPosition(uint64_t offset);
-		size_t getPosition();
+		uint64_t getPosition();
 		bool   first();
 		bool   last();
 		bool   next();
 		bool   previous();
 
-		size_t insert(const void* data, uint32_t length);
-		size_t update(const void* data, uint32_t length);
-		size_t remove();
+		uint64_t insert(const void* data, uint32_t length);
+		uint64_t update(const void* data, uint32_t length);
+		uint64_t remove();
 
-		size_t getID();		
-		size_t getLength();
-		size_t getCapacity();
-		size_t getNextPosition();
-		size_t getPreviousPosition();
-		size_t getData(void* data, uint32_t length);
+		uint64_t getID();
+		uint32_t getLength();
+		uint32_t getCapacity();
+		uint64_t getNextPosition();
+		uint64_t getPreviousPosition();
+		uint64_t getData(void* data, uint32_t length);
 
 	private:
 
@@ -93,14 +94,19 @@ namespace Boson {
 		bool     saveStorageHeader();
 		bool     loadStorageHeader();	
 				
-		size_t   getRecordHeader(size_t offset, RecordHeader& result);
-		size_t   putRecordHeader(size_t offset, const RecordHeader& result);
-		size_t   getFromFreeList(uint32_t capacity, RecordHeader& result);
-		bool     putToFreeList(size_t offset);
-		bool     removeFromFreeList(RecordHeader& freeRecord);
+		uint64_t getRecordHeader(uint64_t offset, RecordHeader& result);
+		uint64_t putRecordHeader(uint64_t offset, const RecordHeader& result);
+
+		uint64_t createNewRecord(uint32_t capacity, RecordHeader& result);
+		uint64_t createFirstRecord(uint32_t capacity, RecordHeader& result);
+		uint64_t appendNewRecord(uint32_t capacity, RecordHeader& result);
+		uint64_t getFromFreeList(uint32_t capacity, RecordHeader& result);
+
+		bool     putToFreeList(uint64_t offset);
+		void     removeFromFreeList(RecordHeader& freeRecord);
 
 		uint64_t generateID();
-		uint32_t checksum(const uint8_t* data, size_t length);
+		uint32_t checksum(const uint8_t* data, uint64_t length);
 
 	};
 

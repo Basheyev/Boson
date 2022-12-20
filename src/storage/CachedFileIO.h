@@ -37,10 +37,10 @@
 namespace Boson {
 
 	//-------------------------------------------------------------------------
-	constexpr size_t PAGE_SIZE      = 8192;         // 8192 bytes page size
-	constexpr size_t MINIMAL_CACHE  = 256 * 1024;   // 256Kb minimal cache
-	constexpr size_t DEFAULT_CACHE  = 1*1024*1024;  // 1Mb default cache
-	constexpr size_t NOT_FOUND      = -1;           // "Not found" signature
+	constexpr uint64_t PAGE_SIZE      = 8192;         // 8192 bytes page size
+	constexpr uint64_t MINIMAL_CACHE  = 256 * 1024;   // 256Kb minimal cache
+	constexpr uint64_t DEFAULT_CACHE  = 1*1024*1024;  // 1Mb default cache
+	constexpr uint64_t NOT_FOUND      = -1;           // "Not found" signature
 	//-------------------------------------------------------------------------
 
 	typedef enum {                              // Cache Page State
@@ -52,7 +52,7 @@ namespace Boson {
 	public:
 		uint64_t  filePageNo;                   // Page number in file
 		PageState state;                        // Current page state
-		size_t    availableDataLength;          // Available amount of data
+		uint64_t  availableDataLength;          // Available amount of data
 		uint8_t   *data;                        // Pointer to data (payload)
 		std::list<CachePage*>::iterator it;     // Cache list iterator
 	};
