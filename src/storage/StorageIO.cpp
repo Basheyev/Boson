@@ -203,15 +203,15 @@ uint64_t StorageIO::insert(const void* data, uint32_t length) {
 	constexpr uint64_t HEADER_SIZE = sizeof RecordHeader;
 	storageFile.write(offset, &newRecordHeader, HEADER_SIZE);
 	storageFile.write(offset + HEADER_SIZE, data, length);
-	
+	/*
 	// Update previous record
- 	if (newRecordHeader.previous != NOT_FOUND) {
+ 	if (newRecordHeader.previous != NOT_FOUND) { // dublicated work from createNewRecord
 		uint64_t leftSiblingOffset = newRecordHeader.previous;
 		RecordHeader leftSiblingHeader;
 		getRecordHeader(leftSiblingOffset, leftSiblingHeader);
 		leftSiblingHeader.next = offset;
 		putRecordHeader(leftSiblingOffset, leftSiblingHeader);
-	}
+	}*/
 
 	// DEBUG
 	//storageFile.flush();
@@ -619,14 +619,18 @@ uint64_t StorageIO::getFromFreeList(uint32_t capacity, RecordHeader& result) {
 			removeFromFreeList(freeRecord);
 
 			RecordHeader lastRecord;
-
+			// update last record to point to new record
 			getRecordHeader(storageHeader.lastDataRecord, lastRecord);
-			lastRecord.next = offset;
+			lastRecord.next = offset;			
 			putRecordHeader(storageHeader.lastDataRecord, lastRecord);
+			// connect new record with previous
 			result.next = NOT_FOUND;
 			result.previous = storageHeader.lastDataRecord;
 			result.length = 0;
 			result.capacity = freeRecord.capacity;
+			// update storage header last record to new record
+			storageHeader.lastDataRecord = offset;
+			saveStorageHeader();
 
 			return offset;
 		}

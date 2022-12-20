@@ -34,7 +34,7 @@ void generateData(char* filename) {
 	StorageIO storage;
 	vector<string> myData;	
 	
-	for (int i = 0; i < 100; i++) {
+	for (int i = 0; i < 10; i++) {
 		stringstream ss;		
 		ss << "Database record message #";		
 		ss << i;
@@ -48,18 +48,9 @@ void generateData(char* filename) {
 
 	filesystem::remove("f:/records.bin");
 	if (storage.open("f:/records.bin")) {
-		int counter = 0;
 		for (string& str : myData) {			
-			if (counter == 721) {
-				cout << "CHECK! STACk CORRUPTED" << endl;
-			}
 			storage.insert(str.c_str(), (uint32_t)str.length());			
-			//callStack2 = (uint64_t)&a;
-			//cout << "Stack size: " << callStack1 - callStack2 << " bytes\n";
-			cout << "record #" << counter << endl;
-			counter++;
 		}
-
 		storage.close();
 	}
 	else {
@@ -77,7 +68,7 @@ int main()
 	generateData(fileName);
 
 
-	/*
+	
 	StorageIO db;
 	db.open(fileName);
 	db.first();
@@ -96,7 +87,7 @@ int main()
 		db.getData(buf, length);
 		buf[length] = 0;
 		cout << " - " << buf << "\n\n";
-		if (counter == 5 || counter == 7) {
+		if (counter == 5) {
 			cout << "Record #5 - DELETED\n\n";
 			db.remove();
 		}
@@ -104,6 +95,7 @@ int main()
 	} while (db.next());
 
 	db.insert("INSERTED RECORD XXX", 19);
+	cout << "Record inserted\n\n";
 	
 	//db.insert("INSERTED RECORD 2", 17); // NEED BUG DIX
 
@@ -144,6 +136,6 @@ int main()
 		buf[length] = 0;
 		cout << buf << "\n\n";
 	}
-	db.close();*/
+	db.close();
 
 }

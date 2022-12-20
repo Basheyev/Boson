@@ -172,7 +172,7 @@ size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 	    // if (pageInfo == nullptr) return 0;
 				
 		// Get cached page description and data
-		pageDataLength = pageInfo->availableDataLength;
+		pageDataLength = pageInfo->availableDataLength;   // BUG: Page data length 8220 !?
 		
 		// Calculate source pointers and data length to copy
 		if (filePage == firstPageNo) {
@@ -265,10 +265,12 @@ size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t lengt
 			bytesToCopy = std::min(length, PAGE_SIZE - offset);
 		} else if (filePage == lastPageNo) {
 			// Case 2: if writing last page
+			offset = 0;
 			dst = pageInfo->data;
-			bytesToCopy = length - bytesWritten;
+			bytesToCopy = length - bytesWritten; // FIXME: bug
 		} else {
 			// Case 3: if reading middle page 
+			offset = 0;
 			dst = pageInfo->data;
 			bytesToCopy = PAGE_SIZE;
 		}
@@ -672,12 +674,13 @@ CachePage* CachedFileIO::loadPageToCache(size_t filePageNo) {
 	size_t bytesToRead = PAGE_SIZE;	
 	size_t bytesRead = 0;
 
+	// Clear page
+	memset(cachePage->data, 0, PAGE_SIZE);
+
 	// Fetch page from storage device
 	_fseeki64(fileHandler, offset, SEEK_SET);
 	bytesRead = fread(cachePage->data, 1, bytesToRead, fileHandler);
-	// fill remaining part of page with zero to avoid artifacts
-	memset(&(cachePage->data[bytesRead]), 0, PAGE_SIZE - bytesRead);
-
+	
 	// fill loaded page description info
 	cachePage->filePageNo = filePageNo;
 	cachePage->state = PageState::CLEAN;
