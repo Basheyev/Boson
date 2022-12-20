@@ -55,10 +55,10 @@ namespace Boson {
 	//----------------------------------------------------------------------------
 	// StorageIO
 	//----------------------------------------------------------------------------
-	class StorageIO {
+	class RecordStorageIO {
 	public:
-		StorageIO();
-		~StorageIO();
+		RecordStorageIO();
+		~RecordStorageIO();
 
 		bool   open(const std::string& dbName);     	
 		bool   close();

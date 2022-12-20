@@ -18,7 +18,7 @@
 #include "CachedFileIO.h"
 #include "CachedFileIOTest.h"
 
-#include "StorageIO.h"
+#include "RecordStorageIO.h"
 
 #include <iostream>
 #include <sstream>
@@ -31,7 +31,7 @@ uint64_t callStack1, callStack2;
 
 
 void generateData(char* filename) {
-	StorageIO storage;
+	RecordStorageIO storage;
 	vector<string> myData;	
 	
 	for (int i = 0; i < 10; i++) {
@@ -69,7 +69,7 @@ int main()
 
 
 	
-	StorageIO db;
+	RecordStorageIO db;
 	db.open(fileName);
 	db.first();
 	
@@ -94,8 +94,9 @@ int main()
 		counter++;
 	} while (db.next());
 
-	db.insert("INSERTED RECORD XXX", 19);
-	cout << "Record inserted\n\n";
+	char* newRecord = "INSERTED RECORD XXX";
+	db.insert(newRecord, strlen(newRecord));
+	cout << "Record inserted: " << newRecord << " ID=" << db.getID() << "\n\n";
 	
 	//db.insert("INSERTED RECORD 2", 17); // NEED BUG DIX
 

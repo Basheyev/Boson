@@ -17,8 +17,8 @@ add_executable (Boson
     "src/test/BalancedTreeTest.h" 
      
     "src/index/DBIndex.h"   
-    "src/storage/StorageIO.h" 
-    "src/storage/StorageIO.cpp"   
+    "src/storage/RecordStorageIO.h" 
+    "src/storage/RecordStorageIO.cpp"   
 
     "src/storage/CachedFileIO.h" 
     "src/storage/CachedFileIO.cpp" 
