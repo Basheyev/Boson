@@ -1,10 +1,19 @@
 /******************************************************************************
 *
-*  StorageIO class header
+*  RecordStorageIO class header
 *
-*  StorageIO is binary records storage
+*  RecordStorageIO is designed for seamless storage of records of arbitary 
+*  size (max record size limited to 4Gb), accessing records as linked list 
+*  and reuse space of deleted records. RecordStorageIO uses CachedFileIO 
+*  to cache frequently accessed data and win IO performance.
 *
-*  (C) Bolat Basheyev 2022
+*  Features:
+*    - get/insert/update/remove records of arbitrary size
+*    - simple data consistency check based on checksum
+*    - navigate records: first, last, next, previous, exact position
+*    - reuse space of deleted records
+* 
+*  (C) Boson Database, Bolat Basheyev 2022
 *
 ******************************************************************************/
 #pragma once
@@ -15,7 +24,6 @@
 
 #include <vector>
 #include <string>
-
 
 namespace Boson {
 
@@ -40,15 +48,16 @@ namespace Boson {
 	constexpr uint32_t BOSONDB_VERSION   = 0x0001;
 
 	//----------------------------------------------------------------------------
-	// Record header structure (36 bytes)
+	// Record header structure
 	//----------------------------------------------------------------------------
 	typedef struct {
 		uint64_t    next;              // Next record position in data file
-		uint64_t    previous;          // Previous record position in data file				
-		uint64_t    recordID;          // 64-bit unique record ID
+		uint64_t    previous;          // Previous record position in data file		
+		uint64_t    recordID;          // 64-bit unique record ID		
 		uint32_t    capacity;          // Record length in bytes including padding
-		uint32_t    length;            // Data length in bytes
+		uint32_t    length;            // Data length in bytes		
 		uint32_t    checksum;          // Checksum for data consistency check
+		uint32_t    type;              // User defined classification of payload
 	} RecordHeader;
 	
 
@@ -60,17 +69,17 @@ namespace Boson {
 		RecordStorageIO();
 		~RecordStorageIO();
 
-		bool   open(const std::string& dbName);     	
-		bool   close();
+		bool     open(const std::string& dbName, bool readonly = false);
+		bool     close();
 		uint64_t getTotalRecords();
 		uint64_t getTotalFreeRecords();
 
-		bool   setPosition(uint64_t offset);
+		bool     setPosition(uint64_t offset);
 		uint64_t getPosition();
-		bool   first();
-		bool   last();
-		bool   next();
-		bool   previous();
+		bool     first();
+		bool     last();
+		bool     next();
+		bool     previous();
 
 		uint64_t insert(const void* data, uint32_t length);
 		uint64_t update(const void* data, uint32_t length);
@@ -89,6 +98,7 @@ namespace Boson {
 		StorageHeader storageHeader;
 		RecordHeader  recordHeader;
 		size_t        cursorOffset;
+		bool          isReadOnly;
 
 		void     initStorageHeader();
 		bool     saveStorageHeader();

@@ -48,6 +48,10 @@ namespace Boson {
 		DIRTY = 1                               // Cache page is rewritten
 	} PageState;
 
+	typedef struct {
+		uint8_t data[PAGE_SIZE];
+	} CachePageData;
+
 	class alignas(64) CachePage {               // Align to CPU cache line
 	public:
 		uint64_t  filePageNo;                   // Page number in file
@@ -70,12 +74,16 @@ namespace Boson {
 	//-------------------------------------------------------------------------
 	typedef enum {                              // CachedFileIO stats types
 		TOTAL_REQUESTS,                         // Total requests to cache
+		TOTAL_CACHE_MISSES,                     // Total number of cache misses
+		TOTAL_CACHE_HITS,                       // Total number of cache misses
+		TOTAL_BYTES_WRITTEN,                    // Total bytes written
+		TOTAL_BYTES_READ,		                // Total bytes read
+		TOTAL_WRITE_TIME_NS,                    // Total write time (ns)
+		TOTAL_READ_TIME_NS,                      // Total read time (ns)
 		CACHE_HITS_RATE,                        // Cache hits rate (0-100%)
 		CACHE_MISSES_RATE,                      // Cache misses rate (0-100%)
 		WRITE_THROUGHPUT,                       // Write throughput Mb/sec
-		READ_THROUGHPUT,                        // Read throughput Mb/sec
-		WRITE_TIME_NS,                          // Total write time (ns)
-		READ_TIME_NS                            // Total read time (ns)
+		READ_THROUGHPUT                        // Read throughput Mb/sec
 	} CacheStats;
 
 
@@ -114,22 +122,22 @@ namespace Boson {
 		bool       persistCachePage(CachePage* pageInfo);
 		bool       clearCachePage(CachePage* pageInfo);		
 				
-		size_t          maxPagesCount;           // Maximum cache capacity (pages)
-		size_t          pageCounter;             // Allocated pages counter
+		uint64_t        maxPagesCount;           // Maximum cache capacity (pages)
+		uint64_t        pageCounter;             // Allocated pages counter
 				
-		size_t          totalBytesRead;          // Total bytes read
-		size_t          totalBytesWritten;       // Total bytes written
-		size_t          totalReadDuration;       // Time of read operations (ns)
-		size_t          totalWriteDuration;      // Time of write operations (ns)
-		size_t          cacheRequests;           // Cache requests counter
-		size_t          cacheMisses;             // Cache misses counter
+		uint64_t        totalBytesRead;          // Total bytes read
+		uint64_t        totalBytesWritten;       // Total bytes written
+		uint64_t        totalReadDuration;       // Time of read operations (ns)
+		uint64_t        totalWriteDuration;      // Time of write operations (ns)
+		uint64_t        cacheRequests;           // Cache requests counter
+		uint64_t        cacheMisses;             // Cache misses counter
 
 		std::FILE*      fileHandler;             // OS file handler
 		bool            readOnly;                // Read only flag
 		CachedPagesMap  cacheMap;                // Cached pages map 
 		CacheLinkedList cacheList;               // Cached pages double linked list
 		CachePage*      cachePageInfoPool;       // Cache pages info memory pool
-		uint8_t*        cachePageDataPool;       // Cache pages data memory pool
+		CachePageData*  cachePageDataPool;       // Cache pages data memory pool
 	};
 
 

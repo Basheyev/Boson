@@ -125,7 +125,7 @@ double CachedFileIOTest::cachedRandomPageWrites() {
 	cf.flush();
 	cf.close();
 
-	double cachedDuration = cf.getStats(CacheStats::WRITE_TIME_NS) / 1000000.0;
+	double cachedDuration = cf.getStats(CacheStats::TOTAL_WRITE_TIME_NS) / 1000000.0;
 	double throughput = cf.getStats(CacheStats::WRITE_THROUGHPUT);
 	std::cout << pos << " bytes (" << cachedDuration << "ms), ";
 	std::cout << "Write: " << throughput << " Mb/sec\n\n";
@@ -175,7 +175,7 @@ double CachedFileIOTest::cachedRandomWrites() {
 
 	cf.close();
 
-	double cachedDuration = cf.getStats(CacheStats::WRITE_TIME_NS) / 1000000.0;
+	double cachedDuration = cf.getStats(CacheStats::TOTAL_WRITE_TIME_NS) / 1000000.0;
 	double throughput = cf.getStats(CacheStats::WRITE_THROUGHPUT);
 	std::cout << pos << " bytes (" << cachedDuration << "ms), ";
 	std::cout << "Write: " << throughput << " Mb/sec\n\n";
@@ -252,7 +252,7 @@ double CachedFileIOTest::cachedRandomReads() {
 
 	}
 
-	double readTime = (cf.getStats(CacheStats::READ_TIME_NS) / 1000000.0);
+	double readTime = (cf.getStats(CacheStats::TOTAL_READ_TIME_NS) / 1000000.0);
 	double throughput = cf.getStats(CacheStats::READ_THROUGHPUT);
 	std::cout << bytesRead << " bytes (" << readTime << "ms), ";
 	std::cout << "Read: " << throughput << " Mb/sec, \n\t";
@@ -359,7 +359,7 @@ double CachedFileIOTest::cachedRandomPageReads() {
 		}
 
 	}
-	double readTime = (cf.getStats(CacheStats::READ_TIME_NS) / 1000000.0);
+	double readTime = (cf.getStats(CacheStats::TOTAL_READ_TIME_NS) / 1000000.0);
 	double throughput = cf.getStats(CacheStats::READ_THROUGHPUT);
 	std::cout << bytesRead << " bytes (" << readTime << "ms), ";
 	std::cout << "Read: " << throughput << " Mb/sec, \n\t";

@@ -315,13 +315,11 @@ size_t CachedFileIO::readPage(size_t pageNo, void* userPageBuffer) {
 
 	// Lookup or load file page to cache
 	CachePage* pageInfo = searchPageInCache(pageNo);
-	//if (pageInfo == nullptr) return 0;
-
-	uint8_t *src = pageInfo->data;
-	uint8_t* dst = (uint8_t*) userPageBuffer;
-	size_t availableData = pageInfo->availableDataLength;
 
 	// Copy available data from cache page to user's data buffer
+	uint8_t* src = pageInfo->data;
+	uint8_t* dst = (uint8_t*) userPageBuffer;
+	size_t availableData = pageInfo->availableDataLength;	
 	memcpy(dst, src, availableData);
 		
 	// Time point B
@@ -356,7 +354,6 @@ size_t CachedFileIO::writePage(size_t pageNo, const void* userPageBuffer) {
 
 	// Fetch-before-write (FBW)
 	CachePage* pageInfo = searchPageInCache(pageNo);
-	//if (pageInfo == nullptr) return 0;
 
 	// Initialize local variables
 	uint8_t* src = (uint8_t*)userPageBuffer;
@@ -455,7 +452,19 @@ double CachedFileIO::getStats(CacheStats type) {
 
 	switch (type) {
 	case CacheStats::TOTAL_REQUESTS:
-		return totalRequests;
+		return double(totalRequests);
+	case TOTAL_CACHE_MISSES:
+		return double(cacheMisses);
+	case TOTAL_CACHE_HITS:
+		return double(totalRequests - cacheMisses);
+	case TOTAL_BYTES_WRITTEN:
+		return double(totalBytesWritten);
+	case TOTAL_BYTES_READ:
+		return double(totalBytesRead);
+	case CacheStats::TOTAL_WRITE_TIME_NS:
+		return double(totalWriteDuration);
+	case CacheStats::TOTAL_READ_TIME_NS:
+		return double(totalReadDuration);
 	case CacheStats::CACHE_HITS_RATE:
 		if (totalRequests == 0) return 0;
 		return (totalRequests - totalCacheMisses) / totalRequests * 100.0;
@@ -471,11 +480,7 @@ double CachedFileIO::getStats(CacheStats type) {
 		if (this->totalWriteDuration == 0) return 0;
 		seconds = double(this->totalWriteDuration) / 1000000000.0;
 		megabytes = double(this->totalBytesWritten) / (1024 * 1024);
-		return megabytes / seconds;
-	case CacheStats::WRITE_TIME_NS:
-		return double(totalWriteDuration);
-	case CacheStats::READ_TIME_NS:
-		return double(totalReadDuration);
+		return megabytes / seconds;	
 	}
 	return 0.0;
 }
@@ -561,7 +566,7 @@ size_t CachedFileIO::setCacheSize(size_t cacheSize) {
 */
 void CachedFileIO::allocatePool(size_t pagesToAllocate) {
 	this->cachePageInfoPool = new CachePage[pagesToAllocate];
-	this->cachePageDataPool = new uint8_t[pagesToAllocate * PAGE_SIZE];
+	this->cachePageDataPool = new CachePageData[pagesToAllocate];
 }
 
 
@@ -592,7 +597,7 @@ CachePage* CachedFileIO::allocatePage() {
 	newPage->filePageNo = NOT_FOUND;
 	newPage->state = PageState::CLEAN;
 	newPage->availableDataLength = 0;
-	newPage->data = &cachePageDataPool[pageCounter * PAGE_SIZE];
+	newPage->data = cachePageDataPool[pageCounter].data;
 	// Increment page counter
 	pageCounter++;
 
