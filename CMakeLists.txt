@@ -25,7 +25,7 @@ add_executable (Boson
     "src/test/RecordStorageIOTest.cpp" 
     "src/test/RecordStorageIOTest.h"
     "src/test/BalancedTreeTest.cpp"
-    "src/test/BalancedTreeTest.h" )
+    "src/test/BalancedTreeTest.h"   "src/storage/DocumentStorage.h")
 
 set_property(TARGET Boson 
     PROPERTY 

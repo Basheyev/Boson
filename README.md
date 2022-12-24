@@ -22,14 +22,14 @@ abstraction like API working with document store entities.
 
      ---------------------------------------------------
     |                     Boson API                     |      -  API Layer (Key/Value)
-     ---------------------------------------------------
+     ---------------------------------------------------     
                               |
      ---------------------------------------------------
-    |             Schema and Index (B+ Tree)            |      -  Schema & Index Layer
+    |                  Document Storage                 |      -  Storage Schema & Index Layer
      ---------------------------------------------------
                               |     
      ---------------------------------------------------
-    |            Storage I/O (Document Records)         |      -  Storage Layer
+    |                 Records Storage I/O               |      -  Binary Records Storage Layer
      ---------------------------------------------------
                               |                           
      ---------------------------------------------------
@@ -87,11 +87,10 @@ cache, CachedFileIO frees most aged pages. When the page is freed,
 if it has "dirty" mark, page persisted on the storage device.
 
 
-### 3.2. Storage I/O (Documents)
+### 3.2. Records Storage I/O
 
 Storage file consist of database header and **double linked list 
-of records**. Each record could be Free(0), Index(1) or Document(2) 
-record.
+of records**.
 
 
 #### 3.2.1. Records

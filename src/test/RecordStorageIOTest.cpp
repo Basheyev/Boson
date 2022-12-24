@@ -25,7 +25,7 @@ bool RecordStorageIOTest::generateData(char* filename, size_t recordsCount) {
 		std::stringstream ss;
 		ss << "Generated record data #" << i << " and " << std::rand();
 		if (std::rand() % 2) ss << " with optional";
-		storage.insert(ss.str().c_str(), (uint32_t) ss.str().length());
+		storage.createRecord(ss.str().c_str(), (uint32_t) ss.str().length());
 	}
 	auto endTime = std::chrono::high_resolution_clock::now();
 	std::cout << "OK in " << (endTime - startTime).count() / 1000000000.0 << "s" << std::endl;
@@ -46,11 +46,11 @@ bool RecordStorageIOTest::readAscending(char* filename) {
 	char* buffer = new char[65536];
 	do {
 		uint32_t length = db.getLength();
-		prev = db.getPreviousPosition();
-		next = db.getNextPosition();		
+		prev = db.getPrevious();
+		next = db.getNext();		
 		db.getData(buffer, length);
 		buffer[length] = 0;
-		std::cout << "Pos: " << db.getPosition();
+		std::cout << "Pos: " << db.getCursor();
 		std::cout << " Prev: " << ((prev == NOT_FOUND) ? 0 : prev);
 		std::cout << " Next: " << ((next == NOT_FOUND) ? 0 : next);
 		std::cout << " Length: " << db.getLength();
@@ -76,11 +76,11 @@ bool RecordStorageIOTest::readDescending(char* filename) {
 	char* buffer = new char[65536];
 	do {
 		uint32_t length = db.getLength();
-		prev = db.getPreviousPosition();
-		next = db.getNextPosition();					
+		prev = db.getPrevious();
+		next = db.getNext();					
 		db.getData(buffer, length);
 		buffer[length] = 0;
-		std::cout << "Pos: " << db.getPosition();
+		std::cout << "Pos: " << db.getCursor();
 		std::cout << " Prev: " << ((prev == NOT_FOUND) ? 0 : prev);
 		std::cout << " Next: " << ((next == NOT_FOUND) ? 0 : next);
 		std::cout << " Length: " << db.getLength();
@@ -104,14 +104,14 @@ bool RecordStorageIOTest::removeOddRecords(char* filename) {
 	size_t prev, next;
 	do {
 		uint32_t length = db.getLength();
-		prev = db.getPreviousPosition();
-		next = db.getNextPosition();
-		std::cout << "Pos: " << db.getPosition();
+		prev = db.getPrevious();
+		next = db.getNext();
+		std::cout << "Pos: " << db.getCursor();
 		std::cout << " Prev: " << ((prev == NOT_FOUND) ? 0 : prev);
 		std::cout << " Next: " << ((next == NOT_FOUND) ? 0 : next);
 		std::cout << " Length: " << db.getLength();
 		std::cout << " - DELETED \n";
-		db.remove();
+		db.removeRecord();
 		counter++;
 	} while (db.next() && db.next());
 	std::cout << "TOTAL DELETED: " << counter << " records\n\n";
@@ -131,7 +131,7 @@ bool RecordStorageIOTest::insertNewRecords(char* filename, size_t recordsCount) 
 		std::stringstream ss;
 		ss << "inserted record data " << i*2 << " and " << std::rand();
 		if (std::rand() % 2) ss << " suffix";
-		storage.insert(ss.str().c_str(), (uint32_t)ss.str().length());
+		storage.createRecord(ss.str().c_str(), (uint32_t)ss.str().length());
 	}
 	auto endTime = std::chrono::high_resolution_clock::now();
 	std::cout << "OK in " << (endTime - startTime).count() / 1000000000.0 << "s" << std::endl;

@@ -1,17 +1,17 @@
 /******************************************************************************
 *
-*  RecordStorageIO class implementation
+*  RecordStorageIO class header
 *
-*  RecordStorageIO is designed for seamless storage of records of arbitary
-*  size (max record size limited to 4Gb), accessing records as linked list
-*  and reuse space of deleted records. RecordStorageIO uses CachedFileIO
-*  to cache frequently accessed data and win IO performance.
+*  RecordStorageIO is designed for seamless storage of binary records of
+*  arbitary size (max record size limited to 4Gb), accessing records as
+*  linked list and reuse space of deleted records. RecordStorageIO uses
+*  CachedFileIO to cache frequently accessed data and win IO performance.
 *
 *  Features:
-*    - get/insert/update/remove records of arbitrary size
-*    - simple data consistency check based on checksum
+*    - create/read/update/delete records of arbitrary size
 *    - navigate records: first, last, next, previous, exact position
 *    - reuse space of deleted records
+*    - data consistency check (checksum)
 *
 *  (C) Boson Database, Bolat Basheyev 2022
 *
@@ -112,7 +112,7 @@ uint64_t RecordStorageIO::getTotalFreeRecords() {
 * @return true - if offset points to consistent record, false - otherwise
 *
 */
-bool RecordStorageIO::setPosition(uint64_t offset) {
+bool RecordStorageIO::setCursor(uint64_t offset) {
 	if (!storageFile.isOpen()) return false;	
 	// Try to read record header
 	RecordHeader header;
@@ -131,7 +131,7 @@ bool RecordStorageIO::setPosition(uint64_t offset) {
 * @return current cursor position in database
 *
 */
-uint64_t RecordStorageIO::getPosition() {
+uint64_t RecordStorageIO::getCursor() {
 	if (!storageFile.isOpen()) return NOT_FOUND;
 	return cursorOffset;
 }
@@ -147,7 +147,7 @@ uint64_t RecordStorageIO::getPosition() {
 bool RecordStorageIO::first() {
 	if (!storageFile.isOpen()) return false;
 	if (storageHeader.firstDataRecord == NOT_FOUND) return false;
-	return setPosition(storageHeader.firstDataRecord);
+	return setCursor(storageHeader.firstDataRecord);
 }
 
 
@@ -161,7 +161,7 @@ bool RecordStorageIO::first() {
 bool RecordStorageIO::last() {
 	if (!storageFile.isOpen()) return false;
 	if (storageHeader.lastDataRecord == NOT_FOUND) return false;
-	return setPosition(storageHeader.lastDataRecord);
+	return setCursor(storageHeader.lastDataRecord);
 }
 
 
@@ -175,7 +175,7 @@ bool RecordStorageIO::last() {
 bool RecordStorageIO::next() {
 	if (!storageFile.isOpen() || cursorOffset==NOT_FOUND) return false;
 	if (recordHeader.next == NOT_FOUND) return false;
-	return setPosition(recordHeader.next);
+	return setCursor(recordHeader.next);
 }
 
 
@@ -189,14 +189,14 @@ bool RecordStorageIO::next() {
 bool RecordStorageIO::previous() {
 	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return false;
 	if (recordHeader.previous == NOT_FOUND) return false;
-	return setPosition(recordHeader.previous);
+	return setCursor(recordHeader.previous);
 }
 
 
 
 /*
 *
-* @brief Inserts new record into database
+* @brief Creates new record in the storage
 * 
 * @param[in] data - pointer to data
 * @param[in] length - length of data in bytes
@@ -205,11 +205,11 @@ bool RecordStorageIO::previous() {
 * @return returns offset of the new record or NOT_FOUND if fails
 *
 */
-uint64_t RecordStorageIO::insert(const void* data, uint32_t length) {
+uint64_t RecordStorageIO::createRecord(const void* data, uint32_t length) {
 	if (!storageFile.isOpen() || isReadOnly) return false;
 	// find free record of required length
 	RecordHeader newRecordHeader;
-	uint64_t offset = createNewRecord(length, newRecordHeader);
+	uint64_t offset = allocateRecord(length, newRecordHeader);
 	// Fill record header fields and link to previous record
 	newRecordHeader.next = NOT_FOUND;                               	
 	newRecordHeader.recordID = generateID();
@@ -230,66 +230,12 @@ uint64_t RecordStorageIO::insert(const void* data, uint32_t length) {
 
 /*
 *
-* @brief Updates record's data in current position
-*
-* @param[in] data - pointer to new data
-* @param[in] length - length of data in bytes
-* @param[out] result - updated record header information
-*
-* @return returns offset of the new record or NOT_FOUND if fails
-*
-*/
-uint64_t RecordStorageIO::update(const void* data, uint32_t length) {
-	if (!storageFile.isOpen() || isReadOnly || cursorOffset == NOT_FOUND) return false;
-	// if there is enough capacity in record
-	if (length < recordHeader.capacity) {
-		// Update header data length info without affecting ID
-		recordHeader.length = length;
-		// Write record header and data to the storage file
-		constexpr uint64_t HEADER_SIZE = sizeof RecordHeader;
-		storageFile.write(cursorOffset, &recordHeader, HEADER_SIZE);
-		storageFile.write(cursorOffset + HEADER_SIZE, data, length);
-		return cursorOffset;
-	} 
-	// if there is not enough record capacity, then move record		
-	RecordHeader newRecordHeader;
-	// find free record of required length
-	uint64_t offset = createNewRecord(length, newRecordHeader);
-	if (offset == NOT_FOUND) return NOT_FOUND;
-	// Copy record header fields, update data length and checksum
-	newRecordHeader.next = recordHeader.next;
-	newRecordHeader.previous = recordHeader.previous;
-	newRecordHeader.recordID = recordHeader.recordID;
-	newRecordHeader.length = length;
-	newRecordHeader.checksum = checksum((uint8_t*)data, length);
-	// Delete old record and add it to the free records list
-	if (!putToFreeList(cursorOffset)) return NOT_FOUND;
-	// if this is first record, then update storage header
-	if (recordHeader.previous == NOT_FOUND) {
-		storageHeader.firstDataRecord = offset;
-		saveStorageHeader();
-	};
-	// Write record header and data to the storage file
-	constexpr uint64_t HEADER_SIZE = sizeof RecordHeader;
-	storageFile.write(offset, &newRecordHeader, HEADER_SIZE);
-	storageFile.write(offset + HEADER_SIZE, data, length);
-	// Update current record in memory
-	memcpy(&recordHeader, &newRecordHeader, HEADER_SIZE);
-	// Set cursor to new updated position
-	return cursorOffset = offset;
-	
-}
-
-
-
-/*
-*
 * @brief Delete record in current position
 *
 * @return returns offset of the next sibling or NOT_FOUND if it was last one
 *
 */
-uint64_t RecordStorageIO::remove() {
+uint64_t RecordStorageIO::removeRecord() {
 	if (!storageFile.isOpen() || isReadOnly || cursorOffset == NOT_FOUND) return false;
 	// check siblings
 	uint64_t leftSiblingOffset = recordHeader.previous;
@@ -348,6 +294,33 @@ uint64_t RecordStorageIO::getID() {
 }
 
 
+/*
+*
+* @brief Set user defined record type
+* @param[in] recordType - user defined unsigned 32-bit integer
+* @return offset of current record or NOT_FOUND if failed
+*
+*/
+uint64_t RecordStorageIO::setType(uint32_t recordType) {
+	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return NOT_FOUND;
+	recordHeader.type = recordType;
+	return cursorOffset;
+}
+
+
+
+/*
+*
+* @brief Get user defined record type
+* @return value of type field of record header or zero if failed
+*
+*/
+uint32_t RecordStorageIO::getType() {
+	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return 0;
+	return recordHeader.type;
+}
+
+
 
 /*
 *
@@ -381,7 +354,7 @@ uint32_t RecordStorageIO::getCapacity() {
 * @return returns offset of next neighbour or NOT_FOUND if fails
 *
 */
-uint64_t RecordStorageIO::getNextPosition() {
+uint64_t RecordStorageIO::getNext() {
 	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return NOT_FOUND;
 	return recordHeader.next;
 }
@@ -394,7 +367,7 @@ uint64_t RecordStorageIO::getNextPosition() {
 * @return returns offset of previous neighbour or NOT_FOUND if fails
 *
 */
-uint64_t RecordStorageIO::getPreviousPosition() {
+uint64_t RecordStorageIO::getPrevious() {
 	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return NOT_FOUND;
 	return recordHeader.previous;
 }
@@ -403,7 +376,7 @@ uint64_t RecordStorageIO::getPreviousPosition() {
 
 /*
 *
-* @brief Reads record data in current position
+* @brief Reads record data in current position and checks consistency
 *
 * @param[out] data - pointer to the user buffer
 * @param[in]  length - bytes to read to the user buffer
@@ -412,16 +385,67 @@ uint64_t RecordStorageIO::getPreviousPosition() {
 *
 */
 uint64_t RecordStorageIO::getData(void* data, uint32_t length) {
-	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return NOT_FOUND;
+	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND || length==0) return NOT_FOUND;
 	uint64_t bytesToRead = std::min(recordHeader.length, length);
 	uint64_t dataOffset = cursorOffset + sizeof(recordHeader);
 	storageFile.read(dataOffset, data, bytesToRead);
 	// check data consistency by checksum
-	if (checksum((uint8_t*) data, bytesToRead) != recordHeader.checksum) {
-		std::cout << "checksum fail\n";
-		return NOT_FOUND;
-	}
+	if (checksum((uint8_t*) data, bytesToRead) != recordHeader.checksum) return NOT_FOUND;
 	return cursorOffset;
+}
+
+
+
+/*
+*
+* @brief Updates record's data in current position
+*
+* @param[in] data - pointer to new data
+* @param[in] length - length of data in bytes
+* @param[out] result - updated record header information
+*
+* @return returns offset of the new record or NOT_FOUND if fails
+*
+*/
+uint64_t RecordStorageIO::setData(const void* data, uint32_t length) {
+	if (!storageFile.isOpen() || isReadOnly || cursorOffset == NOT_FOUND) return false;
+	// if there is enough capacity in record
+	if (length < recordHeader.capacity) {
+		// Update header data length info without affecting ID
+		recordHeader.length = length;
+		// Write record header and data to the storage file
+		constexpr uint64_t HEADER_SIZE = sizeof RecordHeader;
+		storageFile.write(cursorOffset, &recordHeader, HEADER_SIZE);
+		storageFile.write(cursorOffset + HEADER_SIZE, data, length);
+		return cursorOffset;
+	}
+	// if there is not enough record capacity, then move record		
+	RecordHeader newRecordHeader;
+	// find free record of required length
+	uint64_t offset = allocateRecord(length, newRecordHeader);
+	if (offset == NOT_FOUND) return NOT_FOUND;
+	// Copy record header fields, update data length and checksum
+	newRecordHeader.next = recordHeader.next;
+	newRecordHeader.previous = recordHeader.previous;
+	newRecordHeader.recordID = recordHeader.recordID;
+	newRecordHeader.length = length;
+	newRecordHeader.checksum = checksum((uint8_t*)data, length);
+	// Delete old record and add it to the free records list
+	if (!putToFreeList(cursorOffset)) return NOT_FOUND;
+	// if this is first record, then update storage header
+	if (recordHeader.previous == NOT_FOUND) {
+		storageHeader.firstDataRecord = offset;
+		saveStorageHeader();
+	};
+	// Write record header and data to the storage file
+	constexpr uint64_t HEADER_SIZE = sizeof RecordHeader;
+	storageFile.write(offset, &newRecordHeader, HEADER_SIZE);
+	storageFile.write(offset + HEADER_SIZE, data, length);
+	// Update current record in memory
+	memcpy(&recordHeader, &newRecordHeader, HEADER_SIZE);
+	// Set cursor to new updated position
+	return cursorOffset = offset;
+
 }
 
 
@@ -520,16 +544,16 @@ uint64_t RecordStorageIO::putRecordHeader(uint64_t offset, const RecordHeader& h
 
 /*
 * 
-*  @brief Creates new record from free records list or appends to the ond of file
+*  @brief Allocates new record from free records list or appends to the ond of file
 *  @param[in] capacity - requested capacity of record
 *  @param[out] result  - record header of created new record
 *  @return offset of record in the storage file
 */
-uint64_t RecordStorageIO::createNewRecord(uint32_t capacity, RecordHeader& result) {
+uint64_t RecordStorageIO::allocateRecord(uint32_t capacity, RecordHeader& result) {
 
 	// if there is no free records yet
 	if (storageHeader.firstFreeRecord == NOT_FOUND && storageHeader.lastDataRecord == NOT_FOUND) {
-		// if there is no records at all
+		// if there is no records at all create first record
 		return createFirstRecord(capacity, result);
 	} else {
 		// look up free list for record of suitable capacity
@@ -538,7 +562,7 @@ uint64_t RecordStorageIO::createNewRecord(uint32_t capacity, RecordHeader& resul
 		if (offset != NOT_FOUND) return offset;
 	}
 
-	// if there is no free records, append to end of file	
+	// if there is no free records, append to the end of file	
 	return appendNewRecord(capacity, result);
 
 }
