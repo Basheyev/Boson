@@ -25,11 +25,11 @@ abstraction like API working with document store entities.
      ---------------------------------------------------     
                               |
      ---------------------------------------------------
-    |                  Document Storage                 |      -  Storage Schema & Index Layer
+    |                    B+ Tree Index                  |      -  Index Layer
      ---------------------------------------------------
                               |     
      ---------------------------------------------------
-    |                 Records Storage I/O               |      -  Binary Records Storage Layer
+    |                     Storage I/O                   |      -  Collections & Records Storage Layer
      ---------------------------------------------------
                               |                           
      ---------------------------------------------------

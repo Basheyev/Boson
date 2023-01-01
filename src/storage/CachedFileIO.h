@@ -27,7 +27,7 @@
 
 #pragma once
 
-#define _ITERATOR_DEBUG_LEVEL 0             // MSVC debug performance fix
+#define _ITERATOR_DEBUG_LEVEL 0                  // MSVC debug performance fix
 
 #include <cstdio>
 #include <cstring>
@@ -57,8 +57,8 @@ namespace Boson {
 		uint64_t  filePageNo;                   // Page number in file
 		PageState state;                        // Current page state
 		uint64_t  availableDataLength;          // Available amount of data
-		uint8_t   *data;                        // Pointer to data (payload)
-		std::list<CachePage*>::iterator it;     // Cache list iterator
+		uint8_t*  data;                         // Pointer to data (payload)
+		std::list<CachePage*>::iterator it;     // Cache list node iterator
 	};
 
 	//-------------------------------------------------------------------------
@@ -72,19 +72,20 @@ namespace Boson {
 		CachedPagesMap;                         
 
 	//-------------------------------------------------------------------------
+
 	typedef enum {                              // CachedFileIO stats types
 		TOTAL_REQUESTS,                         // Total requests to cache
 		TOTAL_CACHE_MISSES,                     // Total number of cache misses
-		TOTAL_CACHE_HITS,                       // Total number of cache misses
+		TOTAL_CACHE_HITS,                       // Total number of cache hits
 		TOTAL_BYTES_WRITTEN,                    // Total bytes written
 		TOTAL_BYTES_READ,		                // Total bytes read
 		TOTAL_WRITE_TIME_NS,                    // Total write time (ns)
-		TOTAL_READ_TIME_NS,                      // Total read time (ns)
+		TOTAL_READ_TIME_NS,                     // Total read time (ns)
 		CACHE_HITS_RATE,                        // Cache hits rate (0-100%)
 		CACHE_MISSES_RATE,                      // Cache misses rate (0-100%)
 		WRITE_THROUGHPUT,                       // Write throughput Mb/sec
-		READ_THROUGHPUT                        // Read throughput Mb/sec
-	} CacheStats;
+		READ_THROUGHPUT                         // Read throughput Mb/sec
+	} CachedFileStats;
 
 
 	//-------------------------------------------------------------------------
@@ -106,7 +107,7 @@ namespace Boson {
 		size_t flush();
 
 		void   resetStats();
-		double getStats(CacheStats type);
+		double getStats(CachedFileStats type);
 		size_t getFileSize();
 		size_t getCacheSize();
 		size_t setCacheSize(size_t cacheSize);

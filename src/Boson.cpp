@@ -21,18 +21,25 @@
 #include "RecordStorageIO.h"
 #include "RecordStorageIOTest.h"
 
-
+#include <string>
 
 using namespace Boson;
 using namespace std;
 
 
 
+typedef struct {
+	int a;
+	int b;
+	std::string my;
+} MyStruct;
+
 
 int main()
 {
-	RecordStorageIOTest rst;
-	rst.run("F:/records.bin");
-	//CachedFileIOTest cft("F:/cachedfile.bin");
-	//cft.run();
+	
+	//RecordStorageIOTest rst;
+	//rst.run("F:/records.bin");
+	CachedFileIOTest cft("F:/cachedfile.bin");
+	cft.run(10000000);
 }

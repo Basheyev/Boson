@@ -443,7 +443,7 @@ void CachedFileIO::resetStats() {
 * @param type - requested stats type
 * @return value of stats
 */
-double CachedFileIO::getStats(CacheStats type) {
+double CachedFileIO::getStats(CachedFileStats type) {
 
 	double totalRequests = (double)cacheRequests;
 	double totalCacheMisses = (double)cacheMisses;
@@ -451,32 +451,32 @@ double CachedFileIO::getStats(CacheStats type) {
 	double megabytes = 0;
 
 	switch (type) {
-	case CacheStats::TOTAL_REQUESTS:
+	case CachedFileStats::TOTAL_REQUESTS:
 		return double(totalRequests);
-	case TOTAL_CACHE_MISSES:
+	case CachedFileStats::TOTAL_CACHE_MISSES:
 		return double(cacheMisses);
-	case TOTAL_CACHE_HITS:
+	case CachedFileStats::TOTAL_CACHE_HITS:
 		return double(totalRequests - cacheMisses);
-	case TOTAL_BYTES_WRITTEN:
+	case CachedFileStats::TOTAL_BYTES_WRITTEN:
 		return double(totalBytesWritten);
-	case TOTAL_BYTES_READ:
+	case CachedFileStats::TOTAL_BYTES_READ:
 		return double(totalBytesRead);
-	case CacheStats::TOTAL_WRITE_TIME_NS:
+	case CachedFileStats::TOTAL_WRITE_TIME_NS:
 		return double(totalWriteDuration);
-	case CacheStats::TOTAL_READ_TIME_NS:
+	case CachedFileStats::TOTAL_READ_TIME_NS:
 		return double(totalReadDuration);
-	case CacheStats::CACHE_HITS_RATE:
+	case CachedFileStats::CACHE_HITS_RATE:
 		if (totalRequests == 0) return 0;
 		return (totalRequests - totalCacheMisses) / totalRequests * 100.0;
-	case CacheStats::CACHE_MISSES_RATE:
+	case CachedFileStats::CACHE_MISSES_RATE:
 		if (totalRequests == 0) return 0;
 		return totalCacheMisses / totalRequests * 100.0;
-	case CacheStats::READ_THROUGHPUT:
+	case CachedFileStats::READ_THROUGHPUT:
 		if (this->totalReadDuration == 0) return 0;
 		seconds = double(this->totalReadDuration) / 1000000000.0;
 		megabytes = double(this->totalBytesRead) / (1024 * 1024);
 		return megabytes / seconds;
-	case CacheStats::WRITE_THROUGHPUT:
+	case CachedFileStats::WRITE_THROUGHPUT:
 		if (this->totalWriteDuration == 0) return 0;
 		seconds = double(this->totalWriteDuration) / 1000000000.0;
 		megabytes = double(this->totalBytesWritten) / (1024 * 1024);
