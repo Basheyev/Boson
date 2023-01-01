@@ -338,7 +338,7 @@ size_t CachedFileIO::readPage(size_t pageNo, void* userPageBuffer) {
 *
 *  @brief Writes page from user buffer to cached file
 *
-*  @param[in]  position   - offset from beginning of the file
+*  @param[in]  pageNo     - page number to write
 *  @param[in]  dataBuffer - data buffer with write data
 *  @param[in]  length     - data amount to write
 *
