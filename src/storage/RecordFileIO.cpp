@@ -8,7 +8,7 @@
 *  CachedFileIO to cache frequently accessed data and win IO performance.
 *
 *  Features:
-*    - create/read/update/delete records of arbitrary size
+*    - create/read/update/delete records of arbitrary size (up to 4Gb)
 *    - navigate records: first, last, next, previous, exact position
 *    - reuse space of deleted records
 *    - data consistency check (checksum)
@@ -29,23 +29,32 @@ using namespace Boson;
 /*
 * 
 * @brief RecordFileIO constructor and initializations
+* @param[in] cachedFile - reference to cached file object
+* @param[in] freeDepth - free record lookup maximum iterations (unlim by default)
 * 
 */
-RecordFileIO::RecordFileIO(CachedFileIO& cachedFile) : storageFile(cachedFile) {
-	
-	if (storageFile.getFileSize() == 0 && !storageFile.isReadOnly()) {
+RecordFileIO::RecordFileIO(CachedFileIO& cachedFile, size_t freeDepth) : cachedFile(cachedFile) {
+	// Check if file is open
+	if (!cachedFile.isOpen()) {
+		const char* msg = "ERROR: Can't operate on closed file.\n";
+		std::cerr << msg;
+		throw std::runtime_error(msg);
+	}
+	// Initialize internal data structures and variables to zero
+	memset(&storageHeader, 0, sizeof StorageHeader);
+	memset(&recordHeader, 0, sizeof RecordHeader);
+	currentPosition = NOT_FOUND;
+	freeLookupDepth = freeDepth;
+	// If file is empty and write is permitted, then write storage header
+	if (cachedFile.getFileSize() == 0 && !cachedFile.isReadOnly()) {
 		initStorageHeader();
 	}
-	
-	memset(&storageHeader, 0, sizeof(storageHeader));
-	cursorOffset = NOT_FOUND;
-
+	// Try to load storage header
 	if (!loadStorageHeader()) {
-		// TODO: error message
-		return;
-	}	
-		
-	// TODO: iniitalize structures for emtpy database
+		const char* msg = "ERROR: Storage file header is invalid or corrupt.\n";
+		std::cerr << msg;
+		throw std::runtime_error(msg);
+	}
 }
 
 
@@ -56,11 +65,10 @@ RecordFileIO::RecordFileIO(CachedFileIO& cachedFile) : storageFile(cachedFile) {
 *
 */
 RecordFileIO::~RecordFileIO() {
-	if (!storageFile.isOpen()) return;
-	// FIXME: consistency is not checked
+	if (!cachedFile.isOpen()) return;	
 	saveStorageHeader();
+	cachedFile.flush();
 }
-
 
 
 
@@ -90,17 +98,18 @@ uint64_t RecordFileIO::getTotalFreeRecords() {
 /*
 *
 * @brief Set cursor position
+* @param[in] offset - offset from file beginning 
 * @return true - if offset points to consistent record, false - otherwise
 *
 */
 bool RecordFileIO::setPosition(uint64_t offset) {
-	if (!storageFile.isOpen()) return false;	
+	if (!cachedFile.isOpen()) return false;	
 	// Try to read record header
 	RecordHeader header;
 	if (getRecordHeader(offset, header)==NOT_FOUND) return false;
-	// If everything is ok - copy to own buffer
+	// If everything is ok - copy to internal buffer
 	memcpy(&recordHeader, &header, sizeof RecordHeader);
-	cursorOffset = offset;
+	currentPosition = offset;
 	return true;
 }
 
@@ -113,8 +122,8 @@ bool RecordFileIO::setPosition(uint64_t offset) {
 *
 */
 uint64_t RecordFileIO::getPosition() {
-	if (!storageFile.isOpen()) return NOT_FOUND;
-	return cursorOffset;
+	if (!cachedFile.isOpen()) return NOT_FOUND;
+	return currentPosition;
 }
 
 
@@ -126,7 +135,7 @@ uint64_t RecordFileIO::getPosition() {
 *
 */
 bool RecordFileIO::first() {
-	if (!storageFile.isOpen()) return false;
+	if (!cachedFile.isOpen()) return false;
 	if (storageHeader.firstDataRecord == NOT_FOUND) return false;
 	return setPosition(storageHeader.firstDataRecord);
 }
@@ -140,7 +149,7 @@ bool RecordFileIO::first() {
 *
 */
 bool RecordFileIO::last() {
-	if (!storageFile.isOpen()) return false;
+	if (!cachedFile.isOpen()) return false;
 	if (storageHeader.lastDataRecord == NOT_FOUND) return false;
 	return setPosition(storageHeader.lastDataRecord);
 }
@@ -154,7 +163,7 @@ bool RecordFileIO::last() {
 *
 */
 bool RecordFileIO::next() {
-	if (!storageFile.isOpen() || cursorOffset==NOT_FOUND) return false;
+	if (!cachedFile.isOpen() || currentPosition==NOT_FOUND) return false;
 	if (recordHeader.next == NOT_FOUND) return false;
 	return setPosition(recordHeader.next);
 }
@@ -168,7 +177,7 @@ bool RecordFileIO::next() {
 * 
 */
 bool RecordFileIO::previous() {
-	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return false;
+	if (!cachedFile.isOpen() || currentPosition == NOT_FOUND) return false;
 	if (recordHeader.previous == NOT_FOUND) return false;
 	return setPosition(recordHeader.previous);
 }
@@ -187,7 +196,7 @@ bool RecordFileIO::previous() {
 *
 */
 uint64_t RecordFileIO::createRecord(const void* data, uint32_t length) {
-	if (!storageFile.isOpen() || storageFile.isReadOnly()) return false;
+	if (!cachedFile.isOpen() || cachedFile.isReadOnly()) return false;
 	// find free record of required length
 	RecordHeader newRecordHeader;
 	uint64_t offset = allocateRecord(length, newRecordHeader);
@@ -197,11 +206,11 @@ uint64_t RecordFileIO::createRecord(const void* data, uint32_t length) {
 	newRecordHeader.checksum = checksum((uint8_t*) data, length);
 	// Write record header and data to the storage file
 	constexpr uint64_t HEADER_SIZE = sizeof RecordHeader;
-	storageFile.write(offset, &newRecordHeader, HEADER_SIZE);
-	storageFile.write(offset + HEADER_SIZE, data, length);
+	cachedFile.write(offset, &newRecordHeader, HEADER_SIZE);
+	cachedFile.write(offset + HEADER_SIZE, data, length);
 	// copy to working record
 	memcpy(&recordHeader, &newRecordHeader, HEADER_SIZE);
-	cursorOffset = offset;
+	currentPosition = offset;
 	// Return offset of new record
 	return offset;
 }
@@ -216,7 +225,7 @@ uint64_t RecordFileIO::createRecord(const void* data, uint32_t length) {
 *
 */
 uint64_t RecordFileIO::removeRecord() {
-	if (!storageFile.isOpen() || storageFile.isReadOnly() || cursorOffset == NOT_FOUND) return false;
+	if (!cachedFile.isOpen() || cachedFile.isReadOnly() || currentPosition == NOT_FOUND) return false;
 	// check siblings
 	uint64_t leftSiblingOffset = recordHeader.previous;
 	uint64_t rightSiblingOffset = recordHeader.next;
@@ -232,24 +241,24 @@ uint64_t RecordFileIO::removeRecord() {
 		rightSiblingHeader.previous = leftSiblingOffset;
 		putRecordHeader(leftSiblingOffset, leftSiblingHeader);
 		putRecordHeader(rightSiblingOffset, rightSiblingHeader);
-		putToFreeList(cursorOffset);
+		putToFreeList(currentPosition);
 		returnOffset = rightSiblingOffset;
 	} else if (leftSiblingExists) {		             // removing last record
 		getRecordHeader(recordHeader.previous, leftSiblingHeader);
 		leftSiblingHeader.next = NOT_FOUND;
 		putRecordHeader(leftSiblingOffset, leftSiblingHeader);
-		putToFreeList(cursorOffset);
+		putToFreeList(currentPosition);
 		storageHeader.lastDataRecord = leftSiblingOffset;
 		returnOffset = leftSiblingOffset;
 	} else if (rightSiblingExists) {		         // removing first record
 		getRecordHeader(recordHeader.next, rightSiblingHeader);
 		rightSiblingHeader.previous = NOT_FOUND;
 		putRecordHeader(rightSiblingOffset, rightSiblingHeader);
-		putToFreeList(cursorOffset);
+		putToFreeList(currentPosition);
 		storageHeader.firstDataRecord = rightSiblingOffset;
 		returnOffset = rightSiblingOffset;
 	} else {                                         // removing the only record
-		putToFreeList(cursorOffset);
+		putToFreeList(currentPosition);
 		storageHeader.firstDataRecord = NOT_FOUND;
 		storageHeader.lastDataRecord = NOT_FOUND;
 		returnOffset = NOT_FOUND;
@@ -270,9 +279,9 @@ uint64_t RecordFileIO::removeRecord() {
 *
 */
 uint64_t RecordFileIO::setType(uint32_t recordType) {
-	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return NOT_FOUND;
+	if (!cachedFile.isOpen() || currentPosition == NOT_FOUND) return NOT_FOUND;
 	recordHeader.type = recordType;
-	return cursorOffset;
+	return currentPosition;
 }
 
 
@@ -284,7 +293,7 @@ uint64_t RecordFileIO::setType(uint32_t recordType) {
 *
 */
 uint32_t RecordFileIO::getType() {
-	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return 0;
+	if (!cachedFile.isOpen() || currentPosition == NOT_FOUND) return 0;
 	return recordHeader.type;
 }
 
@@ -297,7 +306,7 @@ uint32_t RecordFileIO::getType() {
 *
 */
 uint32_t RecordFileIO::getLength() {
-	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return 0;
+	if (!cachedFile.isOpen() || currentPosition == NOT_FOUND) return 0;
 	return recordHeader.length;
 }
 
@@ -310,7 +319,7 @@ uint32_t RecordFileIO::getLength() {
 *
 */
 uint32_t RecordFileIO::getCapacity() {
-	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return 0;
+	if (!cachedFile.isOpen() || currentPosition == NOT_FOUND) return 0;
 	return recordHeader.capacity;
 }
 
@@ -323,7 +332,7 @@ uint32_t RecordFileIO::getCapacity() {
 *
 */
 uint64_t RecordFileIO::getNext() {
-	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return NOT_FOUND;
+	if (!cachedFile.isOpen() || currentPosition == NOT_FOUND) return NOT_FOUND;
 	return recordHeader.next;
 }
 
@@ -336,7 +345,7 @@ uint64_t RecordFileIO::getNext() {
 *
 */
 uint64_t RecordFileIO::getPrevious() {
-	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return NOT_FOUND;
+	if (!cachedFile.isOpen() || currentPosition == NOT_FOUND) return NOT_FOUND;
 	return recordHeader.previous;
 }
 
@@ -353,13 +362,13 @@ uint64_t RecordFileIO::getPrevious() {
 *
 */
 uint64_t RecordFileIO::getData(void* data, uint32_t length) {
-	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND || length==0) return NOT_FOUND;
+	if (!cachedFile.isOpen() || currentPosition == NOT_FOUND || length==0) return NOT_FOUND;
 	uint64_t bytesToRead = std::min(recordHeader.length, length);
-	uint64_t dataOffset = cursorOffset + sizeof(recordHeader);
-	storageFile.read(dataOffset, data, bytesToRead);
+	uint64_t dataOffset = currentPosition + sizeof RecordHeader;
+	cachedFile.read(dataOffset, data, bytesToRead);
 	// check data consistency by checksum
 	if (checksum((uint8_t*) data, bytesToRead) != recordHeader.checksum) return NOT_FOUND;
-	return cursorOffset;
+	return currentPosition;
 }
 
 
@@ -376,16 +385,16 @@ uint64_t RecordFileIO::getData(void* data, uint32_t length) {
 *
 */
 uint64_t RecordFileIO::setData(const void* data, uint32_t length) {
-	if (!storageFile.isOpen() || storageFile.isReadOnly() || cursorOffset == NOT_FOUND) return false;
+	if (!cachedFile.isOpen() || cachedFile.isReadOnly() || currentPosition == NOT_FOUND) return false;
 	// if there is enough capacity in record
 	if (length < recordHeader.capacity) {
 		// Update header data length info without affecting ID
 		recordHeader.length = length;
 		// Write record header and data to the storage file
 		constexpr uint64_t HEADER_SIZE = sizeof RecordHeader;
-		storageFile.write(cursorOffset, &recordHeader, HEADER_SIZE);
-		storageFile.write(cursorOffset + HEADER_SIZE, data, length);
-		return cursorOffset;
+		cachedFile.write(currentPosition, &recordHeader, HEADER_SIZE);
+		cachedFile.write(currentPosition + HEADER_SIZE, data, length);
+		return currentPosition;
 	}
 	// if there is not enough record capacity, then move record		
 	RecordHeader newRecordHeader;
@@ -398,7 +407,7 @@ uint64_t RecordFileIO::setData(const void* data, uint32_t length) {
 	newRecordHeader.length = length;
 	newRecordHeader.checksum = checksum((uint8_t*)data, length);
 	// Delete old record and add it to the free records list
-	if (!putToFreeList(cursorOffset)) return NOT_FOUND;
+	if (!putToFreeList(currentPosition)) return NOT_FOUND;
 	// if this is first record, then update storage header
 	if (recordHeader.previous == NOT_FOUND) {
 		storageHeader.firstDataRecord = offset;
@@ -406,12 +415,12 @@ uint64_t RecordFileIO::setData(const void* data, uint32_t length) {
 	};
 	// Write record header and data to the storage file
 	constexpr uint64_t HEADER_SIZE = sizeof RecordHeader;
-	storageFile.write(offset, &newRecordHeader, HEADER_SIZE);
-	storageFile.write(offset + HEADER_SIZE, data, length);
+	cachedFile.write(offset, &newRecordHeader, HEADER_SIZE);
+	cachedFile.write(offset + HEADER_SIZE, data, length);
 	// Update current record in memory
 	memcpy(&recordHeader, &newRecordHeader, HEADER_SIZE);
 	// Set cursor to new updated position
-	return cursorOffset = offset;
+	return currentPosition = offset;
 
 }
 
@@ -454,8 +463,8 @@ void RecordFileIO::initStorageHeader() {
 *  @return true - if succeeded, false - if failed
 */
 bool RecordFileIO::saveStorageHeader() {
-	if (!storageFile.isOpen()) return false;
-	uint64_t bytesWritten = storageFile.write(0, &storageHeader, sizeof StorageHeader);
+	if (!cachedFile.isOpen()) return false;
+	uint64_t bytesWritten = cachedFile.write(0, &storageHeader, sizeof StorageHeader);
 	// check read success
 	if (bytesWritten != sizeof StorageHeader) return false;
 	return true;
@@ -468,13 +477,14 @@ bool RecordFileIO::saveStorageHeader() {
 *  @return true - if succeeded, false - if failed
 */
 bool RecordFileIO::loadStorageHeader() {
-	if (!storageFile.isOpen()) return false;
+	if (!cachedFile.isOpen()) return false;
 	StorageHeader sh;
-	uint64_t bytesRead = storageFile.read(0, &sh, sizeof StorageHeader);
+	uint64_t bytesRead = cachedFile.read(0, &sh, sizeof StorageHeader);
 	// check read success
 	if (bytesRead != sizeof StorageHeader) return false;  
-	// check signature
-	if (sh.signature != BOSONDB_SIGNATURE) return false;            
+	// check signature and version
+	if (sh.signature != BOSONDB_SIGNATURE) return false;
+	if (sh.version != BOSONDB_VERSION) return false;
 	// Copy header data to working structure
 	memcpy(&storageHeader, &sh, sizeof StorageHeader);
 	return true;
@@ -489,7 +499,7 @@ bool RecordFileIO::loadStorageHeader() {
 *  @return record offset in file or NOT_FOUND if can't read
 */
 uint64_t RecordFileIO::getRecordHeader(uint64_t offset, RecordHeader& result) {
-	uint64_t bytesRead = storageFile.read(offset, &result, sizeof RecordHeader);
+	uint64_t bytesRead = cachedFile.read(offset, &result, sizeof RecordHeader);
 	if (bytesRead != sizeof RecordHeader) return NOT_FOUND;
 	return offset;
 }
@@ -503,7 +513,7 @@ uint64_t RecordFileIO::getRecordHeader(uint64_t offset, RecordHeader& result) {
 *  @return record offset in file or NOT_FOUND if can't write
 */
 uint64_t RecordFileIO::putRecordHeader(uint64_t offset, const RecordHeader& header) {
-	uint64_t bytesWritten = storageFile.write(offset, &header, sizeof RecordHeader);
+	uint64_t bytesWritten = cachedFile.write(offset, &header, sizeof RecordHeader);
 	if (bytesWritten != sizeof RecordHeader) return NOT_FOUND;
 	return offset;
 }
@@ -609,7 +619,7 @@ uint64_t RecordFileIO::getFromFreeList(uint32_t capacity, RecordHeader& result) 
 	
 	freeRecord.next = storageHeader.firstFreeRecord;
 	uint64_t offset = freeRecord.next;
-	uint64_t maximumIterations = storageHeader.totalFreeRecords;
+	uint64_t maximumIterations = std::min(storageHeader.totalFreeRecords, freeLookupDepth);
 	uint64_t iterationCounter = 0;
 	// iterate through free list and check iterations counter
 	while (freeRecord.next != NOT_FOUND && iterationCounter < maximumIterations) {
@@ -687,18 +697,18 @@ void RecordFileIO::removeFromFreeList(RecordHeader& freeRecord) {
 		rightSiblingHeader.previous = leftSiblingOffset;
 		putRecordHeader(leftSiblingOffset, leftSiblingHeader);
 		putRecordHeader(rightSiblingOffset, rightSiblingHeader);
-		putToFreeList(cursorOffset);
+		putToFreeList(currentPosition);
 	} else if (leftSiblingExists) {                                    // if removing back free record
 		getRecordHeader(freeRecord.previous, leftSiblingHeader);
 		leftSiblingHeader.next = NOT_FOUND;
 		putRecordHeader(leftSiblingOffset, leftSiblingHeader);
-		putToFreeList(cursorOffset);
+		putToFreeList(currentPosition);
 		storageHeader.lastDataRecord = leftSiblingOffset;
 	} else if (rightSiblingExists) {                                   // if removing front free record
 		getRecordHeader(freeRecord.next, rightSiblingHeader);
 		rightSiblingHeader.previous = NOT_FOUND;
 		putRecordHeader(rightSiblingOffset, rightSiblingHeader);
-		putToFreeList(cursorOffset);
+		putToFreeList(currentPosition);
 		storageHeader.firstDataRecord = rightSiblingOffset;
 	} else {                                                           // If removing last free record
 		storageHeader.firstFreeRecord = NOT_FOUND;
@@ -706,19 +716,6 @@ void RecordFileIO::removeFromFreeList(RecordHeader& freeRecord) {
 	}
 	storageHeader.totalFreeRecords--;
 	saveStorageHeader();
-}
-
-
-/*
-* @brief Generate 64-bit time sortable and locally unique ID
-* @return unsigned 64-bit ID (48-bit clock value, 16-bit random suffix)
-*/
-uint64_t RecordFileIO::generateID() {
-	auto currentTime = std::chrono::steady_clock::now().time_since_epoch();
-	uint64_t timeSinceEpoch = currentTime.count();  // 48-bit steady clock
-	uint64_t randomNumber = std::rand();            // 16-bit random value
-	uint64_t almostUniqueID = (timeSinceEpoch << 16) | randomNumber;
-	return almostUniqueID;
 }
 
 

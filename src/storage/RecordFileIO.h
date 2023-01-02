@@ -38,8 +38,9 @@ namespace Boson {
 	//----------------------------------------------------------------------------
 	typedef struct {
 		uint64_t      signature;           // BOSONDB signature
-		uint32_t      version;             // Format version
-		uint32_t      endOfFile;           // End of file
+		uint32_t      version;             // Format version		
+		uint32_t      flags;               // Reserved for flags
+		uint64_t      endOfFile;           // Size of file
 
 		uint64_t      totalRecords;        // Total number of records
 		uint64_t      firstDataRecord;     // First data record
@@ -69,7 +70,7 @@ namespace Boson {
 	//----------------------------------------------------------------------------
 	class RecordFileIO {
 	public:
-		RecordFileIO(CachedFileIO& cachedFile);
+		RecordFileIO(CachedFileIO& cachedFile, size_t freeDepth = NOT_FOUND);
 		~RecordFileIO();
 
 		uint64_t getTotalRecords();
@@ -97,10 +98,11 @@ namespace Boson {
 
 	private:
 
-		CachedFileIO& storageFile;
+		CachedFileIO& cachedFile;
 		StorageHeader storageHeader;
 		RecordHeader  recordHeader;
-		size_t        cursorOffset;
+		size_t        currentPosition;
+		size_t        freeLookupDepth;
 
 		void     initStorageHeader();
 		bool     saveStorageHeader();
@@ -117,7 +119,6 @@ namespace Boson {
 		bool     putToFreeList(uint64_t offset);
 		void     removeFromFreeList(RecordHeader& freeRecord);
 
-		uint64_t generateID();
 		uint32_t checksum(const uint8_t* data, uint64_t length);
 
 	};
