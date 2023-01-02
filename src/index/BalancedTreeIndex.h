@@ -10,6 +10,8 @@
 =================================================================================================*/
 #pragma once
 
+#include "CachedFileIO.h"
+
 #include <vector>
 #include <iostream>
 
@@ -17,7 +19,7 @@ namespace Boson {
 
 	constexpr size_t MINIMAL_TREE_ORDER = 3;
 	constexpr size_t DEFAULT_TREE_ORDER = 5;
-	constexpr size_t NOT_FOUND = 0xFFFFFFFFFFFFFFFF;
+	//constexpr size_t NOT_FOUND = 0xFFFFFFFFFFFFFFFF;
 
 	typedef enum { INNER = 1, LEAF = 2 } NodeType;
 

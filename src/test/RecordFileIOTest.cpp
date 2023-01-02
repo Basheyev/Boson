@@ -1,4 +1,10 @@
-
+/******************************************************************************
+*
+*  RecordFileIO class tests implementation
+*
+*  (C) Bolat Basheyev 2022
+*
+******************************************************************************/
 
 #include "RecordFileIO.h"
 #include "RecordFileIOTest.h"
@@ -11,15 +17,19 @@
 using namespace Boson;
 
 
-bool RecordFileIOTest::generateData(char* filename, size_t recordsCount) {
+/*
+*  @brief Generate data records in file
+*  @param[in] filename - path to file
+*  @param[in] recordsCount - total records to generate
+*/
+bool RecordFileIOTest::generateData(const char* filename, size_t recordsCount) {
 	CachedFileIO cachedFile;
 	if (!cachedFile.open(filename)) {
 		std::cout << "ERROR: Can't open file '" << filename << "' in write mode.\n";
 		return false;
 	}
-
+	// Wrapper
 	RecordFileIO storage(cachedFile);
-				
 	std::cout << "[TEST] Generating " << recordsCount << " data records...";
 	auto startTime = std::chrono::high_resolution_clock::now();
 	for (size_t i = 0; i < recordsCount; i++) {
@@ -38,7 +48,7 @@ bool RecordFileIOTest::generateData(char* filename, size_t recordsCount) {
 
 
 
-bool RecordFileIOTest::readAscending(char* filename) {
+bool RecordFileIOTest::readAscending(const char* filename) {
 	CachedFileIO cachedFile;
 	if (!cachedFile.open(filename)) {
 		std::cout << "ERROR: Can't open file '" << filename << "' in write mode.\n";
@@ -50,24 +60,27 @@ bool RecordFileIOTest::readAscending(char* filename) {
 
 	std::cout << "[TEST] Reading " << db.getTotalRecords() << " data records in ASCENDING order...\n";
 	std::cout << "-----------------------------------------------------------\n\n";
+	auto startTime = std::chrono::high_resolution_clock::now();
 	db.first();
 	size_t counter = 0;
 	size_t prev, next;
 	char* buffer = new char[65536];
 	do {
-		uint32_t length = db.getLength();
-		prev = db.getPrevious();
-		next = db.getNext();		
-		db.getData(buffer, length);
+		uint32_t length = db.getRecordLength();
+		prev = db.getPrevPosition();
+		next = db.getNextPosition();		
+		db.getRecordData(buffer, length);
 		buffer[length] = 0;
-		std::cout << "Pos: " << db.getPosition();
+	/*	std::cout << "Pos: " << db.getPosition();
 		std::cout << " Prev: " << ((prev == NOT_FOUND) ? 0 : prev);
 		std::cout << " Next: " << ((next == NOT_FOUND) ? 0 : next);
-		std::cout << " Length: " << db.getLength();
+		std::cout << " Length: " << db.getRecordLength();
 		std::cout << "\n";		
-		std::cout <<  buffer << "\n\n";				
+		std::cout <<  buffer << "\n\n";		*/		
 		counter++;
 	} while (db.next());
+	auto endTime = std::chrono::high_resolution_clock::now();
+	std::cout << "Read in " << (endTime - startTime).count() / 1000000000.0 << "s" << std::endl;
 	delete[] buffer;
 	std::cout << "TOTAL READ: " << counter << " records\n\n";
 	return true;
@@ -75,7 +88,7 @@ bool RecordFileIOTest::readAscending(char* filename) {
 
 
 
-bool RecordFileIOTest::readDescending(char* filename) {
+bool RecordFileIOTest::readDescending(const char* filename) {
 	CachedFileIO cachedFile;
 	if (!cachedFile.open(filename)) {
 		std::cout << "ERROR: Can't open file '" << filename << "' in write mode.\n";
@@ -89,15 +102,15 @@ bool RecordFileIOTest::readDescending(char* filename) {
 	size_t prev, next;
 	char* buffer = new char[65536];
 	do {
-		uint32_t length = db.getLength();
-		prev = db.getPrevious();
-		next = db.getNext();					
-		db.getData(buffer, length);
+		uint32_t length = db.getRecordLength();
+		prev = db.getPrevPosition();
+		next = db.getNextPosition();					
+		db.getRecordData(buffer, length);
 		buffer[length] = 0;
 		std::cout << "Pos: " << db.getPosition();
 		std::cout << " Prev: " << ((prev == NOT_FOUND) ? 0 : prev);
 		std::cout << " Next: " << ((next == NOT_FOUND) ? 0 : next);
-		std::cout << " Length: " << db.getLength();
+		std::cout << " Length: " << db.getRecordLength();
 		std::cout << "\n";		
 		std::cout  << buffer << "\n\n";
 		counter++;
@@ -108,35 +121,38 @@ bool RecordFileIOTest::readDescending(char* filename) {
 }
 
 
-bool RecordFileIOTest::removeOddRecords(char* filename) {
+bool RecordFileIOTest::removeEvenRecords(const char* filename) {
 	CachedFileIO cachedFile;
 	if (!cachedFile.open(filename)) {
 		std::cout << "ERROR: Can't open file '" << filename << "' in write mode.\n";
 		return false;
 	}
 	RecordFileIO db(cachedFile);
-	std::cout << "[TEST] Deleting every second data records...\n";
+	std::cout << "[TEST] Deleting even data records...\n";
 	std::cout << "-----------------------------------------------------------\n\n";
+	auto startTime = std::chrono::high_resolution_clock::now();
 	db.first();
 	size_t counter = 0;
 	size_t prev, next;
 	do {
-		uint32_t length = db.getLength();
-		prev = db.getPrevious();
-		next = db.getNext();
-		std::cout << "Pos: " << db.getPosition();
+		uint32_t length = db.getRecordLength();
+		prev = db.getPrevPosition();
+		next = db.getNextPosition();
+		/*std::cout << "Pos: " << db.getPosition();
 		std::cout << " Prev: " << ((prev == NOT_FOUND) ? 0 : prev);
 		std::cout << " Next: " << ((next == NOT_FOUND) ? 0 : next);
-		std::cout << " Length: " << db.getLength();
-		std::cout << " - DELETED \n";
+		std::cout << " Length: " << db.getRecordLength();
+		std::cout << " - DELETED \n";*/
 		db.removeRecord();
 		counter++;
 	} while (db.next() && db.next());
+	auto endTime = std::chrono::high_resolution_clock::now();
+	std::cout << "Read in " << (endTime - startTime).count() / 1000000000.0 << "s" << std::endl;
 	std::cout << "TOTAL DELETED: " << counter << " records\n\n";
 	return true;
 }
 
-bool RecordFileIOTest::insertNewRecords(char* filename, size_t recordsCount) {
+bool RecordFileIOTest::insertNewRecords(const char* filename, size_t recordsCount) {
 	CachedFileIO cachedFile;
 	if (!cachedFile.open(filename)) {
 		std::cout << "ERROR: Can't open file '" << filename << "' in write mode.\n";
@@ -160,11 +176,11 @@ bool RecordFileIOTest::insertNewRecords(char* filename, size_t recordsCount) {
 }
 
 
-void RecordFileIOTest::run(char* filename) {
+void RecordFileIOTest::run(const char* filename) {
 	std::filesystem::remove(filename);
 	generateData(filename, 10);
 	readAscending(filename);
-	removeOddRecords(filename);
+	removeEvenRecords(filename);
 	readDescending(filename);
 	insertNewRecords(filename, 3);
 	readAscending(filename);

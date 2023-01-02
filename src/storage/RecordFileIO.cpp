@@ -195,7 +195,7 @@ bool RecordFileIO::previous() {
 * @return returns offset of the new record or NOT_FOUND if fails
 *
 */
-uint64_t RecordFileIO::createRecord(const void* data, uint32_t length) {
+uint64_t RecordFileIO::createRecord(const void* data, uint32_t length, uint32_t type) {
 	if (!cachedFile.isOpen() || cachedFile.isReadOnly()) return false;
 	// find free record of required length
 	RecordHeader newRecordHeader;
@@ -203,6 +203,7 @@ uint64_t RecordFileIO::createRecord(const void* data, uint32_t length) {
 	// Fill record header fields and link to previous record
 	newRecordHeader.next = NOT_FOUND;                               	
 	newRecordHeader.length = length;
+	newRecordHeader.type = type;
 	newRecordHeader.checksum = checksum((uint8_t*) data, length);
 	// Write record header and data to the storage file
 	constexpr uint64_t HEADER_SIZE = sizeof RecordHeader;
@@ -278,7 +279,7 @@ uint64_t RecordFileIO::removeRecord() {
 * @return offset of current record or NOT_FOUND if failed
 *
 */
-uint64_t RecordFileIO::setType(uint32_t recordType) {
+uint64_t RecordFileIO::setRecordType(uint32_t recordType) {
 	if (!cachedFile.isOpen() || currentPosition == NOT_FOUND) return NOT_FOUND;
 	recordHeader.type = recordType;
 	return currentPosition;
@@ -292,7 +293,7 @@ uint64_t RecordFileIO::setType(uint32_t recordType) {
 * @return value of type field of record header or zero if failed
 *
 */
-uint32_t RecordFileIO::getType() {
+uint32_t RecordFileIO::getRecordType() {
 	if (!cachedFile.isOpen() || currentPosition == NOT_FOUND) return 0;
 	return recordHeader.type;
 }
@@ -305,7 +306,7 @@ uint32_t RecordFileIO::getType() {
 * @return returns data payload length in bytes or zero if fails
 *
 */
-uint32_t RecordFileIO::getLength() {
+uint32_t RecordFileIO::getRecordLength() {
 	if (!cachedFile.isOpen() || currentPosition == NOT_FOUND) return 0;
 	return recordHeader.length;
 }
@@ -318,7 +319,7 @@ uint32_t RecordFileIO::getLength() {
 * @return returns maximum capacity in bytes or zero if fails
 *
 */
-uint32_t RecordFileIO::getCapacity() {
+uint32_t RecordFileIO::getRecordCapacity() {
 	if (!cachedFile.isOpen() || currentPosition == NOT_FOUND) return 0;
 	return recordHeader.capacity;
 }
@@ -331,7 +332,7 @@ uint32_t RecordFileIO::getCapacity() {
 * @return returns offset of next neighbour or NOT_FOUND if fails
 *
 */
-uint64_t RecordFileIO::getNext() {
+uint64_t RecordFileIO::getNextPosition() {
 	if (!cachedFile.isOpen() || currentPosition == NOT_FOUND) return NOT_FOUND;
 	return recordHeader.next;
 }
@@ -344,7 +345,7 @@ uint64_t RecordFileIO::getNext() {
 * @return returns offset of previous neighbour or NOT_FOUND if fails
 *
 */
-uint64_t RecordFileIO::getPrevious() {
+uint64_t RecordFileIO::getPrevPosition() {
 	if (!cachedFile.isOpen() || currentPosition == NOT_FOUND) return NOT_FOUND;
 	return recordHeader.previous;
 }
@@ -361,7 +362,7 @@ uint64_t RecordFileIO::getPrevious() {
 * @return returns offset of the record or NOT_FOUND if data corrupted
 *
 */
-uint64_t RecordFileIO::getData(void* data, uint32_t length) {
+uint64_t RecordFileIO::getRecordData(void* data, uint32_t length) {
 	if (!cachedFile.isOpen() || currentPosition == NOT_FOUND || length==0) return NOT_FOUND;
 	uint64_t bytesToRead = std::min(recordHeader.length, length);
 	uint64_t dataOffset = currentPosition + sizeof RecordHeader;
@@ -384,7 +385,7 @@ uint64_t RecordFileIO::getData(void* data, uint32_t length) {
 * @return returns offset of the new record or NOT_FOUND if fails
 *
 */
-uint64_t RecordFileIO::setData(const void* data, uint32_t length) {
+uint64_t RecordFileIO::setRecordData(const void* data, uint32_t length) {
 	if (!cachedFile.isOpen() || cachedFile.isReadOnly() || currentPosition == NOT_FOUND) return false;
 	// if there is enough capacity in record
 	if (length < recordHeader.capacity) {
@@ -582,6 +583,8 @@ uint64_t RecordFileIO::createFirstRecord(uint32_t capacity, RecordHeader& result
 *  @return offset of record in the storage file
 */
 uint64_t RecordFileIO::appendNewRecord(uint32_t capacity, RecordHeader& result) {
+
+	if (capacity == 0) return NOT_FOUND;
 		
 	// update previous free record
 	RecordHeader lastRecord;

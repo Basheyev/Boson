@@ -34,7 +34,7 @@ namespace Boson {
 	constexpr uint32_t BOSONDB_VERSION = 0x0001;
 
 	//----------------------------------------------------------------------------
-	// Boson storage header structure (64 bytes)
+	// Boson storage header structure
 	//----------------------------------------------------------------------------
 	typedef struct {
 		uint64_t      signature;           // BOSONDB signature
@@ -72,32 +72,26 @@ namespace Boson {
 	public:
 		RecordFileIO(CachedFileIO& cachedFile, size_t freeDepth = NOT_FOUND);
 		~RecordFileIO();
-
 		uint64_t getTotalRecords();
 		uint64_t getTotalFreeRecords();
-
 		bool     setPosition(uint64_t offset);
 		uint64_t getPosition();
-
 		bool     first();
 		bool     last();
 		bool     next();
 		bool     previous();
-
-		uint64_t createRecord(const void* data, uint32_t length);
+		uint64_t createRecord(const void* data, uint32_t length, uint32_t type=0);
 		uint64_t removeRecord();
-
-		uint64_t setType(uint32_t recordType);
-		uint32_t getType();
-		uint32_t getLength();
-		uint32_t getCapacity();
-		uint64_t getNext();
-		uint64_t getPrevious();
-		uint64_t getData(void* data, uint32_t length);
-		uint64_t setData(const void* data, uint32_t length);
+		uint64_t setRecordType(uint32_t recordType);
+		uint32_t getRecordType();
+		uint32_t getRecordLength();
+		uint32_t getRecordCapacity();
+		uint64_t getNextPosition();
+		uint64_t getPrevPosition();
+		uint64_t getRecordData(void* data, uint32_t length);
+		uint64_t setRecordData(const void* data, uint32_t length);
 
 	private:
-
 		CachedFileIO& cachedFile;
 		StorageHeader storageHeader;
 		RecordHeader  recordHeader;
@@ -107,20 +101,15 @@ namespace Boson {
 		void     initStorageHeader();
 		bool     saveStorageHeader();
 		bool     loadStorageHeader();
-
 		uint64_t getRecordHeader(uint64_t offset, RecordHeader& result);
 		uint64_t putRecordHeader(uint64_t offset, const RecordHeader& header);
-
 		uint64_t allocateRecord(uint32_t capacity, RecordHeader& result);
 		uint64_t createFirstRecord(uint32_t capacity, RecordHeader& result);
 		uint64_t appendNewRecord(uint32_t capacity, RecordHeader& result);
 		uint64_t getFromFreeList(uint32_t capacity, RecordHeader& result);
-
 		bool     putToFreeList(uint64_t offset);
 		void     removeFromFreeList(RecordHeader& freeRecord);
-
 		uint32_t checksum(const uint8_t* data, uint64_t length);
-
 	};
 
 

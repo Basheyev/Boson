@@ -4,12 +4,12 @@
 
 class RecordFileIOTest {
 public:
-	bool generateData(char* filename, size_t recordCount);
-	bool readAscending(char* filename);
-	bool readDescending(char* filename);
-	bool removeOddRecords(char* filename);
-	bool insertNewRecords(char* filename, size_t recordCount);
-	void run(char* filename);
+	bool generateData(const char* filename, size_t recordCount);
+	bool readAscending(const char* filename);
+	bool readDescending(const char* filename);
+	bool removeEvenRecords(const char* filename);
+	bool insertNewRecords(const char* filename, size_t recordCount);
+	void run(const char* filename);
 private:
 	
 };

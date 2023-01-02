@@ -12,8 +12,8 @@ add_executable (Boson
     "src/Boson.cpp" 
     "src/Boson.h" 
      
-    "src/core/BalancedTreeIndex.h" 
-    "src/index/DBIndex.h"
+    "src/index/BalancedTreeIndex.h" 
+    
     
     "src/storage/RecordFileIO.h" 
     "src/storage/RecordFileIO.cpp"   

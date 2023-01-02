@@ -21,6 +21,9 @@
 #include "RecordFileIO.h"
 #include "RecordFileIOTest.h"
 
+#include "BalancedTreeIndex.h"
+#include "BalancedTreeTest.h"
+
 #include <string>
 
 using namespace Boson;
@@ -29,9 +32,16 @@ using namespace std;
 
 int main()
 {
-	
+//	BalancedTreeTest bpt;
+//	bpt.run();
+
 	RecordFileIOTest rst;
-	rst.run("F:/records.bin");
+	//rst.run("F:/records.bin");
+	std::filesystem::remove("F:/largeFile.bin");
+	rst.generateData("F:/largeFile.bin", 1000000);
+	rst.readAscending("F:/largeFile.bin");
+	rst.removeEvenRecords("F:/largeFile.bin");
+	rst.readAscending("F:/largeFile.bin");
 	//CachedFileIOTest cft("F:/cachedfile.bin");
 	//cft.run(10000000);
 	cout << "Storage header: " << sizeof StorageHeader << " bytes" << endl;
