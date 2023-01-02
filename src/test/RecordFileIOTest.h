@@ -2,7 +2,7 @@
 
 
 
-class RecordStorageIOTest {
+class RecordFileIOTest {
 public:
 	bool generateData(char* filename, size_t recordCount);
 	bool readAscending(char* filename);

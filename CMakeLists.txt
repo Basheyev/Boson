@@ -15,15 +15,15 @@ add_executable (Boson
     "src/core/BalancedTreeIndex.h" 
     "src/index/DBIndex.h"
     
-    "src/storage/RecordStorageIO.h" 
-    "src/storage/RecordStorageIO.cpp"   
+    "src/storage/RecordFileIO.h" 
+    "src/storage/RecordFileIO.cpp"   
     "src/storage/CachedFileIO.h" 
     "src/storage/CachedFileIO.cpp" 
 
     "src/test/CachedFileIOTest.h" 
     "src/test/CachedFileIOTest.cpp"  
-    "src/test/RecordStorageIOTest.cpp" 
-    "src/test/RecordStorageIOTest.h"
+    "src/test/RecordFileIOTest.cpp" 
+    "src/test/RecordFileIOTest.h"
     "src/test/BalancedTreeTest.cpp"
     "src/test/BalancedTreeTest.h"    "src/storage/StorageIO.h")
 

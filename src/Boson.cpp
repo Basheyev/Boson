@@ -18,8 +18,8 @@
 #include "CachedFileIO.h"
 #include "CachedFileIOTest.h"
 
-#include "RecordStorageIO.h"
-#include "RecordStorageIOTest.h"
+#include "RecordFileIO.h"
+#include "RecordFileIOTest.h"
 
 #include <string>
 
@@ -27,19 +27,14 @@ using namespace Boson;
 using namespace std;
 
 
-
-typedef struct {
-	int a;
-	int b;
-	std::string my;
-} MyStruct;
-
-
 int main()
 {
 	
-	//RecordStorageIOTest rst;
-	//rst.run("F:/records.bin");
-	CachedFileIOTest cft("F:/cachedfile.bin");
-	cft.run(10000000);
+	RecordFileIOTest rst;
+	rst.run("F:/records.bin");
+	//CachedFileIOTest cft("F:/cachedfile.bin");
+	//cft.run(10000000);
+	cout << "Storage header: " << sizeof StorageHeader << " bytes" << endl;
+	//cout << "Collection header: " << sizeof CollectionHeader << " bytes" << endl;
+	cout << "Record header: " << sizeof RecordHeader << " bytes" << endl;
 }

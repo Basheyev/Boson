@@ -135,6 +135,19 @@ bool CachedFileIO::isOpen() {
 
 
 /**
+*
+*  @brief Checks if file is read only
+*
+*  @return true - if file is read only, false - otherwise
+*
+*/
+bool CachedFileIO::isReadOnly() {
+	return readOnly;
+}
+
+
+
+/**
 * 
 *  @brief Read data from cached file
 * 

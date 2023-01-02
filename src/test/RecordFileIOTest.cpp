@@ -1,7 +1,7 @@
 
 
-#include "RecordStorageIO.h"
-#include "RecordStorageIOTest.h"
+#include "RecordFileIO.h"
+#include "RecordFileIOTest.h"
 
 #include <iostream>
 #include <sstream>
@@ -11,14 +11,15 @@
 using namespace Boson;
 
 
-bool RecordStorageIOTest::generateData(char* filename, size_t recordsCount) {
-	RecordStorageIO storage;
-			
-	if (!storage.open(filename)) {
+bool RecordFileIOTest::generateData(char* filename, size_t recordsCount) {
+	CachedFileIO cachedFile;
+	if (!cachedFile.open(filename)) {
 		std::cout << "ERROR: Can't open file '" << filename << "' in write mode.\n";
 		return false;
 	}
 
+	RecordFileIO storage(cachedFile);
+				
 	std::cout << "[TEST] Generating " << recordsCount << " data records...";
 	auto startTime = std::chrono::high_resolution_clock::now();
 	for (size_t i = 0; i < recordsCount; i++) {
@@ -29,15 +30,24 @@ bool RecordStorageIOTest::generateData(char* filename, size_t recordsCount) {
 	}
 	auto endTime = std::chrono::high_resolution_clock::now();
 	std::cout << "OK in " << (endTime - startTime).count() / 1000000000.0 << "s" << std::endl;
-	storage.close();
+
+	//cachedFile.close();
+
 	return true;
 }
 
 
 
-bool RecordStorageIOTest::readAscending(char* filename) {
-	RecordStorageIO db;
-	if (!db.open(filename)) return false;
+bool RecordFileIOTest::readAscending(char* filename) {
+	CachedFileIO cachedFile;
+	if (!cachedFile.open(filename)) {
+		std::cout << "ERROR: Can't open file '" << filename << "' in write mode.\n";
+		return false;
+	}
+
+	RecordFileIO db(cachedFile);
+
+
 	std::cout << "[TEST] Reading " << db.getTotalRecords() << " data records in ASCENDING order...\n";
 	std::cout << "-----------------------------------------------------------\n\n";
 	db.first();
@@ -50,7 +60,7 @@ bool RecordStorageIOTest::readAscending(char* filename) {
 		next = db.getNext();		
 		db.getData(buffer, length);
 		buffer[length] = 0;
-		std::cout << "Pos: " << db.getCursor();
+		std::cout << "Pos: " << db.getPosition();
 		std::cout << " Prev: " << ((prev == NOT_FOUND) ? 0 : prev);
 		std::cout << " Next: " << ((next == NOT_FOUND) ? 0 : next);
 		std::cout << " Length: " << db.getLength();
@@ -65,9 +75,13 @@ bool RecordStorageIOTest::readAscending(char* filename) {
 
 
 
-bool RecordStorageIOTest::readDescending(char* filename) {
-	RecordStorageIO db;
-	if (!db.open(filename)) return false;
+bool RecordFileIOTest::readDescending(char* filename) {
+	CachedFileIO cachedFile;
+	if (!cachedFile.open(filename)) {
+		std::cout << "ERROR: Can't open file '" << filename << "' in write mode.\n";
+		return false;
+	}
+	RecordFileIO db(cachedFile);
 	std::cout << "[TEST] Reading " << db.getTotalRecords() << " data records in DESCENDING order...\n";
 	std::cout << "-----------------------------------------------------------\n\n";
 	db.last();
@@ -80,7 +94,7 @@ bool RecordStorageIOTest::readDescending(char* filename) {
 		next = db.getNext();					
 		db.getData(buffer, length);
 		buffer[length] = 0;
-		std::cout << "Pos: " << db.getCursor();
+		std::cout << "Pos: " << db.getPosition();
 		std::cout << " Prev: " << ((prev == NOT_FOUND) ? 0 : prev);
 		std::cout << " Next: " << ((next == NOT_FOUND) ? 0 : next);
 		std::cout << " Length: " << db.getLength();
@@ -94,9 +108,13 @@ bool RecordStorageIOTest::readDescending(char* filename) {
 }
 
 
-bool RecordStorageIOTest::removeOddRecords(char* filename) {
-	RecordStorageIO db;
-	if (!db.open(filename)) return false;
+bool RecordFileIOTest::removeOddRecords(char* filename) {
+	CachedFileIO cachedFile;
+	if (!cachedFile.open(filename)) {
+		std::cout << "ERROR: Can't open file '" << filename << "' in write mode.\n";
+		return false;
+	}
+	RecordFileIO db(cachedFile);
 	std::cout << "[TEST] Deleting every second data records...\n";
 	std::cout << "-----------------------------------------------------------\n\n";
 	db.first();
@@ -106,7 +124,7 @@ bool RecordStorageIOTest::removeOddRecords(char* filename) {
 		uint32_t length = db.getLength();
 		prev = db.getPrevious();
 		next = db.getNext();
-		std::cout << "Pos: " << db.getCursor();
+		std::cout << "Pos: " << db.getPosition();
 		std::cout << " Prev: " << ((prev == NOT_FOUND) ? 0 : prev);
 		std::cout << " Next: " << ((next == NOT_FOUND) ? 0 : next);
 		std::cout << " Length: " << db.getLength();
@@ -118,12 +136,14 @@ bool RecordStorageIOTest::removeOddRecords(char* filename) {
 	return true;
 }
 
-bool RecordStorageIOTest::insertNewRecords(char* filename, size_t recordsCount) {
-	RecordStorageIO storage;
-	if (!storage.open(filename)) {
-		std::cout << "ERROR: Can't open file '" << filename << "' write.\n";
+bool RecordFileIOTest::insertNewRecords(char* filename, size_t recordsCount) {
+	CachedFileIO cachedFile;
+	if (!cachedFile.open(filename)) {
+		std::cout << "ERROR: Can't open file '" << filename << "' in write mode.\n";
 		return false;
 	}
+
+	RecordFileIO storage(cachedFile);
 
 	std::cout << "[TEST] Inserting " << recordsCount << " data records...";
 	auto startTime = std::chrono::high_resolution_clock::now();
@@ -135,12 +155,12 @@ bool RecordStorageIOTest::insertNewRecords(char* filename, size_t recordsCount) 
 	}
 	auto endTime = std::chrono::high_resolution_clock::now();
 	std::cout << "OK in " << (endTime - startTime).count() / 1000000000.0 << "s" << std::endl;
-	storage.close();
+//	cachedFile.close();
 	return true;
 }
 
 
-void RecordStorageIOTest::run(char* filename) {
+void RecordFileIOTest::run(char* filename) {
 	std::filesystem::remove(filename);
 	generateData(filename, 10);
 	readAscending(filename);

@@ -1,10 +1,10 @@
 /******************************************************************************
 *
-*  RecordStorageIO class header
+*  RecordFileIO class header
 *
-*  RecordStorageIO is designed for seamless storage of binary records of
+*  RecordFileIO is designed for seamless storage of binary records of
 *  arbitary size (max record size limited to 4Gb), accessing records as
-*  linked list and reuse space of deleted records. RecordStorageIO uses
+*  linked list and reuse space of deleted records. RecordFileIO uses
 *  CachedFileIO to cache frequently accessed data and win IO performance.
 *
 *  Features:
@@ -17,7 +17,7 @@
 *
 ******************************************************************************/
 
-#include "RecordStorageIO.h"
+#include "RecordFileIO.h"
 
 
 #include <algorithm>
@@ -28,59 +28,40 @@ using namespace Boson;
 
 /*
 * 
-* @brief RecordStorageIO constructor and initializations
+* @brief RecordFileIO constructor and initializations
 * 
 */
-RecordStorageIO::RecordStorageIO() {
-
+RecordFileIO::RecordFileIO(CachedFileIO& cachedFile) : storageFile(cachedFile) {
+	
+	if (storageFile.getFileSize() == 0 && !storageFile.isReadOnly()) {
+		initStorageHeader();
+	}
+	
 	memset(&storageHeader, 0, sizeof(storageHeader));
 	cursorOffset = NOT_FOUND;
 
-	// TODO: iniitalize structures for empy database
+	if (!loadStorageHeader()) {
+		// TODO: error message
+		return;
+	}	
+		
+	// TODO: iniitalize structures for emtpy database
 }
 
 
 
 /*
 *
-* @brief RecordStorageIO destructor and finalizations
+* @brief RecordFileIO destructor and finalizations
 *
 */
-RecordStorageIO::~RecordStorageIO() {
-	close();
-}
-
-
-
-/*
-*
-* @brief Open database file
-* @param dbName - path to database file
-* @return true - if file opened, false - otherwise
-* 
-*/
-bool RecordStorageIO::open(const std::string& dbName, bool readOnly) {
-	if (!storageFile.open(dbName.c_str(), DEFAULT_CACHE, readOnly)) return false;
-	if (storageFile.getFileSize() == 0 && !readOnly) initStorageHeader();	
-	if (!loadStorageHeader()) return false;
-	this->isReadOnly = readOnly;
-	return true;
-}
-
-
-
-/*
-*
-* @brief Close database file
-* @return true - if correctly closed, false - otherwise
-*
-*/
-bool RecordStorageIO::close() {
-	if (!storageFile.isOpen()) return false;
+RecordFileIO::~RecordFileIO() {
+	if (!storageFile.isOpen()) return;
 	// FIXME: consistency is not checked
-	bool headerSaved = saveStorageHeader();
-	return storageFile.close() && headerSaved;
+	saveStorageHeader();
 }
+
+
 
 
 /*
@@ -89,7 +70,7 @@ bool RecordStorageIO::close() {
 * @return total number of records
 *
 */
-uint64_t RecordStorageIO::getTotalRecords() {
+uint64_t RecordFileIO::getTotalRecords() {
 	return storageHeader.totalRecords;
 }
 
@@ -100,7 +81,7 @@ uint64_t RecordStorageIO::getTotalRecords() {
 * @return total number of free records
 * 
 */
-uint64_t RecordStorageIO::getTotalFreeRecords() {
+uint64_t RecordFileIO::getTotalFreeRecords() {
 	return storageHeader.totalFreeRecords;
 }
 
@@ -112,7 +93,7 @@ uint64_t RecordStorageIO::getTotalFreeRecords() {
 * @return true - if offset points to consistent record, false - otherwise
 *
 */
-bool RecordStorageIO::setCursor(uint64_t offset) {
+bool RecordFileIO::setPosition(uint64_t offset) {
 	if (!storageFile.isOpen()) return false;	
 	// Try to read record header
 	RecordHeader header;
@@ -131,7 +112,7 @@ bool RecordStorageIO::setCursor(uint64_t offset) {
 * @return current cursor position in database
 *
 */
-uint64_t RecordStorageIO::getCursor() {
+uint64_t RecordFileIO::getPosition() {
 	if (!storageFile.isOpen()) return NOT_FOUND;
 	return cursorOffset;
 }
@@ -144,10 +125,10 @@ uint64_t RecordStorageIO::getCursor() {
 * @return true - if offset points to consistent record, false - otherwise
 *
 */
-bool RecordStorageIO::first() {
+bool RecordFileIO::first() {
 	if (!storageFile.isOpen()) return false;
 	if (storageHeader.firstDataRecord == NOT_FOUND) return false;
-	return setCursor(storageHeader.firstDataRecord);
+	return setPosition(storageHeader.firstDataRecord);
 }
 
 
@@ -158,10 +139,10 @@ bool RecordStorageIO::first() {
 * @return true - if offset points to consistent record, false - otherwise
 *
 */
-bool RecordStorageIO::last() {
+bool RecordFileIO::last() {
 	if (!storageFile.isOpen()) return false;
 	if (storageHeader.lastDataRecord == NOT_FOUND) return false;
-	return setCursor(storageHeader.lastDataRecord);
+	return setPosition(storageHeader.lastDataRecord);
 }
 
 
@@ -172,10 +153,10 @@ bool RecordStorageIO::last() {
 * @return true - if next record exists, false - otherwise
 *
 */
-bool RecordStorageIO::next() {
+bool RecordFileIO::next() {
 	if (!storageFile.isOpen() || cursorOffset==NOT_FOUND) return false;
 	if (recordHeader.next == NOT_FOUND) return false;
-	return setCursor(recordHeader.next);
+	return setPosition(recordHeader.next);
 }
 
 
@@ -186,10 +167,10 @@ bool RecordStorageIO::next() {
 * @return true - if previous record exists, false - otherwise
 * 
 */
-bool RecordStorageIO::previous() {
+bool RecordFileIO::previous() {
 	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return false;
 	if (recordHeader.previous == NOT_FOUND) return false;
-	return setCursor(recordHeader.previous);
+	return setPosition(recordHeader.previous);
 }
 
 
@@ -205,14 +186,13 @@ bool RecordStorageIO::previous() {
 * @return returns offset of the new record or NOT_FOUND if fails
 *
 */
-uint64_t RecordStorageIO::createRecord(const void* data, uint32_t length) {
-	if (!storageFile.isOpen() || isReadOnly) return false;
+uint64_t RecordFileIO::createRecord(const void* data, uint32_t length) {
+	if (!storageFile.isOpen() || storageFile.isReadOnly()) return false;
 	// find free record of required length
 	RecordHeader newRecordHeader;
 	uint64_t offset = allocateRecord(length, newRecordHeader);
 	// Fill record header fields and link to previous record
 	newRecordHeader.next = NOT_FOUND;                               	
-	newRecordHeader.recordID = generateID();
 	newRecordHeader.length = length;
 	newRecordHeader.checksum = checksum((uint8_t*) data, length);
 	// Write record header and data to the storage file
@@ -235,8 +215,8 @@ uint64_t RecordStorageIO::createRecord(const void* data, uint32_t length) {
 * @return returns offset of the next sibling or NOT_FOUND if it was last one
 *
 */
-uint64_t RecordStorageIO::removeRecord() {
-	if (!storageFile.isOpen() || isReadOnly || cursorOffset == NOT_FOUND) return false;
+uint64_t RecordFileIO::removeRecord() {
+	if (!storageFile.isOpen() || storageFile.isReadOnly() || cursorOffset == NOT_FOUND) return false;
 	// check siblings
 	uint64_t leftSiblingOffset = recordHeader.previous;
 	uint64_t rightSiblingOffset = recordHeader.next;
@@ -284,24 +264,12 @@ uint64_t RecordStorageIO::removeRecord() {
 
 /*
 *
-* @brief Get ID of current record
-* @return returns ID of current record or NOT_FOUND if fails
-*
-*/
-uint64_t RecordStorageIO::getID() {
-	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return NOT_FOUND;
-	return recordHeader.recordID;
-}
-
-
-/*
-*
 * @brief Set user defined record type
 * @param[in] recordType - user defined unsigned 32-bit integer
 * @return offset of current record or NOT_FOUND if failed
 *
 */
-uint64_t RecordStorageIO::setType(uint32_t recordType) {
+uint64_t RecordFileIO::setType(uint32_t recordType) {
 	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return NOT_FOUND;
 	recordHeader.type = recordType;
 	return cursorOffset;
@@ -315,7 +283,7 @@ uint64_t RecordStorageIO::setType(uint32_t recordType) {
 * @return value of type field of record header or zero if failed
 *
 */
-uint32_t RecordStorageIO::getType() {
+uint32_t RecordFileIO::getType() {
 	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return 0;
 	return recordHeader.type;
 }
@@ -328,7 +296,7 @@ uint32_t RecordStorageIO::getType() {
 * @return returns data payload length in bytes or zero if fails
 *
 */
-uint32_t RecordStorageIO::getLength() {
+uint32_t RecordFileIO::getLength() {
 	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return 0;
 	return recordHeader.length;
 }
@@ -341,7 +309,7 @@ uint32_t RecordStorageIO::getLength() {
 * @return returns maximum capacity in bytes or zero if fails
 *
 */
-uint32_t RecordStorageIO::getCapacity() {
+uint32_t RecordFileIO::getCapacity() {
 	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return 0;
 	return recordHeader.capacity;
 }
@@ -354,7 +322,7 @@ uint32_t RecordStorageIO::getCapacity() {
 * @return returns offset of next neighbour or NOT_FOUND if fails
 *
 */
-uint64_t RecordStorageIO::getNext() {
+uint64_t RecordFileIO::getNext() {
 	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return NOT_FOUND;
 	return recordHeader.next;
 }
@@ -367,7 +335,7 @@ uint64_t RecordStorageIO::getNext() {
 * @return returns offset of previous neighbour or NOT_FOUND if fails
 *
 */
-uint64_t RecordStorageIO::getPrevious() {
+uint64_t RecordFileIO::getPrevious() {
 	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND) return NOT_FOUND;
 	return recordHeader.previous;
 }
@@ -384,7 +352,7 @@ uint64_t RecordStorageIO::getPrevious() {
 * @return returns offset of the record or NOT_FOUND if data corrupted
 *
 */
-uint64_t RecordStorageIO::getData(void* data, uint32_t length) {
+uint64_t RecordFileIO::getData(void* data, uint32_t length) {
 	if (!storageFile.isOpen() || cursorOffset == NOT_FOUND || length==0) return NOT_FOUND;
 	uint64_t bytesToRead = std::min(recordHeader.length, length);
 	uint64_t dataOffset = cursorOffset + sizeof(recordHeader);
@@ -407,8 +375,8 @@ uint64_t RecordStorageIO::getData(void* data, uint32_t length) {
 * @return returns offset of the new record or NOT_FOUND if fails
 *
 */
-uint64_t RecordStorageIO::setData(const void* data, uint32_t length) {
-	if (!storageFile.isOpen() || isReadOnly || cursorOffset == NOT_FOUND) return false;
+uint64_t RecordFileIO::setData(const void* data, uint32_t length) {
+	if (!storageFile.isOpen() || storageFile.isReadOnly() || cursorOffset == NOT_FOUND) return false;
 	// if there is enough capacity in record
 	if (length < recordHeader.capacity) {
 		// Update header data length info without affecting ID
@@ -427,7 +395,6 @@ uint64_t RecordStorageIO::setData(const void* data, uint32_t length) {
 	// Copy record header fields, update data length and checksum
 	newRecordHeader.next = recordHeader.next;
 	newRecordHeader.previous = recordHeader.previous;
-	newRecordHeader.recordID = recordHeader.recordID;
 	newRecordHeader.length = length;
 	newRecordHeader.checksum = checksum((uint8_t*)data, length);
 	// Delete old record and add it to the free records list
@@ -462,7 +429,7 @@ uint64_t RecordStorageIO::setData(const void* data, uint32_t length) {
 /*
 * @brief Initialize in memory storage header for new database
 */
-void RecordStorageIO::initStorageHeader() {
+void RecordFileIO::initStorageHeader() {
 	
 	storageHeader.signature = BOSONDB_SIGNATURE;
 	storageHeader.version = BOSONDB_VERSION;
@@ -486,7 +453,7 @@ void RecordStorageIO::initStorageHeader() {
 *  @brief Saves in memory storage header to the file storage
 *  @return true - if succeeded, false - if failed
 */
-bool RecordStorageIO::saveStorageHeader() {
+bool RecordFileIO::saveStorageHeader() {
 	if (!storageFile.isOpen()) return false;
 	uint64_t bytesWritten = storageFile.write(0, &storageHeader, sizeof StorageHeader);
 	// check read success
@@ -500,7 +467,7 @@ bool RecordStorageIO::saveStorageHeader() {
 *  @brief Loads file storage header to memory storage header
 *  @return true - if succeeded, false - if failed
 */
-bool RecordStorageIO::loadStorageHeader() {
+bool RecordFileIO::loadStorageHeader() {
 	if (!storageFile.isOpen()) return false;
 	StorageHeader sh;
 	uint64_t bytesRead = storageFile.read(0, &sh, sizeof StorageHeader);
@@ -521,7 +488,7 @@ bool RecordStorageIO::loadStorageHeader() {
 *  @param[out] result - user buffer to load record header
 *  @return record offset in file or NOT_FOUND if can't read
 */
-uint64_t RecordStorageIO::getRecordHeader(uint64_t offset, RecordHeader& result) {
+uint64_t RecordFileIO::getRecordHeader(uint64_t offset, RecordHeader& result) {
 	uint64_t bytesRead = storageFile.read(offset, &result, sizeof RecordHeader);
 	if (bytesRead != sizeof RecordHeader) return NOT_FOUND;
 	return offset;
@@ -535,7 +502,7 @@ uint64_t RecordStorageIO::getRecordHeader(uint64_t offset, RecordHeader& result)
 *  @param[in] result - user buffer to load record header
 *  @return record offset in file or NOT_FOUND if can't write
 */
-uint64_t RecordStorageIO::putRecordHeader(uint64_t offset, const RecordHeader& header) {
+uint64_t RecordFileIO::putRecordHeader(uint64_t offset, const RecordHeader& header) {
 	uint64_t bytesWritten = storageFile.write(offset, &header, sizeof RecordHeader);
 	if (bytesWritten != sizeof RecordHeader) return NOT_FOUND;
 	return offset;
@@ -549,7 +516,7 @@ uint64_t RecordStorageIO::putRecordHeader(uint64_t offset, const RecordHeader& h
 *  @param[out] result  - record header of created new record
 *  @return offset of record in the storage file
 */
-uint64_t RecordStorageIO::allocateRecord(uint32_t capacity, RecordHeader& result) {
+uint64_t RecordFileIO::allocateRecord(uint32_t capacity, RecordHeader& result) {
 
 	// if there is no free records yet
 	if (storageHeader.firstFreeRecord == NOT_FOUND && storageHeader.lastDataRecord == NOT_FOUND) {
@@ -575,7 +542,7 @@ uint64_t RecordStorageIO::allocateRecord(uint32_t capacity, RecordHeader& result
 *  @param[out] result  - record header of created new record
 *  @return offset of record in the storage file
 */
-uint64_t RecordStorageIO::createFirstRecord(uint32_t capacity, RecordHeader& result) {
+uint64_t RecordFileIO::createFirstRecord(uint32_t capacity, RecordHeader& result) {
 	// clear record header
 	memset(&result, 0, sizeof RecordHeader);
 	// set value to capacity
@@ -604,7 +571,7 @@ uint64_t RecordStorageIO::createFirstRecord(uint32_t capacity, RecordHeader& res
 *  @param[out] result  - record header of created new record
 *  @return offset of record in the storage file
 */
-uint64_t RecordStorageIO::appendNewRecord(uint32_t capacity, RecordHeader& result) {
+uint64_t RecordFileIO::appendNewRecord(uint32_t capacity, RecordHeader& result) {
 		
 	// update previous free record
 	RecordHeader lastRecord;
@@ -636,7 +603,7 @@ uint64_t RecordStorageIO::appendNewRecord(uint32_t capacity, RecordHeader& resul
 *  @param[out] result  - record header of created new record
 *  @return offset of record in the storage file
 */
-uint64_t RecordStorageIO::getFromFreeList(uint32_t capacity, RecordHeader& result) {
+uint64_t RecordFileIO::getFromFreeList(uint32_t capacity, RecordHeader& result) {
 	// If there are free records
 	RecordHeader freeRecord;
 	
@@ -681,12 +648,11 @@ uint64_t RecordStorageIO::getFromFreeList(uint32_t capacity, RecordHeader& resul
 *  @brief Put record to the free list
 *  @return true - if record added to the free list, false - if not found
 */
-bool RecordStorageIO::putToFreeList(uint64_t offset) {
+bool RecordFileIO::putToFreeList(uint64_t offset) {
 	RecordHeader freeRecord;
 	if (getRecordHeader(offset, freeRecord) == NOT_FOUND) return false;
 	freeRecord.next = NOT_FOUND;
 	freeRecord.previous = storageHeader.lastFreeRecord;
-	freeRecord.recordID = NOT_FOUND;
 	freeRecord.length = 0;
 	freeRecord.checksum = 0;
 	putRecordHeader(offset, freeRecord);
@@ -707,7 +673,7 @@ bool RecordStorageIO::putToFreeList(uint64_t offset) {
 *  @brief Remove record from free list and update siblings interlinks
 *  @param[in] freeRecord - header of record to remove from free list
 */
-void RecordStorageIO::removeFromFreeList(RecordHeader& freeRecord) {
+void RecordFileIO::removeFromFreeList(RecordHeader& freeRecord) {
 	uint64_t leftSiblingOffset = freeRecord.previous;
 	uint64_t rightSiblingOffset = freeRecord.next;
 	bool leftSiblingExists = (leftSiblingOffset != NOT_FOUND);
@@ -747,7 +713,7 @@ void RecordStorageIO::removeFromFreeList(RecordHeader& freeRecord) {
 * @brief Generate 64-bit time sortable and locally unique ID
 * @return unsigned 64-bit ID (48-bit clock value, 16-bit random suffix)
 */
-uint64_t RecordStorageIO::generateID() {
+uint64_t RecordFileIO::generateID() {
 	auto currentTime = std::chrono::steady_clock::now().time_since_epoch();
 	uint64_t timeSinceEpoch = currentTime.count();  // 48-bit steady clock
 	uint64_t randomNumber = std::rand();            // 16-bit random value
@@ -763,7 +729,7 @@ uint64_t RecordStorageIO::generateID() {
 *  @param[in] length - length of data in bytes
 *  @return 32-bit checksum of given data
 */
-uint32_t RecordStorageIO::checksum(const uint8_t* data, uint64_t length) {
+uint32_t RecordFileIO::checksum(const uint8_t* data, uint64_t length) {
 	
 	// FIXME: inefficient, but straightforward algorithm
 

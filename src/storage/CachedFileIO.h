@@ -99,6 +99,7 @@ namespace Boson {
 		bool open(const char* path, size_t cache = DEFAULT_CACHE, bool readOnly = false);
 		bool close();
 		bool isOpen();
+		bool isReadOnly();
 
 		size_t read(size_t position, void* dataBuffer, size_t length);
 		size_t write(size_t position, const void* dataBuffer, size_t length);
