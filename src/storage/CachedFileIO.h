@@ -94,6 +94,8 @@ namespace Boson {
 	class CachedFileIO {
 	public:
 		CachedFileIO();
+		CachedFileIO(const CachedFileIO&) = delete;
+		void operator=(const CachedFileIO&) = delete;
 		~CachedFileIO();
 		
 		bool open(const char* path, size_t cache = DEFAULT_CACHE, bool readOnly = false);

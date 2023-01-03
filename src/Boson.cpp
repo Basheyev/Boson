@@ -35,7 +35,7 @@ int main()
 //	BalancedTreeTest bpt;
 //	bpt.run();
 
-	RecordFileIOTest rst;
+	//RecordFileIOTest rst;
 	//rst.run("F:/records.bin");
 	/*std::filesystem::remove("F:/largeFile.bin");
 	rst.generateData("F:/largeFile.bin", 10000);
