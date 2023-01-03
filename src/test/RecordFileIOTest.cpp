@@ -171,7 +171,9 @@ bool RecordFileIOTest::insertNewRecords(const char* filename, size_t recordsCoun
 		ss << "inserted record data " << i*2 << " and " << std::rand();
 		if (std::rand() % 2) ss << " suffix";
 		length = (uint32_t)ss.str().length();
-		storage.createRecord(ss.str().c_str(), length);
+		std::string str = ss.str();
+		const char* dataPtr = str.c_str();
+		storage.createRecord(dataPtr, length);
 	}
 	auto endTime = std::chrono::high_resolution_clock::now();
 	std::cout << "OK in " << (endTime - startTime).count() / 1000000000.0 << "s" << std::endl;

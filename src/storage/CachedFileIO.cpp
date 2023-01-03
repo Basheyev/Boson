@@ -160,6 +160,11 @@ bool CachedFileIO::isReadOnly() {
 */
 size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 
+	// In case we reading one aligned page
+	if ((position % PAGE_SIZE == 0) && (length == PAGE_SIZE)) {
+		return readPage(position / PAGE_SIZE, dataBuffer);
+	}
+
 	// Check if file handler, data buffer and length are not null
 	if (fileHandler == nullptr || dataBuffer == nullptr || length == 0) return 0;
 
