@@ -88,7 +88,10 @@ bool CachedFileIO::open(const char* path, size_t cacheSize, bool isReadOnly) {
 	// set mode to no buffering, we will manage buffers and caching by our selves
 	setvbuf(this->fileHandler, nullptr, _IONBF, 0);
 	// Allocated cache
-	setCacheSize(cacheSize);
+	if (setCacheSize(cacheSize) == NOT_FOUND) {
+		close();
+		return false;
+	}
 	// Set readOnly flag
 	this->readOnly = isReadOnly;
 	// Clear statistics
@@ -546,33 +549,41 @@ size_t CachedFileIO::getCacheSize() {
 *
 *  @brief Resize cache at runtime: releases memory and allocate new one
 *  @param cacheSize - new cache size
-*  @return actual cache size in bytes
+*  @return actual cache size in bytes or NOT_FOUND and closes file if failed to allocate
 *
 */
 size_t CachedFileIO::setCacheSize(size_t cacheSize) {
 	
+	// Check minimal cache size
+	if (cacheSize < MINIMAL_CACHE) cacheSize = MINIMAL_CACHE;
+
 	// check if cache is already allocated
 	if (cachePageInfoPool != nullptr) {
 		// Persist all changed pages to storage device
 		this->flush();
 		// Release allocated memory, list and map
 		this->releasePool();
+		// Clear cache pages list and hashmap
+		this->cacheList.clear();
+		this->cacheMap.clear();
 	} 
-
-	// Check minimal cache size
-	if (cacheSize < MINIMAL_CACHE) cacheSize = MINIMAL_CACHE;
+	
 	// Calculate pages count
 	this->pageCounter = 0;
 	this->maxPagesCount = cacheSize / PAGE_SIZE;
-	// Allocate new cache
-	this->allocatePool(this->maxPagesCount);
-	// Clear cache pages list and hashmap
-	this->cacheList.clear();
-	this->cacheMap.clear();
-	this->cacheMap.reserve(maxPagesCount);
+
+	// Try to allocate new cache
+	try {
+		this->allocatePool(this->maxPagesCount);
+		this->cacheMap.reserve(maxPagesCount);
+	} catch (std::bad_alloc& ba) {	
+		// close file and return NOT_FOUND
+		this->close();
+		return NOT_FOUND;
+	}
+	
 	// Reset stats
-	this->cacheRequests = 0;
-	this->cacheMisses = 0;
+	this->resetStats();
 	// Return cache size in bytes
 	return this->maxPagesCount * PAGE_SIZE;
 }
@@ -592,6 +603,7 @@ void CachedFileIO::allocatePool(size_t pagesToAllocate) {
 * @brief Releases memory pool
 */
 void CachedFileIO::releasePool() {
+	this->maxPagesCount = 0;
 	this->pageCounter = 0;
 	cacheList.clear();
 	cacheMap.clear();
