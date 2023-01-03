@@ -32,11 +32,13 @@ bool RecordFileIOTest::generateData(const char* filename, size_t recordsCount) {
 	RecordFileIO storage(cachedFile);
 	std::cout << "[TEST] Generating " << recordsCount << " data records...";
 	auto startTime = std::chrono::high_resolution_clock::now();
+	uint32_t length;
 	for (size_t i = 0; i < recordsCount; i++) {
 		std::stringstream ss;
 		ss << "Generated record data #" << i << " and " << std::rand();
 		if (std::rand() % 2) ss << " with optional";
-		storage.createRecord(ss.str().c_str(), (uint32_t) ss.str().length());
+		length = (uint32_t)ss.str().length() + 16;
+		storage.createRecord(ss.str().c_str(), length);
 	}
 	auto endTime = std::chrono::high_resolution_clock::now();
 	std::cout << "OK in " << (endTime - startTime).count() / 1000000000.0 << "s" << std::endl;
@@ -163,11 +165,13 @@ bool RecordFileIOTest::insertNewRecords(const char* filename, size_t recordsCoun
 
 	std::cout << "[TEST] Inserting " << recordsCount << " data records...";
 	auto startTime = std::chrono::high_resolution_clock::now();
+	uint32_t length;
 	for (size_t i = 0; i < recordsCount; i++) {
 		std::stringstream ss;
 		ss << "inserted record data " << i*2 << " and " << std::rand();
 		if (std::rand() % 2) ss << " suffix";
-		storage.createRecord(ss.str().c_str(), (uint32_t)ss.str().length());
+		length = (uint32_t)ss.str().length();
+		storage.createRecord(ss.str().c_str(), length);
 	}
 	auto endTime = std::chrono::high_resolution_clock::now();
 	std::cout << "OK in " << (endTime - startTime).count() / 1000000000.0 << "s" << std::endl;

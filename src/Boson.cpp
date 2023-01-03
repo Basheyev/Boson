@@ -38,9 +38,10 @@ int main()
 	RecordFileIOTest rst;
 	//rst.run("F:/records.bin");
 	std::filesystem::remove("F:/largeFile.bin");
-	rst.generateData("F:/largeFile.bin", 1000000);
+	rst.generateData("F:/largeFile.bin", 10000);
 	rst.readAscending("F:/largeFile.bin");
 	rst.removeEvenRecords("F:/largeFile.bin");
+	rst.insertNewRecords("F:/largeFile.bin", 5000);
 	rst.readAscending("F:/largeFile.bin");
 	//CachedFileIOTest cft("F:/cachedfile.bin");
 	//cft.run(10000000);

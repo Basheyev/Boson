@@ -235,7 +235,8 @@ uint64_t RecordFileIO::removeRecord() {
 	RecordHeader leftSiblingHeader;
 	RecordHeader rightSiblingHeader;
 	uint64_t returnOffset;
-	if (leftSiblingExists && rightSiblingExists) {  // removing record in the middle
+	if (leftSiblingExists && rightSiblingExists) {  
+		// removing record in the middle
 		getRecordHeader(recordHeader.previous, leftSiblingHeader);
 		getRecordHeader(recordHeader.next, rightSiblingHeader);
 		leftSiblingHeader.next = rightSiblingOffset;
@@ -244,21 +245,24 @@ uint64_t RecordFileIO::removeRecord() {
 		putRecordHeader(rightSiblingOffset, rightSiblingHeader);
 		putToFreeList(currentPosition);
 		returnOffset = rightSiblingOffset;
-	} else if (leftSiblingExists) {		             // removing last record
+	} else if (leftSiblingExists) {		             
+		// removing last record
 		getRecordHeader(recordHeader.previous, leftSiblingHeader);
 		leftSiblingHeader.next = NOT_FOUND;
 		putRecordHeader(leftSiblingOffset, leftSiblingHeader);
 		putToFreeList(currentPosition);
 		storageHeader.lastDataRecord = leftSiblingOffset;
 		returnOffset = leftSiblingOffset;
-	} else if (rightSiblingExists) {		         // removing first record
+	} else if (rightSiblingExists) {		         
+		// removing first record
 		getRecordHeader(recordHeader.next, rightSiblingHeader);
 		rightSiblingHeader.previous = NOT_FOUND;
 		putRecordHeader(rightSiblingOffset, rightSiblingHeader);
 		putToFreeList(currentPosition);
 		storageHeader.firstDataRecord = rightSiblingOffset;
 		returnOffset = rightSiblingOffset;
-	} else {                                         // removing the only record
+	} else {                                         
+		// removing the only record
 		putToFreeList(currentPosition);
 		storageHeader.firstDataRecord = NOT_FOUND;
 		storageHeader.lastDataRecord = NOT_FOUND;
@@ -617,6 +621,9 @@ uint64_t RecordFileIO::appendNewRecord(uint32_t capacity, RecordHeader& result) 
 *  @return offset of record in the storage file
 */
 uint64_t RecordFileIO::getFromFreeList(uint32_t capacity, RecordHeader& result) {
+
+	if (storageHeader.totalFreeRecords == 0) return NOT_FOUND;
+
 	// If there are free records
 	RecordHeader freeRecord;
 	
@@ -662,17 +669,30 @@ uint64_t RecordFileIO::getFromFreeList(uint32_t capacity, RecordHeader& result) 
 *  @return true - if record added to the free list, false - if not found
 */
 bool RecordFileIO::putToFreeList(uint64_t offset) {
+	
 	RecordHeader freeRecord;
+	RecordHeader prevFreeRecord;
+	size_t prevOffset = storageHeader.lastFreeRecord;
 	if (getRecordHeader(offset, freeRecord) == NOT_FOUND) return false;
+
+	// modify previous free record
+	if (prevOffset != NOT_FOUND) {
+		getRecordHeader(prevOffset, prevFreeRecord);
+		prevFreeRecord.next = offset;
+		putRecordHeader(prevOffset, prevFreeRecord);
+	}
+		
 	freeRecord.next = NOT_FOUND;
-	freeRecord.previous = storageHeader.lastFreeRecord;
+	freeRecord.previous = prevOffset;
 	freeRecord.length = 0;
 	freeRecord.checksum = 0;
 	putRecordHeader(offset, freeRecord);
+
 	// if its first free record, save its offset to the storage header	
 	if (storageHeader.firstFreeRecord == NOT_FOUND) {
 		storageHeader.firstFreeRecord = offset;
 	}
+
 	// save it as last added free record
 	storageHeader.lastFreeRecord = offset;
 	storageHeader.totalFreeRecords++;
@@ -693,27 +713,28 @@ void RecordFileIO::removeFromFreeList(RecordHeader& freeRecord) {
 	bool rightSiblingExists = (rightSiblingOffset != NOT_FOUND);
 	RecordHeader leftSiblingHeader;
 	RecordHeader rightSiblingHeader;
-	if (leftSiblingExists && rightSiblingExists) {		               // If removing in the middle
+	if (leftSiblingExists && rightSiblingExists) {		               
+		// If removing in the middle
 		getRecordHeader(freeRecord.previous, leftSiblingHeader);
 		getRecordHeader(freeRecord.next, rightSiblingHeader);
 		leftSiblingHeader.next = rightSiblingOffset;
 		rightSiblingHeader.previous = leftSiblingOffset;
 		putRecordHeader(leftSiblingOffset, leftSiblingHeader);
 		putRecordHeader(rightSiblingOffset, rightSiblingHeader);
-		putToFreeList(currentPosition);
-	} else if (leftSiblingExists) {                                    // if removing back free record
+	} else if (leftSiblingExists) {                                    
+		// if removing back free record
 		getRecordHeader(freeRecord.previous, leftSiblingHeader);
 		leftSiblingHeader.next = NOT_FOUND;
 		putRecordHeader(leftSiblingOffset, leftSiblingHeader);
-		putToFreeList(currentPosition);
-		storageHeader.lastDataRecord = leftSiblingOffset;
-	} else if (rightSiblingExists) {                                   // if removing front free record
+		storageHeader.lastFreeRecord = leftSiblingOffset;
+	} else if (rightSiblingExists) {                                   
+		// if removing front free record
 		getRecordHeader(freeRecord.next, rightSiblingHeader);
 		rightSiblingHeader.previous = NOT_FOUND;
 		putRecordHeader(rightSiblingOffset, rightSiblingHeader);
-		putToFreeList(currentPosition);
-		storageHeader.firstDataRecord = rightSiblingOffset;
-	} else {                                                           // If removing last free record
+		storageHeader.firstFreeRecord = rightSiblingOffset;
+	} else {                                                           
+		// If removing last free record
 		storageHeader.firstFreeRecord = NOT_FOUND;
 		storageHeader.lastFreeRecord = NOT_FOUND;
 	}
