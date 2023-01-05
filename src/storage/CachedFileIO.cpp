@@ -172,7 +172,7 @@ size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 	if (fileHandler == nullptr || dataBuffer == nullptr || length == 0) return 0;
 
 	// Time point A
-	auto startTime = std::chrono::steady_clock::now();
+	auto startTime = std::chrono::high_resolution_clock::now();
 
 	// Calculate start and end page number in the file
 	size_t firstPageNo = position / PAGE_SIZE;
@@ -226,9 +226,9 @@ size_t CachedFileIO::read(size_t position, void* dataBuffer, size_t length) {
 	}
 
 	// Time point B
-	auto endTime = std::chrono::steady_clock::now();
+	auto endTime = std::chrono::high_resolution_clock::now();
 	// Calculate and increment read duration
-	this->totalReadDuration += (endTime - startTime).count();
+	this->totalReadDuration += std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count();
 	// Increment bytes read
 	this->totalBytesRead += bytesRead;
 	// return bytes read
@@ -254,7 +254,7 @@ size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t lengt
 	if (fileHandler == nullptr || this->readOnly || dataBuffer == nullptr || length == 0) return 0;
 
 	// Time point A
-	auto startTime = std::chrono::steady_clock::now();
+	auto startTime = std::chrono::high_resolution_clock::now();
 	
 	// Calculate start and end page number in the file
 	size_t firstPageNo = position / PAGE_SIZE;
@@ -305,9 +305,9 @@ size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t lengt
 
 	}
 	// Time point B
-	auto endTime = std::chrono::steady_clock::now();
+	auto endTime = std::chrono::high_resolution_clock::now();
 	// Calculate and increment write duration
-	this->totalWriteDuration += (endTime - startTime).count();
+	this->totalWriteDuration += std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count();
 	// Increment bytes written
 	this->totalBytesWritten += bytesWritten;
 	// return bytes written
@@ -332,7 +332,7 @@ size_t CachedFileIO::readPage(size_t pageNo, void* userPageBuffer) {
 	if (fileHandler == nullptr || userPageBuffer == nullptr) return 0;
 
 	// Time point A
-	auto startTime = std::chrono::steady_clock::now();
+	auto startTime = std::chrono::high_resolution_clock::now();
 
 	// Lookup or load file page to cache
 	CachePage* pageInfo = searchPageInCache(pageNo);
@@ -344,9 +344,9 @@ size_t CachedFileIO::readPage(size_t pageNo, void* userPageBuffer) {
 	memcpy(dst, src, availableData);
 		
 	// Time point B
-	auto endTime = std::chrono::steady_clock::now();
+	auto endTime = std::chrono::high_resolution_clock::now();
 	// Calculate and increment read duration
-	this->totalReadDuration += (endTime - startTime).count();
+	this->totalReadDuration += std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count();
 	// Increment bytes read
 	this->totalBytesRead += availableData;
 
@@ -371,7 +371,7 @@ size_t CachedFileIO::writePage(size_t pageNo, const void* userPageBuffer) {
 	if (fileHandler == nullptr || this->readOnly || userPageBuffer == nullptr) return 0;
 
 	// Time point A
-	auto startTime = std::chrono::steady_clock::now();
+	auto startTime = std::chrono::high_resolution_clock::now();
 
 	// Fetch-before-write (FBW)
 	CachePage* pageInfo = searchPageInCache(pageNo);
@@ -386,9 +386,9 @@ size_t CachedFileIO::writePage(size_t pageNo, const void* userPageBuffer) {
 	pageInfo->availableDataLength = bytesToCopy; // set available data as PAGE_SIZE
 
 	// Time point B
-	auto endTime = std::chrono::steady_clock::now();
+	auto endTime = std::chrono::high_resolution_clock::now();
 	// Calculate and increment write duration
-	this->totalWriteDuration += (endTime - startTime).count();
+	this->totalWriteDuration += std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count();
 	// Increment bytes written
 	this->totalBytesWritten += bytesToCopy;
 
@@ -409,7 +409,7 @@ size_t CachedFileIO::flush() {
 	if (fileHandler == nullptr || this->readOnly) return 0;
 
 	// Time point A
-	auto startTime = std::chrono::steady_clock::now();
+	auto startTime = std::chrono::high_resolution_clock::now();
 
 	// Suppose all pages will be persisted
 	bool allDirtyPagesPersisted = true;
@@ -433,9 +433,9 @@ size_t CachedFileIO::flush() {
 	bool buffersFlushed = (fflush(fileHandler) == 0);
 
 	// Time point B
-	auto endTime = std::chrono::steady_clock::now();
+	auto endTime = std::chrono::high_resolution_clock::now();
 	// Calculate and increment write duration
-	this->totalWriteDuration += (endTime - startTime).count();
+	this->totalWriteDuration += std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count();
 
 	return allDirtyPagesPersisted && buffersFlushed;
 

@@ -43,8 +43,8 @@ namespace Boson {
 		uint64_t      endOfFile;           // Size of file
 
 		uint64_t      totalRecords;        // Total number of records
-		uint64_t      firstDataRecord;     // First data record
-		uint64_t      lastDataRecord;      // Last data record
+		uint64_t      firstRecord;         // First data record
+		uint64_t      lastRecord;          // Last data record
 
 		uint64_t      totalFreeRecords;    // Total number of free records
 		uint64_t      firstFreeRecord;     // First free record offset
@@ -74,12 +74,17 @@ namespace Boson {
 		~RecordFileIO();
 		uint64_t getTotalRecords();
 		uint64_t getTotalFreeRecords();
+		void     setFreeRecordLookupDepth(uint64_t maxDepth) { freeLookupDepth = maxDepth; }
+
+		// records navigation
 		bool     setPosition(uint64_t offset);
 		uint64_t getPosition();
 		bool     first();
 		bool     last();
 		bool     next();
 		bool     previous();
+
+		// create, read, update, delete (CRUD)
 		uint64_t createRecord(const void* data, uint32_t length, uint32_t type=0);
 		uint64_t removeRecord();
 		uint64_t setRecordType(uint32_t recordType);

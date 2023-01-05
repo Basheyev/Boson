@@ -136,8 +136,8 @@ uint64_t RecordFileIO::getPosition() {
 */
 bool RecordFileIO::first() {
 	if (!cachedFile.isOpen()) return false;
-	if (storageHeader.firstDataRecord == NOT_FOUND) return false;
-	return setPosition(storageHeader.firstDataRecord);
+	if (storageHeader.firstRecord == NOT_FOUND) return false;
+	return setPosition(storageHeader.firstRecord);
 }
 
 
@@ -150,8 +150,8 @@ bool RecordFileIO::first() {
 */
 bool RecordFileIO::last() {
 	if (!cachedFile.isOpen()) return false;
-	if (storageHeader.lastDataRecord == NOT_FOUND) return false;
-	return setPosition(storageHeader.lastDataRecord);
+	if (storageHeader.lastRecord == NOT_FOUND) return false;
+	return setPosition(storageHeader.lastRecord);
 }
 
 
@@ -251,7 +251,7 @@ uint64_t RecordFileIO::removeRecord() {
 		leftSiblingHeader.next = NOT_FOUND;
 		putRecordHeader(leftSiblingOffset, leftSiblingHeader);
 		putToFreeList(currentPosition);
-		storageHeader.lastDataRecord = leftSiblingOffset;
+		storageHeader.lastRecord = leftSiblingOffset;
 		returnOffset = leftSiblingOffset;
 	} else if (rightSiblingExists) {		         
 		// removing first record
@@ -259,13 +259,13 @@ uint64_t RecordFileIO::removeRecord() {
 		rightSiblingHeader.previous = NOT_FOUND;
 		putRecordHeader(rightSiblingOffset, rightSiblingHeader);
 		putToFreeList(currentPosition);
-		storageHeader.firstDataRecord = rightSiblingOffset;
+		storageHeader.firstRecord = rightSiblingOffset;
 		returnOffset = rightSiblingOffset;
 	} else {                                         
 		// removing the only record
 		putToFreeList(currentPosition);
-		storageHeader.firstDataRecord = NOT_FOUND;
-		storageHeader.lastDataRecord = NOT_FOUND;
+		storageHeader.firstRecord = NOT_FOUND;
+		storageHeader.lastRecord = NOT_FOUND;
 		returnOffset = NOT_FOUND;
 	}
 	// Update storage header information about total records number
@@ -390,7 +390,8 @@ uint64_t RecordFileIO::getRecordData(void* data, uint32_t length) {
 *
 */
 uint64_t RecordFileIO::setRecordData(const void* data, uint32_t length) {
-	if (!cachedFile.isOpen() || cachedFile.isReadOnly() || currentPosition == NOT_FOUND) return false;
+	if (!cachedFile.isOpen() || cachedFile.isReadOnly() || 
+		currentPosition == NOT_FOUND) return NOT_FOUND;
 	// if there is enough capacity in record
 	if (length < recordHeader.capacity) {
 		// Update header data length info without affecting ID
@@ -401,6 +402,10 @@ uint64_t RecordFileIO::setRecordData(const void* data, uint32_t length) {
 		cachedFile.write(currentPosition + HEADER_SIZE, data, length);
 		return currentPosition;
 	}
+
+
+	// FIXME: Changing record position (how to notify index?)
+
 	// if there is not enough record capacity, then move record		
 	RecordHeader newRecordHeader;
 	// find free record of required length
@@ -415,7 +420,7 @@ uint64_t RecordFileIO::setRecordData(const void* data, uint32_t length) {
 	if (!putToFreeList(currentPosition)) return NOT_FOUND;
 	// if this is first record, then update storage header
 	if (recordHeader.previous == NOT_FOUND) {
-		storageHeader.firstDataRecord = offset;
+		storageHeader.firstRecord = offset;
 		saveStorageHeader();
 	};
 	// Write record header and data to the storage file
@@ -450,8 +455,8 @@ void RecordFileIO::initStorageHeader() {
 	storageHeader.endOfFile = sizeof StorageHeader;
 
 	storageHeader.totalRecords = 0;
-	storageHeader.firstDataRecord = NOT_FOUND;
-	storageHeader.lastDataRecord = NOT_FOUND;
+	storageHeader.firstRecord = NOT_FOUND;
+	storageHeader.lastRecord = NOT_FOUND;
 
 	storageHeader.totalFreeRecords = 0;
 	storageHeader.firstFreeRecord = NOT_FOUND;
@@ -490,7 +495,7 @@ bool RecordFileIO::loadStorageHeader() {
 	// check signature and version
 	if (sh.signature != BOSONDB_SIGNATURE) return false;
 	if (sh.version != BOSONDB_VERSION) return false;
-	// Copy header data to working structure
+	// Copy header data to internal structure
 	memcpy(&storageHeader, &sh, sizeof StorageHeader);
 	return true;
 }
@@ -534,7 +539,7 @@ uint64_t RecordFileIO::putRecordHeader(uint64_t offset, const RecordHeader& head
 uint64_t RecordFileIO::allocateRecord(uint32_t capacity, RecordHeader& result) {
 
 	// if there is no free records yet
-	if (storageHeader.firstFreeRecord == NOT_FOUND && storageHeader.lastDataRecord == NOT_FOUND) {
+	if (storageHeader.firstFreeRecord == NOT_FOUND && storageHeader.lastRecord == NOT_FOUND) {
 		// if there is no records at all create first record
 		return createFirstRecord(capacity, result);
 	} else {
@@ -568,8 +573,8 @@ uint64_t RecordFileIO::createFirstRecord(uint32_t capacity, RecordHeader& result
 	result.type = 0;
 	// calculate offset right after Storage header
 	uint64_t offset = sizeof StorageHeader;
-	storageHeader.firstDataRecord = offset;
-    storageHeader.lastDataRecord = offset;
+	storageHeader.firstRecord = offset;
+    storageHeader.lastRecord = offset;
 	storageHeader.endOfFile += sizeof(RecordHeader) + capacity;
 	storageHeader.totalRecords++;
 	saveStorageHeader();
@@ -594,17 +599,17 @@ uint64_t RecordFileIO::appendNewRecord(uint32_t capacity, RecordHeader& result) 
 	RecordHeader lastRecord;
 	uint64_t freeRecordOffset;
 
-	getRecordHeader(storageHeader.lastDataRecord, lastRecord);
+	getRecordHeader(storageHeader.lastRecord, lastRecord);
 	lastRecord.next = freeRecordOffset = storageHeader.endOfFile;
-	putRecordHeader(storageHeader.lastDataRecord, lastRecord);
+	putRecordHeader(storageHeader.lastRecord, lastRecord);
 
 	result.next = NOT_FOUND;
-	result.previous = storageHeader.lastDataRecord;
+	result.previous = storageHeader.lastRecord;
 	result.capacity = capacity;
 	result.length = 0;
 	result.type = 0;
 
-	storageHeader.lastDataRecord = freeRecordOffset;
+	storageHeader.lastRecord = freeRecordOffset;
 	storageHeader.endOfFile += sizeof(RecordHeader) + capacity;
 	storageHeader.totalRecords++;
 	saveStorageHeader();
@@ -641,17 +646,17 @@ uint64_t RecordFileIO::getFromFreeList(uint32_t capacity, RecordHeader& result) 
 			removeFromFreeList(freeRecord);
 			RecordHeader lastRecord;
 			// update last record to point to new record
-			getRecordHeader(storageHeader.lastDataRecord, lastRecord);
+			getRecordHeader(storageHeader.lastRecord, lastRecord);
 			lastRecord.next = offset;			
-			putRecordHeader(storageHeader.lastDataRecord, lastRecord);
+			putRecordHeader(storageHeader.lastRecord, lastRecord);
 			// connect new record with previous
 			result.next = NOT_FOUND;
-			result.previous = storageHeader.lastDataRecord;
+			result.previous = storageHeader.lastRecord;
 			result.capacity = freeRecord.capacity;
 			result.length = 0;
 			result.type = 0;
 			// update storage header last record to new record
-			storageHeader.lastDataRecord = offset;
+			storageHeader.lastRecord = offset;
 			storageHeader.totalRecords++;
 			saveStorageHeader();
 			return offset;

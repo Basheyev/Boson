@@ -25,7 +25,7 @@ add_executable (Boson
     "src/test/RecordFileIOTest.cpp" 
     "src/test/RecordFileIOTest.h"
     "src/test/BalancedTreeTest.cpp"
-    "src/test/BalancedTreeTest.h"    )
+    "src/test/BalancedTreeTest.h"     "src/index/BPTreeIndex.h")
 
 set_property(TARGET Boson 
     PROPERTY 

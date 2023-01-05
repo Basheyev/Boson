@@ -41,18 +41,17 @@ bool RecordFileIOTest::generateData(const char* filename, size_t recordsCount) {
 		storage.createRecord(ss.str().c_str(), length);
 	}
 	auto endTime = std::chrono::high_resolution_clock::now();
-	std::cout << "OK in " << (endTime - startTime).count() / 1000000000.0 << "s" << std::endl;
-
-	//cachedFile.close();
+	std::cout << "OK in " << (endTime - startTime).count() / 1000000000.0 << "s";
+	std::cout << " - " << cachedFile.getStats(CachedFileStats::WRITE_THROUGHPUT) << "Mb/s\n";
 
 	return true;
 }
 
 
 
-bool RecordFileIOTest::readAscending(const char* filename) {
+bool RecordFileIOTest::readAscending(const char* filename, bool verbose) {
 	CachedFileIO cachedFile;
-	if (!cachedFile.open(filename)) {
+	if (!cachedFile.open(filename, 16 * 1024 * 1024)) {
 		std::cout << "ERROR: Can't open file '" << filename << "' in write mode.\n";
 		return false;
 	}
@@ -61,7 +60,7 @@ bool RecordFileIOTest::readAscending(const char* filename) {
 
 
 	std::cout << "[TEST] Reading " << db.getTotalRecords() << " data records in ASCENDING order...\n";
-	std::cout << "-----------------------------------------------------------\n\n";
+	if (verbose) std::cout << "-----------------------------------------------------------\n\n";
 	auto startTime = std::chrono::high_resolution_clock::now();
 	db.first();
 	size_t counter = 0;
@@ -73,24 +72,27 @@ bool RecordFileIOTest::readAscending(const char* filename) {
 		next = db.getNextPosition();		
 		db.getRecordData(buffer, length);
 		buffer[length] = 0;
-	/*	std::cout << "Pos: " << db.getPosition();
-		std::cout << " Prev: " << ((prev == NOT_FOUND) ? 0 : prev);
-		std::cout << " Next: " << ((next == NOT_FOUND) ? 0 : next);
-		std::cout << " Length: " << db.getRecordLength();
-		std::cout << "\n";		
-		std::cout <<  buffer << "\n\n";		*/		
+		if (verbose) {
+			std::cout << "Pos: " << db.getPosition();
+			std::cout << " Prev: " << ((prev == NOT_FOUND) ? 0 : prev);
+			std::cout << " Next: " << ((next == NOT_FOUND) ? 0 : next);
+			std::cout << " Length: " << db.getRecordLength();
+			std::cout << "\n";
+			std::cout << buffer << "\n\n";
+		}
 		counter++;
 	} while (db.next());
-	auto endTime = std::chrono::high_resolution_clock::now();
-	std::cout << "Read in " << (endTime - startTime).count() / 1000000000.0 << "s" << std::endl;
+	auto endTime = std::chrono::high_resolution_clock::now();	
 	delete[] buffer;
-	std::cout << "TOTAL READ: " << counter << " records\n\n";
+	std::cout << "TOTAL READ: " << counter << " records ";
+	std::cout << "in " << (endTime - startTime).count() / 1000000000.0 << "s";
+	std::cout << " - " << cachedFile.getStats(CachedFileStats::READ_THROUGHPUT) << "Mb/s\n";
 	return true;
 }
 
 
 
-bool RecordFileIOTest::readDescending(const char* filename) {
+bool RecordFileIOTest::readDescending(const char* filename, bool verbose) {
 	CachedFileIO cachedFile;
 	if (!cachedFile.open(filename)) {
 		std::cout << "ERROR: Can't open file '" << filename << "' in write mode.\n";
@@ -98,7 +100,7 @@ bool RecordFileIOTest::readDescending(const char* filename) {
 	}
 	RecordFileIO db(cachedFile);
 	std::cout << "[TEST] Reading " << db.getTotalRecords() << " data records in DESCENDING order...\n";
-	std::cout << "-----------------------------------------------------------\n\n";
+	if (verbose) std::cout << "-----------------------------------------------------------\n\n";
 	db.last();
 	size_t counter = 0;
 	size_t prev, next;
@@ -109,12 +111,14 @@ bool RecordFileIOTest::readDescending(const char* filename) {
 		next = db.getNextPosition();					
 		db.getRecordData(buffer, length);
 		buffer[length] = 0;
-		std::cout << "Pos: " << db.getPosition();
-		std::cout << " Prev: " << ((prev == NOT_FOUND) ? 0 : prev);
-		std::cout << " Next: " << ((next == NOT_FOUND) ? 0 : next);
-		std::cout << " Length: " << db.getRecordLength();
-		std::cout << "\n";		
-		std::cout  << buffer << "\n\n";
+		if (verbose) {
+			std::cout << "Pos: " << db.getPosition();
+			std::cout << " Prev: " << ((prev == NOT_FOUND) ? 0 : prev);
+			std::cout << " Next: " << ((next == NOT_FOUND) ? 0 : next);
+			std::cout << " Length: " << db.getRecordLength();
+			std::cout << "\n";
+			std::cout << buffer << "\n\n";
+		}
 		counter++;
 	} while (db.previous());
 	delete[] buffer;
@@ -123,7 +127,7 @@ bool RecordFileIOTest::readDescending(const char* filename) {
 }
 
 
-bool RecordFileIOTest::removeEvenRecords(const char* filename) {
+bool RecordFileIOTest::removeEvenRecords(const char* filename, bool verbose) {
 	CachedFileIO cachedFile;
 	if (!cachedFile.open(filename)) {
 		std::cout << "ERROR: Can't open file '" << filename << "' in write mode.\n";
@@ -131,7 +135,7 @@ bool RecordFileIOTest::removeEvenRecords(const char* filename) {
 	}
 	RecordFileIO db(cachedFile);
 	std::cout << "[TEST] Deleting even data records...\n";
-	std::cout << "-----------------------------------------------------------\n\n";
+	if (verbose) std::cout << "-----------------------------------------------------------\n\n";
 	auto startTime = std::chrono::high_resolution_clock::now();
 	db.first();
 	size_t counter = 0;
@@ -140,17 +144,20 @@ bool RecordFileIOTest::removeEvenRecords(const char* filename) {
 		uint32_t length = db.getRecordLength();
 		prev = db.getPrevPosition();
 		next = db.getNextPosition();
-		/*std::cout << "Pos: " << db.getPosition();
-		std::cout << " Prev: " << ((prev == NOT_FOUND) ? 0 : prev);
-		std::cout << " Next: " << ((next == NOT_FOUND) ? 0 : next);
-		std::cout << " Length: " << db.getRecordLength();
-		std::cout << " - DELETED \n";*/
+		if (verbose) {
+			std::cout << "Pos: " << db.getPosition();
+			std::cout << " Prev: " << ((prev == NOT_FOUND) ? 0 : prev);
+			std::cout << " Next: " << ((next == NOT_FOUND) ? 0 : next);
+			std::cout << " Length: " << db.getRecordLength();
+			std::cout << " - DELETED \n";
+		}
 		db.removeRecord();
 		counter++;
 	} while (db.next() && db.next());
-	auto endTime = std::chrono::high_resolution_clock::now();
-	std::cout << "Read in " << (endTime - startTime).count() / 1000000000.0 << "s" << std::endl;
-	std::cout << "TOTAL DELETED: " << counter << " records\n\n";
+	auto endTime = std::chrono::high_resolution_clock::now();	
+	std::cout << "TOTAL DELETED: " << counter << " records ";
+	std::cout << "in " << (endTime - startTime).count() / 1000000000.0 << "s";
+	std::cout << " - " << cachedFile.getStats(CachedFileStats::WRITE_THROUGHPUT) << "Mb/s\n";
 	return true;
 }
 
@@ -176,8 +183,8 @@ bool RecordFileIOTest::insertNewRecords(const char* filename, size_t recordsCoun
 		storage.createRecord(dataPtr, length);
 	}
 	auto endTime = std::chrono::high_resolution_clock::now();
-	std::cout << "OK in " << (endTime - startTime).count() / 1000000000.0 << "s" << std::endl;
-//	cachedFile.close();
+	std::cout << "OK in " << (endTime - startTime).count() / 1000000000.0 << "s";
+	std::cout << " - " << cachedFile.getStats(CachedFileStats::WRITE_THROUGHPUT) << "Mb/s\n";
 	return true;
 }
 
@@ -185,9 +192,19 @@ bool RecordFileIOTest::insertNewRecords(const char* filename, size_t recordsCoun
 void RecordFileIOTest::run(const char* filename) {
 	std::filesystem::remove(filename);
 	generateData(filename, 10);
-	readAscending(filename);
-	removeEvenRecords(filename);
-	readDescending(filename);
+	readAscending(filename,true);
+	removeEvenRecords(filename,true);
+	readDescending(filename, true);
 	insertNewRecords(filename, 3);
-	readAscending(filename);
+	readAscending(filename, true);
+}
+
+
+void RecordFileIOTest::runLoadTest(const char* filename, size_t amount) {
+	std::filesystem::remove(filename);
+	generateData(filename, amount);
+	readAscending(filename, false);
+	removeEvenRecords(filename, false);
+	insertNewRecords(filename, amount / 2);
+	readAscending(filename, false);
 }
