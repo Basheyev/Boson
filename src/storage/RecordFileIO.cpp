@@ -283,7 +283,7 @@ uint64_t RecordFileIO::removeRecord() {
 * @return offset of current record or NOT_FOUND if failed
 *
 */
-uint64_t RecordFileIO::setRecordType(uint32_t recordType) {
+uint64_t RecordFileIO::setRecordType(uint16_t recordType) {
 	if (!cachedFile.isOpen() || currentPosition == NOT_FOUND) return NOT_FOUND;
 	recordHeader.type = recordType;
 	return currentPosition;
@@ -297,7 +297,7 @@ uint64_t RecordFileIO::setRecordType(uint32_t recordType) {
 * @return value of type field of record header or zero if failed
 *
 */
-uint32_t RecordFileIO::getRecordType() {
+uint16_t RecordFileIO::getRecordType() {
 	if (!cachedFile.isOpen() || currentPosition == NOT_FOUND) return 0;
 	return recordHeader.type;
 }
@@ -571,6 +571,7 @@ uint64_t RecordFileIO::createFirstRecord(uint32_t capacity, RecordHeader& result
 	result.capacity = capacity;
 	result.length = 0;
 	result.type = 0;
+	result.isDeleted = 0;
 	// calculate offset right after Storage header
 	uint64_t offset = sizeof StorageHeader;
 	storageHeader.firstRecord = offset;
@@ -608,6 +609,7 @@ uint64_t RecordFileIO::appendNewRecord(uint32_t capacity, RecordHeader& result) 
 	result.capacity = capacity;
 	result.length = 0;
 	result.type = 0;
+	result.isDeleted = 0;
 
 	storageHeader.lastRecord = freeRecordOffset;
 	storageHeader.endOfFile += sizeof(RecordHeader) + capacity;
@@ -655,6 +657,7 @@ uint64_t RecordFileIO::getFromFreeList(uint32_t capacity, RecordHeader& result) 
 			result.capacity = freeRecord.capacity;
 			result.length = 0;
 			result.type = 0;
+			result.isDeleted = 0;
 			// update storage header last record to new record
 			storageHeader.lastRecord = offset;
 			storageHeader.totalRecords++;
@@ -680,7 +683,7 @@ bool RecordFileIO::putToFreeList(uint64_t offset) {
 	size_t prevOffset = storageHeader.lastFreeRecord;
 	if (getRecordHeader(offset, freeRecord) == NOT_FOUND) return false;
 
-	// modify previous free record
+	// modify previous free record to point to new free record
 	if (prevOffset != NOT_FOUND) {
 		getRecordHeader(prevOffset, prevFreeRecord);
 		prevFreeRecord.next = offset;
@@ -691,6 +694,7 @@ bool RecordFileIO::putToFreeList(uint64_t offset) {
 	freeRecord.previous = prevOffset;
 	freeRecord.length = 0;
 	freeRecord.checksum = 0;
+	freeRecord.isDeleted = 1;
 	putRecordHeader(offset, freeRecord);
 
 	// if its first free record, save its offset to the storage header	

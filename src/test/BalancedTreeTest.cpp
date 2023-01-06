@@ -1,6 +1,5 @@
 #define _ITERATOR_DEBUG_LEVEL 0
 
-#include "BalancedTreeIndex.h"
 #include "BalancedTreeTest.h"
 
 using namespace Boson;
@@ -30,7 +29,7 @@ bool BalancedTreeTest::testLeafNode(bool verbose) {
 	bool testPassed = true;
 	cout << "Testing LeafNode class logic:" << endl;
 	//------------------------------------------------------------------------
-	LeafNode<int64_t, char*> ln(10);
+	LeafNode ln;
 	testPassed &= assert(" - create leaf node of order 10...", ln.getKeyCount()==0);
 	//------------------------------------------------------------------------
 	ln.insertKey(10, "Baurzhan");
@@ -79,7 +78,7 @@ bool BalancedTreeTest::testLeafNode(bool verbose) {
 		ln.deleteKey(69) && ln.search(69)==NOT_FOUND);
 	if (verbose) ln.print(1);
 	//------------------------------------------------------------------------
-	LeafNode<int64_t, char*>* splittedNode = (LeafNode<int64_t, char*>*) ln.split();
+	LeafNode* splittedNode = (LeafNode*) ln.split();
 	testPassed &= assert(" - check node split...",
 		ln.getKeyCount() == 4 && !ln.canLendAKey() && splittedNode->getKeyCount() == 5 &&
 		splittedNode->getKeyAt(0)==45);
@@ -109,7 +108,7 @@ bool BalancedTreeTest::testInnerNode(bool verbose) {
 
 bool BalancedTreeTest::testBalancedTree(bool verbose) {
 	bool result = true;
-	BalancedTreeIndex<size_t, string>* bt = buildTree(verbose);
+	BalancedTree* bt = buildTree(verbose);
 	result &= (bt != nullptr);
 	result &= deleteTree(bt, verbose);
 	result &= testPerformance(verbose);
@@ -117,10 +116,10 @@ bool BalancedTreeTest::testBalancedTree(bool verbose) {
 }
 
 
-BalancedTreeIndex<size_t, string>* BalancedTreeTest::buildTree(bool verbose) {
-	BalancedTreeIndex<size_t, string>* bt = new BalancedTreeIndex<size_t, string>(3);
-	cout << "- size of leaf node " << sizeof(LeafNode<size_t, string>) << " bytes" << endl;
-	cout << "- size of inner node " << sizeof(InnerNode<size_t>) << " bytes" << endl;
+BalancedTree* BalancedTreeTest::buildTree(bool verbose) {
+	BalancedTree* bt = new BalancedTree();
+	cout << "- size of leaf node " << sizeof(LeafNode) << " bytes" << endl;
+	cout << "- size of inner node " << sizeof(InnerNode) << " bytes" << endl;
 	bt->insert(10, "Baurzhan");
 	bt->insert(73, "Theya");
 	bt->insert(14, "Bolat");
@@ -146,7 +145,7 @@ BalancedTreeIndex<size_t, string>* BalancedTreeTest::buildTree(bool verbose) {
 }
 
 
-bool BalancedTreeTest::deleteTree(BalancedTreeIndex<size_t, string>* bt, bool verbose) {
+bool BalancedTreeTest::deleteTree(BalancedTree* bt, bool verbose) {
 	cout << "- deleting entries count=" << bt->getEntriesCount() << endl;
 	bt->erase(14);	if (verbose) bt->printTree();
 	bt->erase(11);	if (verbose) bt->printTree();
@@ -183,7 +182,7 @@ bool BalancedTreeTest::deleteTree(BalancedTreeIndex<size_t, string>* bt, bool ve
 bool BalancedTreeTest::testPerformance(bool verbose) {
 
 	size_t entriesCount = 1000000;
-	BalancedTreeIndex<size_t, string>* bt = new BalancedTreeIndex<size_t, string>(32);
+	BalancedTree* bt = new BalancedTree();
 
 	cout << "-------------------------------------------------------------" << endl;
 	cout << "Performance" << endl;
@@ -226,7 +225,7 @@ bool BalancedTreeTest::testPerformance(bool verbose) {
 	start1 = chrono::steady_clock::now();
 	auto keyValue = bt->search(searchKey);
 	end1 = chrono::steady_clock::now();
-	if (keyValue.empty()) cout << "NOT FOUND"; else cout << keyValue;
+	if (keyValue == nullptr) cout << "NOT FOUND"; else cout << keyValue;
 	cout << " (" << (end1 - start1).count() << " ns)" << endl;
 	cout << flush;
 
@@ -239,7 +238,7 @@ bool BalancedTreeTest::testPerformance(bool verbose) {
 
 
 bool BalancedTreeTest::testTextIndex(bool verbose) {
-	BalancedTreeIndex<std::string, double> bti(3);
+	/*BalancedTree bti;
 
 	bti.insert("Bolat", 8.14);
 	bti.insert("Maksat", 9.14);
@@ -257,7 +256,7 @@ bool BalancedTreeTest::testTextIndex(bool verbose) {
 
 	bti.printTree();
 
-	std::cout << bti.search("Zangar") << std::endl;
+	std::cout << bti.search("Zangar") << std::endl;*/
 
 	return true;
 }

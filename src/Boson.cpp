@@ -21,7 +21,7 @@
 #include "RecordFileIO.h"
 #include "RecordFileIOTest.h"
 
-#include "BalancedTreeIndex.h"
+#include "BalancedTree.h"
 #include "BalancedTreeTest.h"
 
 #include <string>
@@ -32,13 +32,13 @@ using namespace std;
 
 int main()
 {
-    //BalancedTreeTest bpt;
-	//bpt.run();
+    BalancedTreeTest bpt;
+	bpt.run();
 	//RecordFileIOTest rst;
 	//rst.run("F:/records.bin");
 	//rst.runLoadTest("F:/largeFile.bin", 1000000);	
-	CachedFileIOTest cft("F:/cachedfile.bin");
-	cft.run(1000000);
+	//CachedFileIOTest cft("F:/cachedfile.bin");
+	//cft.run(1000000);
 	cout << "Storage header: " << sizeof StorageHeader << " bytes" << endl;
 	cout << "Record header: " << sizeof RecordHeader << " bytes" << endl;
 }

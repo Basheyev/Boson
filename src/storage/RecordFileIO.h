@@ -57,11 +57,13 @@ namespace Boson {
 	//----------------------------------------------------------------------------
 	typedef struct {
 		uint64_t    next;              // Next record position in data file
-		uint64_t    previous;          // Previous record position in data file		
+		uint64_t    previous;          // Previous record position in data file				
 		uint32_t    capacity;          // Record length in bytes including padding
 		uint32_t    length;            // Data length in bytes		
-		uint32_t    checksum;          // Checksum for data consistency check
-		uint32_t    type;              // User defined classification of payload
+		uint16_t    type;              // User defined classification of payload
+		uint8_t     isDeleted;         // Deleted flag (0 - false, 1 - true)
+		uint8_t     reserved;          // Reserved byte
+		uint32_t    checksum;          // Checksum for data consistency check		
 	} RecordHeader;
 
 
@@ -87,8 +89,8 @@ namespace Boson {
 		// create, read, update, delete (CRUD)
 		uint64_t createRecord(const void* data, uint32_t length, uint32_t type=0);
 		uint64_t removeRecord();
-		uint64_t setRecordType(uint32_t recordType);
-		uint32_t getRecordType();
+		uint64_t setRecordType(uint16_t recordType);
+		uint16_t getRecordType();
 		uint32_t getRecordLength();
 		uint32_t getRecordCapacity();
 		uint64_t getNextPosition();

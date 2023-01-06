@@ -5,27 +5,40 @@ cmake_minimum_required (VERSION 3.8)
 
 project ("Boson")
 
-include_directories("src/core" "src/index" "src/storage" "src/test")
+include_directories(
+    "src/api" 
+    "src/document" 
+    "src/index" 
+    "src/storage" 
+    "src/test")
 
 # Добавьте источник в исполняемый файл этого проекта.
 add_executable (Boson 
     "src/Boson.cpp" 
     "src/Boson.h" 
-     
-    "src/index/BalancedTreeIndex.h" 
-    
-    
+            
     "src/storage/RecordFileIO.h" 
     "src/storage/RecordFileIO.cpp"   
     "src/storage/CachedFileIO.h" 
     "src/storage/CachedFileIO.cpp" 
-
+    "src/document/Document.h"
+    "src/document/Document.cpp"
+    "src/index/BalancedTree.h" 
+    "src/index/Node.cpp" 
+    "src/index/InnerNode.cpp" 
+    "src/index/LeafNode.cpp" 
+    "src/index/BalancedTree.cpp"    
+    "src/api/BosonAPI.h" 
+    
     "src/test/CachedFileIOTest.h" 
     "src/test/CachedFileIOTest.cpp"  
     "src/test/RecordFileIOTest.cpp" 
     "src/test/RecordFileIOTest.h"
     "src/test/BalancedTreeTest.cpp"
-    "src/test/BalancedTreeTest.h"     "src/index/BPTreeIndex.h")
+    "src/test/BalancedTreeTest.h"     
+
+    # "src/api/BalancedTreeIndex.h" 
+)
 
 set_property(TARGET Boson 
     PROPERTY 
