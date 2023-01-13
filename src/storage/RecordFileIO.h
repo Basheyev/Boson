@@ -34,7 +34,7 @@ namespace Boson {
 	constexpr uint32_t BOSONDB_VERSION = 0x0001;
 
 	//----------------------------------------------------------------------------
-	// Boson storage header structure
+	// Boson storage header structure (72 bytes)
 	//----------------------------------------------------------------------------
 	typedef struct {
 		uint64_t      signature;           // BOSONDB signature
