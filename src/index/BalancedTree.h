@@ -1,12 +1,12 @@
 /******************************************************************************
 *
-*  B+ Tree Index classes header
+*  B+ Tree Index header
 *
 *  BPTreeIndex is designed for quick search of value by key in the storage.
 *  
 *  Features:
 *    - Insert/Search/Update/Delete key-value pairs (ID, Document data)
-*    - Persist changes to storage file
+*    - Persist tree changes to storage file
 *
 *  (C) Boson Database, Bolat Basheyev 2022
 *
@@ -22,10 +22,20 @@
 
 namespace Boson {
 
-	typedef uint64_t KEY;
-	typedef char* VALUE;
-	typedef uint64_t OFFSET;
-	
+
+	using KEY = uint64_t;
+	using VALUE = char*;
+	using OFFSET = uint64_t;
+
+	//--------------------------------------------------------------------------
+	// Index Header
+	//--------------------------------------------------------------------------
+	typedef struct {
+		OFFSET indexRoot;
+		OFFSET recordsCount;
+	};
+
+
 	typedef enum { 
 		INNER = 1, 
 		LEAF = 2 
@@ -35,15 +45,27 @@ namespace Boson {
 	// Node pair: key / offset
 	//-------------------------------------------------------------------------
 	typedef struct {
-		KEY    key;                       // Key - ID of document
-		OFFSET offset;                    // Children / Value position
+		KEY key;                       // Key - ID of document
+		union {                        // Optional:
+			OFFSET childrenOffset;     // 1) Children position
+			OFFSET valueOffset;        // 2) Value position
+		};
 	} NodePair;
+
 	
-	constexpr size_t NODE_PAYLOAD = (PAGE_SIZE - sizeof(RecordHeader)); // FIXME
+	constexpr size_t NODE_PAYLOAD = 128; // fiXme: (PAGE_SIZE - sizeof(RecordHeader)); // FIXME
 	constexpr size_t NODE_CAPACITY = NODE_PAYLOAD / sizeof(NodePair);
 	constexpr size_t TREE_ORDER = NODE_CAPACITY;
 	constexpr size_t MAX_DEGREE = NODE_CAPACITY - 1;
 	constexpr size_t MIN_DEGREE = NODE_CAPACITY / 2;
+
+	typedef struct {
+		OFFSET parent;
+		OFFSET leftSibling;
+		OFFSET rightSibling;
+		size_t keysCount;
+		NodePair pairs[NODE_CAPACITY];
+	} NodeRecord;
 
 	//-------------------------------------------------------------------------
 	// Node base class
@@ -58,14 +80,14 @@ namespace Boson {
 		bool    canLendAKey();
 		KEY     getKeyAt(size_t index);
 		void    setKeyAt(size_t index, KEY key);
-		Node*   getParent();
-		void    setParent(Node* parent);
-		Node*   getLeftSibling();
-		void    setLeftSibling(Node*);
-		Node*   getRightSibling();
-		void    setRightSibling(Node*);
-		Node*   dealOverflow();
-		Node*   dealUnderflow();
+		OFFSET  getParent();
+		void    setParent(OFFSET parent);
+		OFFSET  getLeftSibling();
+		void    setLeftSibling(OFFSET);
+		OFFSET  getRightSibling();
+		void    setRightSibling(OFFSET);
+		OFFSET  dealOverflow();
+		OFFSET  dealUnderflow();
 
 		virtual NodeType getNodeType() = 0;
 		virtual size_t search(KEY key) = 0;
@@ -78,38 +100,11 @@ namespace Boson {
 		virtual void  print(int level) = 0;
 
 	protected:
-		Node* parent;
-		Node* leftSibling;
-		Node* rightSibling;
-		std::vector<KEY> keys;
+
+
+
 		void printTabs(size_t n);
 	};
-
-
-	//---------------------------------------------------------------------------------------------
-	// Inner Node Class
-	//---------------------------------------------------------------------------------------------
-	class InnerNode : public Node {
-	public:
-		InnerNode();
-		~InnerNode();
-		size_t   search(KEY key);
-		Node*    getChildAt(size_t index);
-		void     setChildAt(size_t index, Node* childNode);
-		void     insertAt(size_t index, KEY key, Node* leftChild, Node* rightChild);
-		void     deleteAt(size_t index);
-		Node*    split();
-		Node*    pushUpKey(KEY key, Node* leftChild, Node* rightChild);
-		void     borrowChildren(Node* borrower, Node* lender, size_t borrowIndex);
-		Node*    mergeChildren(Node* leftChild, Node* rightChild);
-		void     mergeWithSibling(KEY key, Node* rightSibling);
-		KEY      borrowFromSibling(KEY key, Node* sibling, size_t borrowIndex);
-		NodeType getNodeType();
-		void     print(int level);
-	protected:
-		std::vector<Node*> children;
-	};
-
 
 
 	//---------------------------------------------------------------------------------------------
@@ -142,11 +137,36 @@ namespace Boson {
 
 
 	//---------------------------------------------------------------------------------------------
+	// Inner Node Class
+	//---------------------------------------------------------------------------------------------
+	class InnerNode : public Node {
+	public:
+		InnerNode();
+		~InnerNode();
+		size_t   search(KEY key);
+		Node* getChildAt(size_t index);
+		void     setChildAt(size_t index, Node* childNode);
+		void     insertAt(size_t index, KEY key, Node* leftChild, Node* rightChild);
+		void     deleteAt(size_t index);
+		Node* split();
+		Node* pushUpKey(KEY key, Node* leftChild, Node* rightChild);
+		void     borrowChildren(Node* borrower, Node* lender, size_t borrowIndex);
+		Node* mergeChildren(Node* leftChild, Node* rightChild);
+		void     mergeWithSibling(KEY key, Node* rightSibling);
+		KEY      borrowFromSibling(KEY key, Node* sibling, size_t borrowIndex);
+		NodeType getNodeType();
+		void     print(int level);
+	protected:
+		std::vector<Node*> children;
+	};
+
+
+	//---------------------------------------------------------------------------------------------
 	// B+ Tree class - KEY/VALUE store index
 	//---------------------------------------------------------------------------------------------
 	class BalancedTree {
 	public:
-		BalancedTree();
+		BalancedTree(RecordFileIO& file);
 		~BalancedTree();
 
 		bool   insert(KEY key, VALUE value);
@@ -163,6 +183,7 @@ namespace Boson {
 		void   printContent();
 
 	private:
+		RecordFileIO& storageFile;
 		size_t entriesCount;
 		Node* root;
 		LeafNode* findLeafNode(KEY key);

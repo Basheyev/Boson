@@ -10,10 +10,11 @@ using namespace Boson;
 	// - M/2 - minimal keys count per Inner node and Key-Value pairs per Leaf node
 	//-------------------------------------------------------------------------------------------------
 Node::Node() {
-	this->parent = nullptr;
-	this->leftSibling = nullptr;
-	this->rightSibling = nullptr;
-	keys.reserve(NODE_CAPACITY);
+	//this->parent = nullptr;
+    //this->leftSibling = nullptr;
+	//this->rightSibling = nullptr;
+	//keys.reserve(NODE_CAPACITY);
+
 }
 
 
@@ -21,7 +22,10 @@ Node::Node() {
 // Node Destructor
 //-------------------------------------------------------------------------------------------------
 Node::~Node() {
-	keys.clear();
+	this->keysCount = 0;
+	this->parent = NOT_FOUND;
+	this->leftSibling = NOT_FOUND;
+	this->rightSibling = NOT_FOUND;	
 }
 
 
@@ -29,7 +33,7 @@ Node::~Node() {
 // Returns Keys count inside Node
 //-------------------------------------------------------------------------------------------------
 size_t Node::getKeyCount() {
-	return keys.size();
+	return keysCount;
 }
 
 
@@ -37,7 +41,7 @@ size_t Node::getKeyCount() {
 // Returns whether node keys count > M-1
 //-------------------------------------------------------------------------------------------------
 bool Node::isOverflow() {
-	return keys.size() > MAX_DEGREE;
+	return keysCount > MAX_DEGREE;
 }
 
 
@@ -45,7 +49,7 @@ bool Node::isOverflow() {
 // Returns whether node keys count < M / 2
 //-------------------------------------------------------------------------------------------------
 bool Node::isUnderflow() {
-	return keys.size() < MIN_DEGREE;
+	return keysCount < MIN_DEGREE;
 
 }
 
@@ -54,7 +58,7 @@ bool Node::isUnderflow() {
 // Returns whether node keys count > M / 2
 //-------------------------------------------------------------------------------------------------
 bool Node::canLendAKey() {
-	return keys.size() > MIN_DEGREE;
+	return keysCount > MIN_DEGREE;
 }
 
 
@@ -62,7 +66,7 @@ bool Node::canLendAKey() {
 // Returns key at specified index
 //-------------------------------------------------------------------------------------------------
 KEY Node::getKeyAt(size_t index) {
-	return keys[index];
+	return pairs[index].key;
 }
 
 
@@ -70,14 +74,14 @@ KEY Node::getKeyAt(size_t index) {
 // Sets key at specified index
 //-------------------------------------------------------------------------------------------------
 void Node::setKeyAt(size_t index, KEY key) {
-	keys[index] = key;
+	pairs[index].key = key;
 }
 
 
 //-------------------------------------------------------------------------------------------------
 // Returns parent node or nullptr if it is root node
 //-------------------------------------------------------------------------------------------------
-Node* Node::getParent() {
+OFFSET Node::getParent() {
 	return parent;
 }
 
@@ -85,7 +89,7 @@ Node* Node::getParent() {
 //-------------------------------------------------------------------------------------------------
 // Sets node parent node
 //-------------------------------------------------------------------------------------------------
-void Node::setParent(Node* parent) {
+void Node::setParent(OFFSET parent) {
 	this->parent = parent;
 }
 
@@ -93,7 +97,7 @@ void Node::setParent(Node* parent) {
 //-------------------------------------------------------------------------------------------------
 // Returns node's left sibling node
 //-------------------------------------------------------------------------------------------------
-Node* Node::getLeftSibling() {
+OFFSET Node::getLeftSibling() {
 	return leftSibling;
 }
 
@@ -101,7 +105,7 @@ Node* Node::getLeftSibling() {
 //-------------------------------------------------------------------------------------------------
 // Sets node's left sibling node
 //-------------------------------------------------------------------------------------------------
-void Node::setLeftSibling(Node* leftSibling) {
+void Node::setLeftSibling(OFFSET leftSibling) {
 	this->leftSibling = leftSibling;
 }
 
@@ -109,7 +113,7 @@ void Node::setLeftSibling(Node* leftSibling) {
 //-------------------------------------------------------------------------------------------------
 // Returns node right sibling node
 //-------------------------------------------------------------------------------------------------
-Node* Node::getRightSibling() {
+OFFSET Node::getRightSibling() {
 	return rightSibling;
 }
 
@@ -117,7 +121,7 @@ Node* Node::getRightSibling() {
 //-------------------------------------------------------------------------------------------------
 // Sets node's right sibling node
 //-------------------------------------------------------------------------------------------------
-void Node::setRightSibling(Node* rightSibling) {
+void Node::setRightSibling(OFFSET rightSibling) {
 	this->rightSibling = rightSibling;
 }
 
@@ -125,7 +129,7 @@ void Node::setRightSibling(Node* rightSibling) {
 //-------------------------------------------------------------------------------------------------
 // Process node overflow scenarios
 //-------------------------------------------------------------------------------------------------
-Node* Node::dealOverflow() {
+OFFSET Node::dealOverflow() {
 
 	// Get key at middle index for propagation to the parent node
 	size_t midIndex = this->getKeyCount() / 2;
@@ -135,9 +139,9 @@ Node* Node::dealOverflow() {
 	Node* newRightNode = this->split();
 
 	// if we are splitting the root node
-	if (getParent() == nullptr) {
+	if (getParent() == NOT_FOUND) {
 		// create new root node and set as parent to this node (grow at root)
-		Node* newRootNode = new InnerNode();
+		OFFSET newRootNode = new InnerNode();
 		this->setParent(newRootNode);
 	}
 

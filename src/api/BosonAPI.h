@@ -3,7 +3,7 @@
 #include "CachedFileIO.h"
 #include "RecordFileIO.h"
 #include "Document.h"
-#include "BalancedTree.h"
+//#include "BalancedTree.h"
 
 #include <string>
 

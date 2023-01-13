@@ -3,7 +3,7 @@
 
 using namespace Boson;
 
-BalancedTree::BalancedTree() {
+BalancedTree::BalancedTree(RecordFileIO& file) : storageFile(file) {
 	this->entriesCount = 0;
 	root = new LeafNode();
 }

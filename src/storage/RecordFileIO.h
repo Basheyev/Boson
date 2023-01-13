@@ -58,12 +58,10 @@ namespace Boson {
 	typedef struct {
 		uint64_t    next;              // Next record position in data file
 		uint64_t    previous;          // Previous record position in data file				
-		uint32_t    capacity;          // Record length in bytes including padding
-		uint32_t    length;            // Data length in bytes		
-		uint16_t    type;              // User defined classification of payload
-		uint8_t     isDeleted;         // Deleted flag (0 - false, 1 - true)
-		uint8_t     reserved;          // Reserved byte
-		uint32_t    checksum;          // Checksum for data consistency check		
+		uint32_t    recordCapacity;    // Record capacity in bytes
+		uint32_t    dataLength;        // Data length in bytes				
+		uint32_t    dataChecksum;      // Checksum for data consistency check		
+		uint32_t    headChecksum;      // Checksum for header consistency check
 	} RecordHeader;
 
 
@@ -87,11 +85,9 @@ namespace Boson {
 		bool     previous();
 
 		// create, read, update, delete (CRUD)
-		uint64_t createRecord(const void* data, uint32_t length, uint32_t type=0);
+		uint64_t createRecord(const void* data, uint32_t length);
 		uint64_t removeRecord();
-		uint64_t setRecordType(uint16_t recordType);
-		uint16_t getRecordType();
-		uint32_t getRecordLength();
+		uint32_t getDataLength();
 		uint32_t getRecordCapacity();
 		uint64_t getNextPosition();
 		uint64_t getPrevPosition();
@@ -109,7 +105,7 @@ namespace Boson {
 		bool     saveStorageHeader();
 		bool     loadStorageHeader();
 		uint64_t getRecordHeader(uint64_t offset, RecordHeader& result);
-		uint64_t putRecordHeader(uint64_t offset, const RecordHeader& header);
+		uint64_t putRecordHeader(uint64_t offset, RecordHeader& header);
 		uint64_t allocateRecord(uint32_t capacity, RecordHeader& result);
 		uint64_t createFirstRecord(uint32_t capacity, RecordHeader& result);
 		uint64_t appendNewRecord(uint32_t capacity, RecordHeader& result);

@@ -67,26 +67,27 @@ bool RecordFileIOTest::readAscending(const char* filename, bool verbose) {
 	size_t prev, next;
 	char* buffer = new char[65536];
 	do {
-		uint32_t length = db.getRecordLength();
+		uint32_t length = db.getDataLength();
 		prev = db.getPrevPosition();
 		next = db.getNextPosition();		
-		db.getRecordData(buffer, length);
+		if (db.getRecordData(buffer, length) == NOT_FOUND) break;
 		buffer[length] = 0;
 		if (verbose) {
 			std::cout << "Pos: " << db.getPosition();
 			std::cout << " Prev: " << ((prev == NOT_FOUND) ? 0 : prev);
 			std::cout << " Next: " << ((next == NOT_FOUND) ? 0 : next);
-			std::cout << " Length: " << db.getRecordLength();
+			std::cout << " Length: " << db.getDataLength();
 			std::cout << "\n";
 			std::cout << buffer << "\n\n";
 		}
 		counter++;
 	} while (db.next());
 	auto endTime = std::chrono::high_resolution_clock::now();	
-	delete[] buffer;
+	delete[] buffer;	
 	std::cout << "TOTAL READ: " << counter << " records ";
 	std::cout << "in " << (endTime - startTime).count() / 1000000000.0 << "s";
-	std::cout << " - " << cachedFile.getStats(CachedFileStats::READ_THROUGHPUT) << "Mb/s\n";
+	std::cout << " - " << cachedFile.getStats(CachedFileStats::READ_THROUGHPUT) << "Mb/s";
+	std::cout << " - [" << ((db.getTotalRecords() == counter) ? "OK]\n" : "FAILED!]\n");
 	return true;
 }
 
@@ -106,16 +107,16 @@ bool RecordFileIOTest::readDescending(const char* filename, bool verbose) {
 	size_t prev, next;
 	char* buffer = new char[65536];
 	do {
-		uint32_t length = db.getRecordLength();
+		uint32_t length = db.getDataLength();
 		prev = db.getPrevPosition();
 		next = db.getNextPosition();					
-		db.getRecordData(buffer, length);
+		if (db.getRecordData(buffer, length)==NOT_FOUND) break;
 		buffer[length] = 0;
 		if (verbose) {
 			std::cout << "Pos: " << db.getPosition();
 			std::cout << " Prev: " << ((prev == NOT_FOUND) ? 0 : prev);
 			std::cout << " Next: " << ((next == NOT_FOUND) ? 0 : next);
-			std::cout << " Length: " << db.getRecordLength();
+			std::cout << " Length: " << db.getDataLength();
 			std::cout << "\n";
 			std::cout << buffer << "\n\n";
 		}
@@ -141,14 +142,14 @@ bool RecordFileIOTest::removeEvenRecords(const char* filename, bool verbose) {
 	size_t counter = 0;
 	size_t prev, next;
 	do {
-		uint32_t length = db.getRecordLength();
+		uint32_t length = db.getDataLength();
 		prev = db.getPrevPosition();
 		next = db.getNextPosition();
 		if (verbose) {
 			std::cout << "Pos: " << db.getPosition();
 			std::cout << " Prev: " << ((prev == NOT_FOUND) ? 0 : prev);
 			std::cout << " Next: " << ((next == NOT_FOUND) ? 0 : next);
-			std::cout << " Length: " << db.getRecordLength();
+			std::cout << " Length: " << db.getDataLength();
 			std::cout << " - DELETED \n";
 		}
 		db.removeRecord();

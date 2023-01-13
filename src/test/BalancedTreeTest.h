@@ -2,7 +2,7 @@
 
 #define _ITERATOR_DEBUG_LEVEL 0
 
-#include "BalancedTree.h"
+//#include "BalancedTree.h"
 
 #include <chrono>
 #include <iostream>
@@ -23,7 +23,7 @@ namespace Boson {
 		bool testPerformance(bool verbose = true);
 		bool testTextIndex(bool verbose = true);
 
-		BalancedTree* buildTree(bool verbose);
+		BalancedTree* buildTree(CachedFileIO& cachedFile, bool verbose);
 		bool deleteTree(BalancedTree* bt, bool verbose);
 	};
 

@@ -12,7 +12,7 @@ namespace Boson {
         Document(std::string);
         ~Document();
     private:
-
+         
     };
 
 

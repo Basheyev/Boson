@@ -108,16 +108,19 @@ bool BalancedTreeTest::testInnerNode(bool verbose) {
 
 bool BalancedTreeTest::testBalancedTree(bool verbose) {
 	bool result = true;
-	BalancedTree* bt = buildTree(verbose);
+	CachedFileIO file;
+	file.open("f:/treedata.bin");
+	BalancedTree* bt = buildTree(file, verbose);
 	result &= (bt != nullptr);
 	result &= deleteTree(bt, verbose);
 	result &= testPerformance(verbose);
+	file.close();
 	return result;
 }
 
 
-BalancedTree* BalancedTreeTest::buildTree(bool verbose) {
-	BalancedTree* bt = new BalancedTree();
+BalancedTree* BalancedTreeTest::buildTree(CachedFileIO& cachedFile, bool verbose) {
+	BalancedTree* bt = new BalancedTree(RecordFileIO(cachedFile));
 	cout << "- size of leaf node " << sizeof(LeafNode) << " bytes" << endl;
 	cout << "- size of inner node " << sizeof(InnerNode) << " bytes" << endl;
 	bt->insert(10, "Baurzhan");
@@ -182,7 +185,10 @@ bool BalancedTreeTest::deleteTree(BalancedTree* bt, bool verbose) {
 bool BalancedTreeTest::testPerformance(bool verbose) {
 
 	size_t entriesCount = 1000000;
-	BalancedTree* bt = new BalancedTree();
+
+	CachedFileIO file;
+	file.open("f:/treeperformance.bin");
+	BalancedTree* bt = new BalancedTree(RecordFileIO(file));
 
 	cout << "-------------------------------------------------------------" << endl;
 	cout << "Performance" << endl;
@@ -231,6 +237,8 @@ bool BalancedTreeTest::testPerformance(bool verbose) {
 
 
 	delete[] value;
+
+	file.close();
 
 	return true;
 }
