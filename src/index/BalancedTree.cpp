@@ -3,14 +3,36 @@
 
 using namespace Boson;
 
+
+//-------------------------------------------------------------------------------------------------
+// Balanced+ Tree Constructor
+//-------------------------------------------------------------------------------------------------
 BalancedTree::BalancedTree(RecordFileIO& file) : storageFile(file) {
-	this->entriesCount = 0;
-	root = new LeafNode();
+	
+	bool newDatabase = false;
+
+	// Go to first record
+	if (storageFile.first()) {
+		// Read index header
+		uint64_t offset = storageFile.getRecordData(indexHeader, sizeof IndexHeader);
+		if (offset != NOT_FOUND) {
+			
+			return;
+		}
+		newDatabase = true;
+	} else {
+		newDatabase = true;
+	}
+
+	if (newDatabase) {
+		indexHeader.rootOffset = createLeafNode();
+	}
+		
 }
 
 
 //-------------------------------------------------------------------------------------------------
-// Balanced Tree Desctructor
+// Balanced+ Tree Desctructor
 //-------------------------------------------------------------------------------------------------
 BalancedTree::~BalancedTree() {
 	delete root;
@@ -67,16 +89,16 @@ bool BalancedTree::erase(KEY key) {
 //-------------------------------------------------------------------------------------------------
 // Search for LeafNode that contains specified key
 //-------------------------------------------------------------------------------------------------
-LeafNode* BalancedTree::findLeafNode(KEY key) {
-	Node* node = root;
-	InnerNode* innerNode;
+OFFSET BalancedTree::findLeafNode(KEY key) {
+	OFFSET node = root;
+	OFFSET innerNode;
 	size_t index;
 	while (node->getNodeType() == NodeType::INNER) {
 		index = node->search(key);
-		innerNode = (InnerNode*)node;
+		innerNode = node;
 		node = innerNode->getChildAt(index);
 	}
-	return (LeafNode*)node;
+	return node;
 }
 
 
@@ -93,9 +115,9 @@ size_t BalancedTree::getTreeOrder() {
 //-------------------------------------------------------------------------------------------------
 size_t BalancedTree::getTreeHeight() {
 	size_t levelCounter = 0;
-	Node* firstLeaf = root;
+	OFFSET firstLeaf = root;
 	while (firstLeaf->getNodeType() == NodeType::INNER) {
-		firstLeaf = ((InnerNode*)firstLeaf)->getChildAt(0);
+		firstLeaf = firstLeaf->getChildAt(0);
 		levelCounter++;
 	}
 	return levelCounter;
@@ -112,11 +134,29 @@ size_t BalancedTree::getEntriesCount() {
 //-------------------------------------------------------------------------------------------------
 // Returns tree root
 //-------------------------------------------------------------------------------------------------
-Node* BalancedTree::getRoot() {
-	return root;
+OFFSET BalancedTree::getRoot() {
+	return indexHeader.rootOffset;
 }
 
+//-------------------------------------------------------------------------------------------------
 
+OFFSET BalancedTree::createLeafNode() {
+	return NOT_FOUND;
+}
+
+OFFSET BalancedTree::createInnerNode() {
+	return NOT_FOUND;
+}
+
+bool BalancedTree::removeLeafNode(OFFSET pos) {
+	return false;
+}
+
+bool BalancedTree::removeInnerNode(OFFSET pos) {
+	return false;
+}
+
+//-------------------------------------------------------------------------------------------------
 
 void BalancedTree::printTree() {
 	std::cout << "----------------------------------------" << std::endl;
@@ -126,7 +166,7 @@ void BalancedTree::printTree() {
 
 void BalancedTree::printContent() {
 	std::cout << "----------------------------------------" << std::endl;
-	Node* firstLeaf = root;
+	OFFSET firstLeaf = root;
 	// go down tree
 	while (firstLeaf->getNodeType() == NodeType::INNER) {
 		firstLeaf = ((InnerNode*)firstLeaf)->getChildAt(0);

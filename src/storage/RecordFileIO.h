@@ -30,21 +30,20 @@ namespace Boson {
 	//----------------------------------------------------------------------------
 	// Boson storage header signature and version
 	//----------------------------------------------------------------------------
-	constexpr uint64_t BOSONDB_SIGNATURE = 0x0042444E4F534F42;
-	constexpr uint32_t BOSONDB_VERSION = 0x0001;
-
+	constexpr uint32_t BOSONDB_SIGNATURE = 0x42445342; // BSDB signature
+	constexpr uint32_t BOSONDB_VERSION   = 0x00000001; // Version 1
+	
 	//----------------------------------------------------------------------------
-	// Boson storage header structure (72 bytes)
+	// Boson storage header structure (64 bytes)
 	//----------------------------------------------------------------------------
 	typedef struct {
-		uint64_t      signature;           // BOSONDB signature
+		uint32_t      signature;           // BSDB signature
 		uint32_t      version;             // Format version		
-		uint32_t      flags;               // Reserved for flags
 		uint64_t      endOfFile;           // Size of file
 
 		uint64_t      totalRecords;        // Total number of records
-		uint64_t      firstRecord;         // First data record
-		uint64_t      lastRecord;          // Last data record
+		uint64_t      firstRecord;         // First record offset
+		uint64_t      lastRecord;          // Last record offset
 
 		uint64_t      totalFreeRecords;    // Total number of free records
 		uint64_t      firstFreeRecord;     // First free record offset
