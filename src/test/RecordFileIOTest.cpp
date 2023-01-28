@@ -86,7 +86,7 @@ bool RecordFileIOTest::readAscending(const char* filename, bool verbose) {
 		if (db.getRecordData(buffer, length) == NOT_FOUND) break;
 		buffer[length] = 0;
 		if (verbose) {
-			std::cout << "Record at posistion: " << db.getPosition();
+			std::cout << "Record at position: " << db.getPosition();
 			std::cout << " Previous: " << ((prev == NOT_FOUND) ? 0 : prev);
 			std::cout << " Next: " << ((next == NOT_FOUND) ? 0 : next);
 			std::cout << " Length: " << db.getDataLength();
