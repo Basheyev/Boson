@@ -23,23 +23,36 @@ using namespace Boson;
 *  @param[in] recordsCount - total records to generate
 */
 bool RecordFileIOTest::generateData(const char* filename, size_t recordsCount) {
+
 	CachedFileIO cachedFile;
+	char buffer[1024] = { 0 };
+
 	if (!cachedFile.open(filename)) {
 		std::cout << "ERROR: Can't open file '" << filename << "' in write mode.\n";
 		return false;
 	}
+
 	// Wrapper
 	RecordFileIO storage(cachedFile);
 	std::cout << "[TEST] Generating " << recordsCount << " data records...";
+
 	auto startTime = std::chrono::high_resolution_clock::now();
 	uint32_t length;
+	
+	
+	uint32_t randomNumber;	
+	uint32_t padding = 16;
 	for (size_t i = 0; i < recordsCount; i++) {
 		std::stringstream ss;
-		ss << "Generated record data #" << i << " and " << std::rand();
-		if (std::rand() % 2) ss << " with optional";
-		length = (uint32_t)ss.str().length() + 16;
-		storage.createRecord(ss.str().c_str(), length);
+		randomNumber = std::rand();
+		ss << "This is record data #" << i << " and random number " << randomNumber;
+		if (randomNumber % 2) ss << " with optional length of this string";
+		length = (uint32_t)ss.str().length();
+		memset(buffer, 0, sizeof(buffer));
+		memcpy(buffer, ss.str().c_str(), length);
+		storage.createRecord(buffer, length + padding);		
 	}
+
 	auto endTime = std::chrono::high_resolution_clock::now();
 	std::cout << "OK in " << (endTime - startTime).count() / 1000000000.0 << "s";
 	std::cout << " - " << cachedFile.getStats(CachedFileStats::WRITE_THROUGHPUT) << "Mb/s\n";
@@ -73,12 +86,12 @@ bool RecordFileIOTest::readAscending(const char* filename, bool verbose) {
 		if (db.getRecordData(buffer, length) == NOT_FOUND) break;
 		buffer[length] = 0;
 		if (verbose) {
-			std::cout << "Pos: " << db.getPosition();
-			std::cout << " Prev: " << ((prev == NOT_FOUND) ? 0 : prev);
+			std::cout << "Record at posistion: " << db.getPosition();
+			std::cout << " Previous: " << ((prev == NOT_FOUND) ? 0 : prev);
 			std::cout << " Next: " << ((next == NOT_FOUND) ? 0 : next);
 			std::cout << " Length: " << db.getDataLength();
 			std::cout << "\n";
-			std::cout << buffer << "\n\n";
+			std::cout << "Data: '" << buffer << "'\n\n";
 		}
 		counter++;
 	} while (db.next());
@@ -113,12 +126,12 @@ bool RecordFileIOTest::readDescending(const char* filename, bool verbose) {
 		if (db.getRecordData(buffer, length)==NOT_FOUND) break;
 		buffer[length] = 0;
 		if (verbose) {
-			std::cout << "Pos: " << db.getPosition();
-			std::cout << " Prev: " << ((prev == NOT_FOUND) ? 0 : prev);
+			std::cout << "Record at position: " << db.getPosition();
+			std::cout << " Previous: " << ((prev == NOT_FOUND) ? 0 : prev);
 			std::cout << " Next: " << ((next == NOT_FOUND) ? 0 : next);
 			std::cout << " Length: " << db.getDataLength();
 			std::cout << "\n";
-			std::cout << buffer << "\n\n";
+			std::cout << "Data: '" << buffer << "'\n\n";
 		}
 		counter++;
 	} while (db.previous());
