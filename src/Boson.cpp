@@ -21,7 +21,7 @@
 #include "RecordFileIO.h"
 #include "RecordFileIOTest.h"
 
-#include "BalancedTree.h"
+#include "BalancedIndex.h"
 #include "BalancedTreeTest.h"
 
 #include <string>
@@ -35,8 +35,8 @@ int main()
     //BalancedTreeTest bpt;
 	//bpt.run();
 	RecordFileIOTest rst;
-	rst.run("F:/records.bin");
-	//rst.runLoadTest("F:/largeFile.bin", 1000000);	
+	//rst.run("F:/records.bin");
+	rst.runLoadTest("F:/largeFile.bin", 1000000);	
 	//CachedFileIOTest cft("F:/cachedfile.bin");
 	//cft.run(1000000);
 }

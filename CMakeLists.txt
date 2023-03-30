@@ -21,24 +21,19 @@ add_executable (Boson
     "src/storage/RecordFileIO.cpp"   
     "src/storage/CachedFileIO.h" 
     "src/storage/CachedFileIO.cpp" 
-    "src/document/Document.h"
-    "src/document/Document.cpp"
-   # "src/index/BalancedTree.h" 
-   # "src/index/Node.cpp" 
-   # "src/index/InnerNode.cpp" 
-   # "src/index/LeafNode.cpp" 
-   # "src/index/BalancedTree.cpp"    
-    "src/api/BosonAPI.h" 
+
+    
+     
     
     "src/test/CachedFileIOTest.h" 
     "src/test/CachedFileIOTest.cpp"  
-    "src/test/RecordFileIOTest.cpp" 
     "src/test/RecordFileIOTest.h"
+    "src/test/RecordFileIOTest.cpp" 
+    
    # "src/test/BalancedTreeTest.cpp"
    # "src/test/BalancedTreeTest.h"     
-
-    # "src/api/BalancedTreeIndex.h" 
-)
+   # "src/api/BalancedTreeIndex.h" 
+  "src/index/BalancedIndex.h" "src/index/BalancedIndex.cpp" "src/index/Node.cpp")
 
 set_property(TARGET Boson 
     PROPERTY 

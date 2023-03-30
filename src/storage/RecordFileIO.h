@@ -13,7 +13,7 @@
 *    - reuse space of deleted records
 *    - data consistency check (checksum)
 *
-*  (C) Boson Database, Bolat Basheyev 2022
+*  (C) Boson Database, Bolat Basheyev 2022-2023
 *
 ******************************************************************************/
 #pragma once
@@ -71,6 +71,7 @@ namespace Boson {
 	public:
 		RecordFileIO(CachedFileIO& cachedFile, size_t freeDepth = NOT_FOUND);
 		~RecordFileIO();
+		bool     isOpen();
 		uint64_t getTotalRecords();
 		uint64_t getTotalFreeRecords();
 		void     setFreeRecordLookupDepth(uint64_t maxDepth) { freeLookupDepth = maxDepth; }

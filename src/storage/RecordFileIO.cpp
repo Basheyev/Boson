@@ -13,7 +13,7 @@
 *    - reuse space of deleted records
 *    - data consistency check (checksum)
 *
-*  (C) Boson Database, Bolat Basheyev 2022
+*  (C) Boson Database, Bolat Basheyev 2022-2023
 *
 ******************************************************************************/
 
@@ -68,6 +68,15 @@ RecordFileIO::~RecordFileIO() {
 	if (!cachedFile.isOpen()) return;	
 	saveStorageHeader();
 	cachedFile.flush();
+}
+
+
+/**
+* @brief Checks if file is open 
+* @return true if file is open, or false otherwise
+*/
+bool RecordFileIO::isOpen() {
+	return cachedFile.isOpen();
 }
 
 

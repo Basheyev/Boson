@@ -2,11 +2,13 @@
 
 #define _ITERATOR_DEBUG_LEVEL 0
 
-//#include "BalancedTree.h"
+#include "BalancedTreeIndex.h"
 
 #include <chrono>
 #include <iostream>
 #include <string>
+
+
 
 namespace Boson {
 
@@ -23,8 +25,8 @@ namespace Boson {
 		bool testPerformance(bool verbose = true);
 		bool testTextIndex(bool verbose = true);
 
-		BalancedTree* buildTree(CachedFileIO& cachedFile, bool verbose);
-		bool deleteTree(BalancedTree* bt, bool verbose);
+		Research::BalancedTreeIndex<size_t, char*>* buildTree(CachedFileIO& cachedFile, bool verbose);
+		bool deleteTree(Research::BalancedTreeIndex<size_t, char*>* bt, bool verbose);
 	};
 
 };
