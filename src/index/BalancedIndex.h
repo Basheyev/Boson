@@ -31,7 +31,7 @@ namespace Boson {
         uint64_t parent;
         uint64_t leftSibling;
         uint64_t rightSibling;
-        uint32_t nodeType;
+        NodeType nodeType;
         uint32_t keysCount;
         uint64_t keys[TREE_ORDER];
         union {
@@ -46,11 +46,13 @@ namespace Boson {
     friend class BalancedIndex;
     public:
 
+        Node(BalancedIndex& bi, NodeType type);
         Node(BalancedIndex& bi, uint64_t offsetInFile);
         ~Node();
-
+                
         void persist();
 
+        NodeType getNodeType();
         uint32_t getKeyCount();
         bool     isOverflow();
         bool     isUnderflow();
@@ -60,7 +62,7 @@ namespace Boson {
         uint64_t getParent();
         void     setParent(uint64_t parentPosition);
         uint64_t getLeftSibling();
-        void     setLeftSibling(uint64_t silbingPosition);
+        void     setLeftSibling(uint64_t siblingPosition);
         uint64_t getRightSibling();
         void     setRightSibling(uint64_t siblingPosition);
         uint64_t dealOverflow();
@@ -72,7 +74,7 @@ namespace Boson {
         NodeData data;                // node data
         bool isPersisted;             // is data persisted to storage
 
-        virtual NodeType getNodeType() = 0;
+
         virtual uint32_t search(uint64_t key) = 0;
         virtual uint64_t split() = 0;
         virtual uint64_t pushUpKey(uint64_t key, uint64_t leftChild, uint64_t rightChild) = 0;

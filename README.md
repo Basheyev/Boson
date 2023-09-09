@@ -21,15 +21,15 @@ and level of abstraction. From low-level like cache to high level
 abstraction like API working with document store entities.
 
      ---------------------------------------------------
-    |                     Boson API                     |      -  API Layer (Key/Value)
+    |                    Boson API                      |      -  API Layer (Key/Value)
      ---------------------------------------------------     
                               |
      ---------------------------------------------------
-    |                    B+ Tree Index                  |      -  Index Layer
+    |                   B+ Tree Index                   |      -  Index Layer
      ---------------------------------------------------
                               |     
      ---------------------------------------------------
-    |                     Storage I/O                   |      -  Collections & Records Storage Layer
+    |                Records Storage I/O                |      -  Collections & Records Storage Layer
      ---------------------------------------------------
                               |                           
      ---------------------------------------------------
