@@ -70,6 +70,9 @@ bool BalancedIndex::getValue(std::string& value) {
 }
 
 
+RecordFileIO& BalancedIndex::getRecordsFile() {
+    return records;
+}
 
 uint64_t BalancedIndex::allocateSpace(uint32_t size) {
     return NOT_FOUND;

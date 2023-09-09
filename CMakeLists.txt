@@ -33,7 +33,7 @@ add_executable (Boson
    # "src/test/BalancedTreeTest.cpp"
    # "src/test/BalancedTreeTest.h"     
    # "src/api/BalancedTreeIndex.h" 
-  "src/index/BalancedIndex.h" "src/index/BalancedIndex.cpp" "src/index/Node.cpp")
+  "src/index/BalancedIndex.h" "src/index/BalancedIndex.cpp" "src/index/Node.cpp"  )
 
 set_property(TARGET Boson 
     PROPERTY 

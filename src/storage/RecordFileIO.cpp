@@ -367,13 +367,15 @@ uint64_t RecordFileIO::getRecordData(void* data, uint32_t length) {
 
 /*
 *
-* @brief Updates record's data in current position
+* @brief Updates record's data in current position.
+* if data length exceeds current record capacity, 
+* then record moves to new place with appropriate capacity.
 *
 * @param[in] data - pointer to new data
 * @param[in] length - length of data in bytes
 * @param[out] result - updated record header information
 *
-* @return returns offset of the new record or NOT_FOUND if fails
+* @return returns current offset of record or NOT_FOUND if fails
 *
 */
 uint64_t RecordFileIO::setRecordData(const void* data, uint32_t length) {
@@ -389,9 +391,6 @@ uint64_t RecordFileIO::setRecordData(const void* data, uint32_t length) {
 		cachedFile.write(currentPosition + HEADER_SIZE, data, length);
 		return currentPosition;
 	}
-
-
-	// FIXME: Changing record position (how to notify index?)
 
 	// if there is not enough record capacity, then move record		
 	RecordHeader newRecordHeader;

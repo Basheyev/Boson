@@ -1,8 +1,11 @@
 /******************************************************************************
 *
 *  Balanced Index
+* 
+*  Persistent key/value index based on B+ tree for search acceleration
+* 
 *
-*  (C) Boson Database, Bolat Basheyev 2022
+*  (C) Boson Database, Bolat Basheyev 2022-2023
 *
 ******************************************************************************/
 #pragma once
@@ -21,7 +24,7 @@ namespace Boson {
     constexpr uint64_t MAX_DEGREE = TREE_ORDER - 1;
     constexpr uint64_t MIN_DEGREE = TREE_ORDER / 2;
 
-    typedef enum { INNER = 1, LEAF = 2 } NodeType;
+    typedef enum : uint32_t { INNER = 1, LEAF = 2 } NodeType;
 
 
     typedef struct {
@@ -43,10 +46,10 @@ namespace Boson {
     friend class BalancedIndex;
     public:
 
-        Node(BalancedIndex& bi, uint64_t position);
+        Node(BalancedIndex& bi, uint64_t offsetInFile);
         ~Node();
 
-        bool persist();
+        void persist();
 
         uint32_t getKeyCount();
         bool     isOverflow();
@@ -63,6 +66,12 @@ namespace Boson {
         uint64_t dealOverflow();
         uint64_t dealUnderflow();
 
+    protected:
+        BalancedIndex& index;         // reference to index   
+        uint64_t position;            // offset in file
+        NodeData data;                // node data
+        bool isPersisted;             // is data persisted to storage
+
         virtual NodeType getNodeType() = 0;
         virtual uint32_t search(uint64_t key) = 0;
         virtual uint64_t split() = 0;
@@ -70,12 +79,7 @@ namespace Boson {
         virtual uint64_t mergeChildren(uint64_t leftChild, uint64_t rightChild) = 0;
         virtual void  mergeWithSibling(uint64_t key, uint64_t rightSibling) = 0;
         virtual uint64_t borrowFromSibling(uint64_t key, uint64_t sibling, uint32_t borrowIndex) = 0;
-        virtual void  borrowChildren(uint64_t borrower, uint64_t lender, uint32_t borrowIndex) = 0;
-
-    protected:
-        BalancedIndex& index;            
-        uint64_t position;
-        NodeData data;
+        virtual void  borrowChildren(uint64_t borrow0er, uint64_t lender, uint32_t borrowIndex) = 0;
     };
           
 
@@ -101,8 +105,10 @@ namespace Boson {
         
     protected:
 
+        RecordFileIO& getRecordsFile();
         uint64_t allocateSpace(uint32_t size);
         bool releaseSpace(uint64_t position);
+        
 
 
     private:
