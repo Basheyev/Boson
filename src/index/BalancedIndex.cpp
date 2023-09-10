@@ -74,10 +74,3 @@ RecordFileIO& BalancedIndex::getRecordsFile() {
     return records;
 }
 
-uint64_t BalancedIndex::allocateSpace(uint32_t size) {
-    return NOT_FOUND;
-}
-
-bool BalancedIndex::releaseSpace(uint64_t position) {
-    return false;
-}

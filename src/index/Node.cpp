@@ -175,12 +175,71 @@ void Node::setRightSibling(uint64_t siblingPosition) {
 }
 
 
+// TODO: refactor
 uint64_t Node::dealOverflow() {
+    /*
+    // Get key at middle index for propagation to the parent node
+    size_t midIndex = this->getKeyCount() / 2;
+    uint64_t upKey = this->getKeyAt(midIndex);
+
+    // Split this node by half (returns new splitted node)
+    Node& newRightNode = index.getNode(split());
+
+    // if we are splitting the root node
+    if (getParent() == NOT_FOUND) {
+        // create new root node and set as parent to this node (grow at root)
+        Node& newRootNode = new InnerNode(index);
+        this->setParent(newRootNode.position);
+    }
+
+    // Interconnect splitted node's parent and siblings
+    newRightNode.setParent(getParent());
+    newRightNode.setLeftSibling(this->position);
+    newRightNode.setRightSibling(this->getRightSibling());
+    if (this->getRightSibling() != NOT_FOUND) {
+        index.getNode(this->getRightSibling()).setLeftSibling(newRightNode.position);
+    }
+    this->setRightSibling(newRightNode.position);
+
+    // Push middle key up to parent the node (root node returned)
+    uint64_t rootNode = index.getNode(getParent()).pushUpKey(upKey, position, newRightNode.position);
+
+    // Return current root node
+    return rootNode;*/
     return NOT_FOUND;
 }
 
 
+// TODO: refactor
 uint64_t Node::dealUnderflow() {
+    /*
+    // if this is the root node, then do nothing and return
+    if (this->getParent() == NOT_FOUND) return NOT_FOUND;
+
+    // 1. Try to borrow top key from left sibling
+    if (getLeftSibling() != NOT_FOUND && getleftSibling()->canLendAKey() && getLeftSibling()->parent == parent) {
+        size_t keyIndex = leftSibling->getKeyCount() - 1;
+        this->parent->borrowChildren(this, leftSibling, keyIndex);
+        return nullptr;
+    }
+
+    // 2. Try to borrow lower key from right sibling
+    if (rightSibling != nullptr && rightSibling->canLendAKey() && rightSibling->parent == parent) {
+        size_t keyIndex = 0;
+        this->parent->borrowChildren(this, rightSibling, keyIndex);
+        return nullptr;
+    }
+
+    if (leftSibling != nullptr && leftSibling->parent == parent) {
+        // 3. Try to merge with left sibling
+        Node<KEY>* rootNode = parent->mergeChildren(leftSibling, this);
+        return rootNode;
+    }
+    else {
+        // 4. Try to merge with right sibling
+        Node<KEY>* rootNode = parent->mergeChildren(this, rightSibling);
+        return rootNode;
+    }*/
     return NOT_FOUND;
 }
 

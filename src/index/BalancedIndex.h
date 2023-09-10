@@ -26,6 +26,7 @@ namespace Boson {
 
     typedef enum : uint32_t { INNER = 1, LEAF = 2 } NodeType;
 
+    //-------------------------------------------------------------------------
 
     typedef struct {
         uint64_t parent;
@@ -40,18 +41,15 @@ namespace Boson {
         };
     } NodeData;
 
-
+    //-------------------------------------------------------------------------
 
     class Node {
     friend class BalancedIndex;
     public:
-
         Node(BalancedIndex& bi, NodeType type);
         Node(BalancedIndex& bi, uint64_t offsetInFile);
         ~Node();
-                
         void persist();
-
         NodeType getNodeType();
         uint32_t getKeyCount();
         bool     isOverflow();
@@ -67,14 +65,11 @@ namespace Boson {
         void     setRightSibling(uint64_t siblingPosition);
         uint64_t dealOverflow();
         uint64_t dealUnderflow();
-
     protected:
         BalancedIndex& index;         // reference to index   
         uint64_t position;            // offset in file
         NodeData data;                // node data
         bool isPersisted;             // is data persisted to storage
-
-
         virtual uint32_t search(uint64_t key) = 0;
         virtual uint64_t split() = 0;
         virtual uint64_t pushUpKey(uint64_t key, uint64_t leftChild, uint64_t rightChild) = 0;
@@ -84,34 +79,74 @@ namespace Boson {
         virtual void  borrowChildren(uint64_t borrow0er, uint64_t lender, uint32_t borrowIndex) = 0;
     };
           
+    //-------------------------------------------------------------------------
 
+    class InnerNode : public Node {
+    public:
+        InnerNode(BalancedIndex& bi);
+        InnerNode(BalancedIndex& bi, uint64_t offsetInFile);
+        ~InnerNode();
+        uint32_t   search(uint64_t key);
+        uint64_t   getChildAt(uint32_t index);
+        void       setChildAt(uint32_t index, uint64_t childNode);
+        void       insertAt(uint32_t index, uint64_t key, uint64_t leftChild, uint64_t rightChild);
+        void       deleteAt(uint32_t index);
+        uint64_t   split();
+        uint64_t   pushUpKey(uint64_t key, uint64_t leftChild, uint64_t rightChild);
+        void       borrowChildren(uint64_t borrower, uint64_t lender, uint32_t borrowIndex);
+        uint64_t   mergeChildren(uint64_t leftChild, uint64_t rightChild);
+        void       mergeWithSibling(uint64_t key, uint64_t rightSibling);
+        uint64_t   borrowFromSibling(uint64_t key, uint64_t sibling, uint32_t borrowIndex);
+        NodeType   getNodeType();
+    };
+
+
+    //-------------------------------------------------------------------------
+
+    class LeafNode : public Node {
+    public:
+        LeafNode(BalancedIndex& bi);
+        LeafNode(BalancedIndex& bi, uint64_t offsetInFile);
+        ~LeafNode();
+        uint32_t search(uint64_t key);
+        uint64_t getValueAt(uint32_t index);
+        void     setValueAt(uint32_t index, const std::string& value);
+        bool     insertKey(uint64_t key, const std::string& value);
+        void     insertAt(uint32_t index, uint64_t key, const std::string& value);
+        bool     deleteKey(uint64_t key);
+        void     deleteAt(uint32_t index);
+        uint64_t split();
+        void     merge(uint64_t key, uint64_t siblingRight);
+        uint64_t pushUpKey(uint64_t key, uint64_t leftChild, uint64_t rightChild);
+        void     borrowChildren(uint64_t borrower, uint64_t lender, uint32_t borrowIndex);
+        uint64_t mergeChildren(uint64_t leftChild, uint64_t rightChild);
+        void     mergeWithSibling(uint64_t key, uint64_t rightSibling);
+        uint64_t borrowFromSibling(uint64_t key, uint64_t sibling, uint32_t borrowIndex);
+        NodeType getNodeType();
+    private:
+        uint32_t searchPlaceFor(uint64_t key);
+    };
+
+    //-------------------------------------------------------------------------
 
     class BalancedIndex {
     friend class Node;
     public:
-        
         BalancedIndex(RecordFileIO& rf);
         ~BalancedIndex();                
-        
         bool insert(uint64_t key, const std::string& value);
         bool update(uint64_t key, const std::string& value);
         bool search(uint64_t key, std::string& value);
         bool erase(uint64_t key);
-        
         uint64_t getEntriesCount();
         bool first();
         bool last();
         bool next();
         bool previous();
         bool getValue(std::string& value);
-        
     protected:
-
         RecordFileIO& getRecordsFile();
-        uint64_t allocateSpace(uint32_t size);
-        bool releaseSpace(uint64_t position);
-        
-
+        Node& getNode(uint64_t position);
 
     private:
 
