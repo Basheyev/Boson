@@ -15,7 +15,8 @@ using namespace Boson;
 
 
 BalancedIndex::BalancedIndex(RecordFileIO& rf) : records(rf) {
-
+    rootPosition = 0;
+    cursorPosition = 0;
 }
 
 
@@ -74,3 +75,17 @@ RecordFileIO& BalancedIndex::getRecordsFile() {
     return records;
 }
 
+Node& BalancedIndex::getNode(uint64_t position) {
+
+    // fixme
+    records.setPosition(position);
+    uint32_t dataLength = records.getDataLength();
+    uint8_t* buffer = new uint8_t[dataLength];
+    records.getRecordData(buffer, dataLength);
+
+    
+    // warning - it's just a stub, not working
+    Node* node = (Node*) buffer;
+    
+    return *node;
+}

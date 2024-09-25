@@ -89,8 +89,12 @@ if it has "dirty" mark, page persisted on the storage device.
 
 ### 3.2. Records Storage I/O
 
-Storage file consist of database header and **double linked list 
-of records**.
+Storage file consists of a database header and two **double-linked lists 
+of records** - one for data records and the second for deleted records.
+When a new record is created algorithm searches available deleted records
+of the appropriate size to efficiently utilize used space. If there is no
+suitable deleted record of appropriate size, a new data record is created at
+the end of the file.
 
 
 #### 3.2.1. Records

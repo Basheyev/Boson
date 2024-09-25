@@ -177,7 +177,7 @@ void Node::setRightSibling(uint64_t siblingPosition) {
 
 // TODO: refactor
 uint64_t Node::dealOverflow() {
-    /*
+    
     // Get key at middle index for propagation to the parent node
     size_t midIndex = this->getKeyCount() / 2;
     uint64_t upKey = this->getKeyAt(midIndex);
@@ -188,8 +188,11 @@ uint64_t Node::dealOverflow() {
     // if we are splitting the root node
     if (getParent() == NOT_FOUND) {
         // create new root node and set as parent to this node (grow at root)
-        Node& newRootNode = new InnerNode(index);
+        InnerNode* handler = new InnerNode(index);
+        Node& newRootNode = *handler;
         this->setParent(newRootNode.position);
+        this->persist();
+        delete handler;
     }
 
     // Interconnect splitted node's parent and siblings
@@ -203,26 +206,28 @@ uint64_t Node::dealOverflow() {
 
     // Push middle key up to parent the node (root node returned)
     uint64_t rootNode = index.getNode(getParent()).pushUpKey(upKey, position, newRightNode.position);
-
-    // Return current root node
-    return rootNode;*/
+    
+    // Return current root node position
+    return rootNode;
     return NOT_FOUND;
 }
 
 
-// TODO: refactor
+// TODO: refactor from pointer to persistent way
 uint64_t Node::dealUnderflow() {
-    /*
+    
     // if this is the root node, then do nothing and return
     if (this->getParent() == NOT_FOUND) return NOT_FOUND;
 
-    // 1. Try to borrow top key from left sibling
+    
+    // 1. Try to borrow top key from left sibling    
+    /*
     if (getLeftSibling() != NOT_FOUND && getleftSibling()->canLendAKey() && getLeftSibling()->parent == parent) {
         size_t keyIndex = leftSibling->getKeyCount() - 1;
         this->parent->borrowChildren(this, leftSibling, keyIndex);
         return nullptr;
     }
-
+    
     // 2. Try to borrow lower key from right sibling
     if (rightSibling != nullptr && rightSibling->canLendAKey() && rightSibling->parent == parent) {
         size_t keyIndex = 0;
@@ -239,7 +244,8 @@ uint64_t Node::dealUnderflow() {
         // 4. Try to merge with right sibling
         Node<KEY>* rootNode = parent->mergeChildren(this, rightSibling);
         return rootNode;
-    }*/
+    }
+    */
     return NOT_FOUND;
 }
 
