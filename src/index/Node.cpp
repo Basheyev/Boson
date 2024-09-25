@@ -221,13 +221,14 @@ uint64_t Node::dealUnderflow() {
 
     
     // 1. Try to borrow top key from left sibling    
-    /*
+    
+
     if (getLeftSibling() != NOT_FOUND && getleftSibling()->canLendAKey() && getLeftSibling()->parent == parent) {
         size_t keyIndex = leftSibling->getKeyCount() - 1;
         this->parent->borrowChildren(this, leftSibling, keyIndex);
         return nullptr;
     }
-    
+    /*
     // 2. Try to borrow lower key from right sibling
     if (rightSibling != nullptr && rightSibling->canLendAKey() && rightSibling->parent == parent) {
         size_t keyIndex = 0;

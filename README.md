@@ -103,3 +103,6 @@ the end of the file.
 
 #### 3.2.2. Motivation
 
+
+### 3.3. B+ Tree Index
+

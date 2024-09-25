@@ -75,15 +75,23 @@ RecordFileIO& BalancedIndex::getRecordsFile() {
     return records;
 }
 
+
+
 Node& BalancedIndex::getNode(uint64_t position) {
 
-    // fixme
+    // This method replaces loads Node from record file
+    // to memory and returns reference. 
+    
+    // How to manage memory?
+    // How to validate referneces if they been invalidated?
+
+    // 
     records.setPosition(position);
     uint32_t dataLength = records.getDataLength();
+    // 
     uint8_t* buffer = new uint8_t[dataLength];
-    records.getRecordData(buffer, dataLength);
 
-    
+    records.getRecordData(buffer, dataLength);
     // warning - it's just a stub, not working
     Node* node = (Node*) buffer;
     
