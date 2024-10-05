@@ -7,6 +7,10 @@
 ******************************************************************************/
 
 
+
+#include <memory>
+#include <ios>
+
 #include "BalancedIndex.h"
 
 
@@ -76,24 +80,38 @@ RecordFileIO& BalancedIndex::getRecordsFile() {
 }
 
 
+/**
+* 
+* 
+* 
+*/
+std::shared_ptr<Node> BalancedIndex::getNode(uint64_t position) {
 
-Node& BalancedIndex::getNode(uint64_t position) {
+    
+
+    NodeData data;
+    // load node data from specified offset in file    
+    records.setPosition(position);
+    uint64_t offset = records.getRecordData(&data, sizeof NodeData);
+    // Throw exception if file not open, can't read or checksum check failed
+    if (offset == NOT_FOUND) {
+        // TODO: maybe we can provide more useful information
+        throw std::ios_base::failure("Can't read node data.");
+    }
+
+    std::shared_ptr<Node> node;
+    if (data.nodeType == NodeType::INNER) {            
+        node = std::make_shared<InnerNode>(*this, position);
+    } else node = std::make_shared<LeafNode>(*this, position);
+
+    memcpy(&(node->data), &data, sizeof(NodeData));
+    // Set flag that data is already persisted
+    node->isPersisted = true;
 
     // This method replaces loads Node from record file
-    // to memory and returns reference. 
-    
+    // to memory and returns reference.     
     // How to manage memory?
     // How to validate referneces if they been invalidated?
 
-    // 
-    records.setPosition(position);
-    uint32_t dataLength = records.getDataLength();
-    // 
-    uint8_t* buffer = new uint8_t[dataLength];
-
-    records.getRecordData(buffer, dataLength);
-    // warning - it's just a stub, not working
-    Node* node = (Node*) buffer;
-    
-    return *node;
+    return node;
 }

@@ -15,7 +15,7 @@
 
 #include <cinttypes>
 #include <string>
-
+#include <memory>
 
 namespace Boson {
 
@@ -23,6 +23,7 @@ namespace Boson {
     constexpr uint64_t TREE_ORDER = 5;
     constexpr uint64_t MAX_DEGREE = TREE_ORDER - 1;
     constexpr uint64_t MIN_DEGREE = TREE_ORDER / 2;
+    constexpr uint32_t NOT_FOUND_KEY = -1;
 
     typedef enum : uint32_t { INNER = 1, LEAF = 2 } NodeType;
 
@@ -146,7 +147,7 @@ namespace Boson {
         bool getValue(std::string& value);
     protected:
         RecordFileIO& getRecordsFile();
-        Node& getNode(uint64_t position);
+        std::shared_ptr<Node> getNode(uint64_t position);
 
     private:
 

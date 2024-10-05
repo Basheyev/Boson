@@ -9,12 +9,17 @@ LeafNode::LeafNode(BalancedIndex& bi) : Node(bi, NodeType::LEAF) {
 }
 
 
+LeafNode::LeafNode(BalancedIndex& bi, uint64_t offsetInFile) : Node(bi, offsetInFile) {
+
+}
+
 LeafNode::~LeafNode() {
 
 }
 
 
 uint32_t LeafNode::search(uint64_t key) {
+    // fixme: is truncated
     return NOT_FOUND;
 }
 
@@ -86,5 +91,11 @@ uint64_t LeafNode::borrowFromSibling(uint64_t key, uint64_t sibling, uint32_t bo
 
 NodeType LeafNode::getNodeType() {
     return NodeType::LEAF;
+}
+
+
+uint32_t LeafNode::searchPlaceFor(uint64_t key) {
+
+    return NOT_FOUND;
 }
 

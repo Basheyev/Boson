@@ -20,7 +20,7 @@ InnerNode::~InnerNode() {
 
 
 uint32_t InnerNode::search(uint64_t key) {
-    return NOT_FOUND;
+    return NOT_FOUND_KEY;
 }
 
 

@@ -180,33 +180,35 @@ void Node::setRightSibling(uint64_t siblingPosition) {
 uint64_t Node::dealOverflow() {
     
     // Get key at middle index for propagation to the parent node
-    size_t midIndex = this->getKeyCount() / 2;
+    uint32_t midIndex = this->getKeyCount() / 2;
     uint64_t upKey = this->getKeyAt(midIndex);
 
     // Split this node by half (returns new splitted node)
-    Node& newRightNode = index.getNode(split());
+    std::shared_ptr<Node> newRightNode = index.getNode(split());
 
     // if we are splitting the root node
     if (getParent() == NOT_FOUND) {
         // create new root node and set as parent to this node (grow at root)
-        InnerNode* handler = new InnerNode(index);
-        Node& newRootNode = *handler;
-        this->setParent(newRootNode.position);
+        std::unique_ptr<InnerNode> newRootNode = std::make_unique<InnerNode>(index);        
+        this->setParent(newRootNode->position);
         this->persist();
-        delete handler;
     }
 
     // Interconnect splitted node's parent and siblings
-    newRightNode.setParent(getParent());
-    newRightNode.setLeftSibling(this->position);
-    newRightNode.setRightSibling(this->getRightSibling());
+    newRightNode->setParent(getParent());
+    newRightNode->setLeftSibling(this->position);
+    newRightNode->setRightSibling(this->getRightSibling());
+    newRightNode->persist();
     if (this->getRightSibling() != NOT_FOUND) {
-        index.getNode(this->getRightSibling()).setLeftSibling(newRightNode.position);
+        std::shared_ptr<Node> theRightSibling = index.getNode(getRightSibling());
+        theRightSibling->setLeftSibling(newRightNode->position);
     }
-    this->setRightSibling(newRightNode.position);
+
+    this->setRightSibling(newRightNode->position);
 
     // Push middle key up to parent the node (root node returned)
-    uint64_t rootNode = index.getNode(getParent()).pushUpKey(upKey, position, newRightNode.position);
+    std::shared_ptr<Node> theParent = index.getNode(getParent());
+    uint64_t rootNode = theParent->pushUpKey(upKey, position, newRightNode->position);
     
     // Return current root node position
     return rootNode;
@@ -226,23 +228,15 @@ uint64_t Node::dealUnderflow() {
     uint64_t leftSiblingPos = getLeftSibling();
     if (leftSiblingPos != NOT_FOUND) {
 
-        // TODO: replace with static builder method in Node class and add smart shared pointer
-
-        Node* leftSibling;
-        if (this->getNodeType() == NodeType::INNER) {
-            leftSibling = new InnerNode(index, leftSiblingPos);
-        } else leftSibling = new LeafNode(index, leftSiblingPos);
-         
+        std::shared_ptr<Node> leftSibling = index.getNode(leftSiblingPos);
+                 
         if (leftSibling->canLendAKey() && leftSibling->getParent() == this->getParent()) {
-            size_t keyIndex = leftSibling->getKeyCount() - 1;
-            Node* parent = new InnerNode(index, this->getParent()); // always inner node            
+            uint32_t keyIndex = leftSibling->getKeyCount() - 1;
+            std::shared_ptr<Node> parent = index.getNode(this->getParent());
             parent->borrowChildren(position, leftSiblingPos, keyIndex);
-            parent->persist();
-            delete parent;
+            parent->persist();            
             return NOT_FOUND;
-        }
-
-        delete leftSibling;        
+        }        
     }
     /*
     // 2. Try to borrow lower key from right sibling
