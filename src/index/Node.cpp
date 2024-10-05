@@ -42,6 +42,7 @@ Node::Node(BalancedIndex& bi, uint64_t offsetInFile)
     } 
     // Set flag that data is already persisted
     isPersisted = true;
+
 }
 
 
@@ -222,11 +223,26 @@ uint64_t Node::dealUnderflow() {
     
     // 1. Try to borrow top key from left sibling    
     
+    uint64_t leftSiblingPos = getLeftSibling();
+    if (leftSiblingPos != NOT_FOUND) {
 
-    if (getLeftSibling() != NOT_FOUND && getleftSibling()->canLendAKey() && getLeftSibling()->parent == parent) {
-        size_t keyIndex = leftSibling->getKeyCount() - 1;
-        this->parent->borrowChildren(this, leftSibling, keyIndex);
-        return nullptr;
+        // TODO: replace with static builder method in Node class and add smart shared pointer
+
+        Node* leftSibling;
+        if (this->getNodeType() == NodeType::INNER) {
+            leftSibling = new InnerNode(index, leftSiblingPos);
+        } else leftSibling = new LeafNode(index, leftSiblingPos);
+         
+        if (leftSibling->canLendAKey() && leftSibling->getParent() == this->getParent()) {
+            size_t keyIndex = leftSibling->getKeyCount() - 1;
+            Node* parent = new InnerNode(index, this->getParent()); // always inner node            
+            parent->borrowChildren(position, leftSiblingPos, keyIndex);
+            parent->persist();
+            delete parent;
+            return NOT_FOUND;
+        }
+
+        delete leftSibling;        
     }
     /*
     // 2. Try to borrow lower key from right sibling
