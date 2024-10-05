@@ -212,7 +212,7 @@ uint64_t Node::dealOverflow() {
     
     // Return current root node position
     return rootNode;
-    return NOT_FOUND;
+
 }
 
 
