@@ -87,8 +87,6 @@ RecordFileIO& BalancedIndex::getRecordsFile() {
 */
 std::shared_ptr<Node> BalancedIndex::getNode(uint64_t position) {
 
-    
-
     NodeData data;
     // load node data from specified offset in file    
     records.setPosition(position);
@@ -100,18 +98,14 @@ std::shared_ptr<Node> BalancedIndex::getNode(uint64_t position) {
     }
 
     std::shared_ptr<Node> node;
+    // Allocated memory for requered type of node
     if (data.nodeType == NodeType::INNER) {            
         node = std::make_shared<InnerNode>(*this, position);
     } else node = std::make_shared<LeafNode>(*this, position);
 
+    // copy loaded data and turn on persisted flag
     memcpy(&(node->data), &data, sizeof(NodeData));
-    // Set flag that data is already persisted
     node->isPersisted = true;
-
-    // This method replaces loads Node from record file
-    // to memory and returns reference.     
-    // How to manage memory?
-    // How to validate referneces if they been invalidated?
 
     return node;
 }

@@ -216,47 +216,54 @@ uint64_t Node::dealOverflow() {
 }
 
 
-// TODO: refactor from pointer to persistent way
+
 uint64_t Node::dealUnderflow() {
-    
+
     // if this is the root node, then do nothing and return
     if (this->getParent() == NOT_FOUND) return NOT_FOUND;
-
-    
-    // 1. Try to borrow top key from left sibling    
-    
     uint64_t leftSiblingPos = getLeftSibling();
-    if (leftSiblingPos != NOT_FOUND) {
+    uint64_t rightSiblingPos = getRightSibling();
 
+    // 1. Try to borrow top key from left sibling    
+    if (leftSiblingPos != NOT_FOUND) {
         std::shared_ptr<Node> leftSibling = index.getNode(leftSiblingPos);
-                 
         if (leftSibling->canLendAKey() && leftSibling->getParent() == this->getParent()) {
             uint32_t keyIndex = leftSibling->getKeyCount() - 1;
             std::shared_ptr<Node> parent = index.getNode(this->getParent());
             parent->borrowChildren(position, leftSiblingPos, keyIndex);
-            parent->persist();            
+            parent->persist();
             return NOT_FOUND;
-        }        
-    }
-    /*
-    // 2. Try to borrow lower key from right sibling
-    if (rightSibling != nullptr && rightSibling->canLendAKey() && rightSibling->parent == parent) {
-        size_t keyIndex = 0;
-        this->parent->borrowChildren(this, rightSibling, keyIndex);
-        return nullptr;
+        }
     }
 
-    if (leftSibling != nullptr && leftSibling->parent == parent) {
-        // 3. Try to merge with left sibling
-        Node<KEY>* rootNode = parent->mergeChildren(leftSibling, this);
-        return rootNode;
+    // 2. Try to borrow lower key from right sibling
+    if (rightSiblingPos != NOT_FOUND) {
+        std::shared_ptr<Node> rightSibling = index.getNode(rightSiblingPos);
+        if (rightSibling->canLendAKey() && rightSibling->getParent() == this->getParent()) {
+            size_t keyIndex = 0;
+            std::shared_ptr<Node> parent = index.getNode(this->getParent());
+            parent->borrowChildren(position, rightSiblingPos, keyIndex);
+            parent->persist();
+            return NOT_FOUND;
+        }
     }
-    else {
-        // 4. Try to merge with right sibling
-        Node<KEY>* rootNode = parent->mergeChildren(this, rightSibling);
-        return rootNode;
-    }
-    */
-    return NOT_FOUND;
+
+    // 3. Try to merge with left sibling
+    if (leftSiblingPos != NOT_FOUND) {  
+        std::shared_ptr<Node> leftSibling = index.getNode(leftSiblingPos); 
+        if (leftSibling->getParent() == this->getParent()) {  
+            std::shared_ptr<Node> parent = index.getNode(this->getParent());
+            uint64_t rootNodePos = parent->mergeChildren(leftSiblingPos, this->position);
+            parent->persist();
+            return rootNodePos;
+        }
+    } 
+    
+    // 4. Try to merge with right sibling        
+    std::shared_ptr<Node> parent = index.getNode(this->getParent());
+    uint64_t rootNodePos = parent->mergeChildren(this->position, rightSiblingPos);
+    parent->persist();
+    return rootNodePos;
+
 }
 
