@@ -1,3 +1,11 @@
+/******************************************************************************
+*
+*  LeafNode class implementation
+*
+*  (C) Boson Database, Bolat Basheyev 2022-2024
+*
+******************************************************************************/
+
 #include "BalancedIndex.h"
 
 
@@ -20,7 +28,7 @@ LeafNode::~LeafNode() {
 
 uint32_t LeafNode::search(uint64_t key) {
     // fixme: is truncated
-    return NOT_FOUND;
+    return NOT_FOUND_KEY;
 }
 
 
@@ -96,6 +104,6 @@ NodeType LeafNode::getNodeType() {
 
 uint32_t LeafNode::searchPlaceFor(uint64_t key) {
 
-    return NOT_FOUND;
+    return NOT_FOUND_KEY;
 }
 

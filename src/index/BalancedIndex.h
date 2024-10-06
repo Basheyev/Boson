@@ -5,7 +5,7 @@
 *  Persistent key/value index based on B+ tree for search acceleration
 * 
 *
-*  (C) Boson Database, Bolat Basheyev 2022-2023
+*  (C) Boson Database, Bolat Basheyev 2022-2024
 *
 ******************************************************************************/
 #pragma once
@@ -26,21 +26,34 @@ namespace Boson {
     constexpr uint32_t NOT_FOUND_KEY = -1;
 
     typedef enum : uint32_t { INNER = 1, LEAF = 2 } NodeType;
+    typedef enum : uint32_t { KEYS = 1, CHILDREN = 2, VALUES = 2 } NodeArray;
 
     //-------------------------------------------------------------------------
 
-    typedef struct {
+    class NodeData {
+    public:
         uint64_t parent;
         uint64_t leftSibling;
         uint64_t rightSibling;
         NodeType nodeType;
         uint32_t keysCount;
-        uint64_t keys[TREE_ORDER];
+        union {
+            uint32_t childrenCount;
+            uint32_t valuesCount;
+        };
+        uint64_t keys[TREE_ORDER];        
         union {
             uint64_t children[TREE_ORDER];
             uint64_t values[TREE_ORDER];
         };
-    } NodeData;
+
+        NodeData();
+       
+        void pushBack(NodeArray mode, uint64_t value);
+        void insertAt(NodeArray mode, uint32_t index, uint64_t value);
+        void deleteAt(NodeArray mode, uint32_t index);
+
+    };
 
     //-------------------------------------------------------------------------
 

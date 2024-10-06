@@ -1,4 +1,10 @@
-
+/******************************************************************************
+*
+*  Node class implementation
+*
+*  (C) Boson Database, Bolat Basheyev 2022-2024
+*
+******************************************************************************/
 
 
 #include "BalancedIndex.h"
@@ -10,10 +16,10 @@ using namespace Boson;
 * @brief Creates new index node in file
 */
 Node::Node(BalancedIndex& bi, NodeType type) : index(bi) {   
-    // initialize values
-    memset(&data, 0, sizeof NodeData);
+    
+    // initialize values    
     this->data.nodeType = type;
-    this->data.keysCount = 0;    
+    
     // allocate space in file
     RecordFileIO& recordFile = index.getRecordsFile();
     uint64_t offset = recordFile.createRecord(&data, sizeof NodeData);
@@ -47,7 +53,7 @@ Node::Node(BalancedIndex& bi, uint64_t offsetInFile)
 
 
 /*
-* @brief Checks if node data persisted
+* @brief Checks if node data is persisted
 */
 Node::~Node() {
     if (!isPersisted) persist();
@@ -176,7 +182,7 @@ void Node::setRightSibling(uint64_t siblingPosition) {
 }
 
 
-// TODO: refactor
+
 uint64_t Node::dealOverflow() {
     
     // Get key at middle index for propagation to the parent node
@@ -240,7 +246,7 @@ uint64_t Node::dealUnderflow() {
     if (rightSiblingPos != NOT_FOUND) {
         std::shared_ptr<Node> rightSibling = index.getNode(rightSiblingPos);
         if (rightSibling->canLendAKey() && rightSibling->getParent() == this->getParent()) {
-            size_t keyIndex = 0;
+            uint32_t keyIndex = 0;
             std::shared_ptr<Node> parent = index.getNode(this->getParent());
             parent->borrowChildren(position, rightSiblingPos, keyIndex);
             parent->persist();
