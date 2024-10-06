@@ -25,7 +25,7 @@ void NodeData::pushBack(NodeArray mode, uint64_t value) {
         values[length] = value;
         length++;
     }
-    else std::cerr << "NodeData: can't add new value, array is full." << std::endl;
+    else std::cerr << "NodeData Push Back: can't add new value, array is full." << std::endl;
 }
 
 
@@ -36,7 +36,7 @@ void NodeData::insertAt(NodeArray mode, uint32_t index, uint64_t value) {
     
     // check boundaries
     if (index < 0 || index > length || length >= max) {
-        std::cerr << "Error: invalid index or array is full!" << std::endl;
+        std::cerr << "NodeData Insert At: invalid index or array is full!" << std::endl;
         return;
     }
 
@@ -59,7 +59,7 @@ void NodeData::deleteAt(NodeArray mode, uint32_t index) {
 
     // check boundaries
     if (index < 0 || index >= max) {
-        std::cerr << "Error: Invalid index" << std::endl;
+        std::cerr << "NodeData Delete At: Invalid index" << std::endl;
         return;
     }
 
