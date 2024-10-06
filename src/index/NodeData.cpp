@@ -40,17 +40,34 @@ void NodeData::insertAt(NodeArray mode, uint32_t index, uint64_t value) {
         return;
     }
 
-    // shift right elements
+    // shift right elements 
     for (uint32_t i = length; i > index; --i) {
         values[i] = values[i - 1];
     }
     
     // insert value
     values[index] = value;
+    // increase length counter
     length++;
 }
 
 
 void NodeData::deleteAt(NodeArray mode, uint32_t index) {
-    // TODO:
+    uint64_t* values = (mode == NodeArray::KEYS) ? keys : children;
+    uint32_t& length = (mode == NodeArray::KEYS) ? keysCount : childrenCount;
+    uint32_t  max = (mode == NodeArray::KEYS) ? MAX_DEGREE : TREE_ORDER;
+
+    // check boundaries
+    if (index < 0 || index >= max) {
+        std::cerr << "Error: Invalid index" << std::endl;
+        return;
+    }
+
+    // Shift elements to the left
+    for (uint32_t i = index; i < max - 1; ++i) {
+        values[i] = values[i + 1];
+    }
+
+    // decrease length counter
+    length--;
 }
