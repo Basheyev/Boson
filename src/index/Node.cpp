@@ -57,14 +57,14 @@ std::shared_ptr<Node> Node::loadNode(BalancedIndex& bi, uint64_t offsetInFile) {
     
     std::shared_ptr<Node> node;
 
+    // create required node
     if (data.nodeType == NodeType::INNER)
-        node = std::make_shared<InnerNode>(bi, true);
+        node = std::make_shared<InnerNode>(bi, offsetInFile);
     else 
-        node = std::make_shared<LeafNode>(bi, true);
+        node = std::make_shared<LeafNode>(bi, offsetInFile);
         
-    node->position = offsetInFile;
+    // copy loaded data
     memcpy(&(node->data), &data, sizeof NodeData);
-    node->isPersisted = true;
 
     return node;
 

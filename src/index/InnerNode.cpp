@@ -12,11 +12,6 @@
 using namespace Boson;
 
 
-InnerNode::InnerNode(BalancedIndex &bi, bool loadNode) : Node(bi) {
-
-
-}
-
 
 /*
 * @brief Inner Node Constructor (calls Node Constructor)
@@ -26,6 +21,13 @@ InnerNode::InnerNode(BalancedIndex& bi) : Node(bi, NodeType::INNER) {
 }
 
 
+/*
+* @brief Inner Node Constructor (calls Node Constructor)
+*/
+InnerNode::InnerNode(BalancedIndex& bi, uint64_t offsetInFile) : Node(bi) {
+    position = offsetInFile;
+    isPersisted = true;
+}
 
 
 /*

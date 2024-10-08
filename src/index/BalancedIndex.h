@@ -60,6 +60,7 @@ namespace Boson {
     class Node {
     friend class BalancedIndex;
     public:
+        Node(BalancedIndex& bi);   
         Node(BalancedIndex& bi, NodeType type);
         static std::shared_ptr<Node> loadNode(BalancedIndex& bi, uint64_t offsetInFile);
         ~Node();
@@ -83,8 +84,7 @@ namespace Boson {
         BalancedIndex& index;         // reference to index   
         uint64_t position;            // offset in file
         NodeData data;                // node data
-        bool isPersisted;             // is data persisted to storage
-        Node(BalancedIndex& bi);      // protected constructor   
+        bool isPersisted;             // is data persisted to storage        
         virtual uint32_t search(uint64_t key) = 0;
         virtual uint64_t split() = 0;
         virtual uint64_t pushUpKey(uint64_t key, uint64_t leftChild, uint64_t rightChild) = 0;
@@ -99,7 +99,7 @@ namespace Boson {
     class InnerNode : public Node {
     public:
         InnerNode(BalancedIndex& bi);
-        InnerNode(BalancedIndex& bi, bool loadNode);
+        InnerNode(BalancedIndex& bi, uint64_t offsetInFile);
         ~InnerNode();
         uint32_t   search(uint64_t key);
         uint64_t   getChildAt(uint32_t index);
@@ -121,7 +121,7 @@ namespace Boson {
     class LeafNode : public Node {
     public:
         LeafNode(BalancedIndex& bi);
-        LeafNode(BalancedIndex& bi, bool loadNode);
+        LeafNode(BalancedIndex& bi, uint64_t offsetInFile);
         ~LeafNode();
         uint32_t search(uint64_t key);
         uint64_t getValueAt(uint32_t index);

@@ -11,15 +11,17 @@
 
 using namespace Boson;
 
-LeafNode::LeafNode(BalancedIndex& bi, bool loadNode) : Node(bi) {
 
-
-}
 
 LeafNode::LeafNode(BalancedIndex& bi) : Node(bi, NodeType::LEAF) {
 
 }
 
+
+LeafNode::LeafNode(BalancedIndex& bi, uint64_t offsetInFile) : Node(bi) {
+    position = offsetInFile;
+    isPersisted = true;
+}
 
 
 LeafNode::~LeafNode() {
