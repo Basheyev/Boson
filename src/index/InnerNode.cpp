@@ -12,33 +12,35 @@
 using namespace Boson;
 
 
-//-------------------------------------------------------------------------------------------------
-// Inner Node Constructor (calls Node Constructor)
-//-------------------------------------------------------------------------------------------------
+/*
+* @brief Inner Node Constructor (calls Node Constructor)
+*/
 InnerNode::InnerNode(BalancedIndex& bi) : Node(bi, NodeType::INNER) {
     
 }
 
 
-//-------------------------------------------------------------------------------------------------
-// Inner Node Constructor (calls Node Constructor)
-//-------------------------------------------------------------------------------------------------
+/*
+* @brief Inner Node Constructor from storage file position (calls Node Constructor)
+*/
 InnerNode::InnerNode(BalancedIndex& bi, uint64_t offsetInFile) : Node(bi, offsetInFile) {
 
 }
 
 
-//-------------------------------------------------------------------------------------------------
-// Inner Node Destructor
-//-------------------------------------------------------------------------------------------------
+/*
+* @brief Inner Node Destructor
+*/
 InnerNode::~InnerNode() {
     Node::~Node();
 }
 
 
-//-------------------------------------------------------------------------------------------------
-// Return child node index for specified key
-//-------------------------------------------------------------------------------------------------
+/*
+* @brief Return child node index of specified key
+* @param key required key
+* @return index of child node of the specified key
+*/
 uint32_t InnerNode::search(uint64_t key) {
     uint32_t index = 0;
     uint64_t entry;
@@ -54,26 +56,35 @@ uint32_t InnerNode::search(uint64_t key) {
 }
 
 
-//-------------------------------------------------------------------------------------------------
-// Returns child node at specified index
-//-------------------------------------------------------------------------------------------------
+/*
+* @brief Returns child node at specified index
+* @param index required child node index
+* @return child node position in storage file
+*/
 uint64_t InnerNode::getChildAt(uint32_t index) {
     return data.children[index];
 }
 
 
-//-------------------------------------------------------------------------------------------------
-// Sets child node at specified index
-//-------------------------------------------------------------------------------------------------
+
+/*
+* @brief Sets child node at specified index
+* @param index required child node index
+* @param child node position in storage file
+*/
 void InnerNode::setChildAt(uint32_t index, uint64_t childNode) {
     data.children[index] = childNode;
     isPersisted = false;
 }
 
 
-//-------------------------------------------------------------------------------------------------
-// Insert key with left and right child at specified index
-//-------------------------------------------------------------------------------------------------
+/*
+* @brief Inserts key with left and right child at specified index
+* @param index position of new key
+* @param key value
+* @param leftChild storage file position of left child node
+* @param rightChild storage file position of right child node
+*/
 void InnerNode::insertAt(uint32_t index, uint64_t key, uint64_t leftChild, uint64_t rightChild) {
     
     // Insert the key at specified index
@@ -96,9 +107,16 @@ void InnerNode::insertAt(uint32_t index, uint64_t key, uint64_t leftChild, uint6
 }
 
 
+/*
+*  @brief Delete key and right children at specified index
+*  @param index of key to delete
+*/
 void InnerNode::deleteAt(uint32_t index) {
-
+    data.deleteAt(NodeArray::KEYS, index);
+    data.deleteAt(NodeArray::CHILDREN, index + 1);
+    isPersisted = false;
 }
+
 
 
 uint64_t InnerNode::split() {
