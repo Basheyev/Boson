@@ -28,6 +28,7 @@ namespace Boson {
     typedef enum : uint32_t { INNER = 1, LEAF = 2 } NodeType;
     typedef enum : uint32_t { KEYS = 1, CHILDREN = 2, VALUES = 2 } NodeArray;
 
+    
     //-------------------------------------------------------------------------
 
     class NodeData {
@@ -56,9 +57,10 @@ namespace Boson {
     };
 
     //-------------------------------------------------------------------------
+    
+    class BalancedIndex;
 
     class Node {
-    friend class BalancedIndex;
     public:
         Node(BalancedIndex& bi);   
         Node(BalancedIndex& bi, NodeType type);
