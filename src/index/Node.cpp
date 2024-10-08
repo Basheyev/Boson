@@ -14,6 +14,8 @@ using namespace Boson;
 
 /*
 * @brief Creates new index node in file
+* @param bi B+ Tree instance
+* @param type required type of node
 */
 Node::Node(BalancedIndex& bi, NodeType type) : index(bi) {   
     
@@ -32,7 +34,9 @@ Node::Node(BalancedIndex& bi, NodeType type) : index(bi) {
 
 
 /*
-* @brief Loads node data from specified position in file
+* @brief Loads node data from specified position in storage file
+* @param bi B+ Tree instance
+* @param offsetInFile offset of node position in storage file
 */
 Node::Node(BalancedIndex& bi, uint64_t offsetInFile) 
     : index(bi), position(offsetInFile)
@@ -61,11 +65,8 @@ Node::~Node() {
 
 
 /*
-*
 * @brief Persists node data to the storage
-*
 * @return returns current offset of record or NOT_FOUND if fails
-*
 */
 void Node::persist() {
     // write node data to specified position
@@ -83,9 +84,14 @@ void Node::persist() {
 }
 
 
+/*
+* @brief Returns type of node
+* @return type of node
+*/
 NodeType Node::getNodeType() {
     return data.nodeType;
 }
+
 
 /*
 *  @brief Returns keys count inside Node
@@ -124,7 +130,9 @@ bool Node::canLendAKey() {
 
 
 /*
-*  @brief Returns key at specified index
+*  @brief Returns key at the specified index
+*  @param index index of the key in the node
+*  @return key at the specified index
 */
 uint64_t Node::getKeyAt(uint32_t index) {
     if (index >= data.keysCount) return NOT_FOUND;
@@ -134,6 +142,8 @@ uint64_t Node::getKeyAt(uint32_t index) {
 
 /*
 *  @brief Sets key at specified index
+*  @param index index of the key in the node
+*  @param key value
 */
 void Node::setKeyAt(uint32_t index, uint64_t key) {
     if (index >= data.keysCount) return;
@@ -143,7 +153,7 @@ void Node::setKeyAt(uint32_t index, uint64_t key) {
 
 
 /*
-*  @brief Returns Parent node position in file
+*  @brief Returns Parent node position in storage file
 */
 uint64_t Node::getParent() {
     return data.parent;
@@ -151,31 +161,48 @@ uint64_t Node::getParent() {
 
 
 /*
-*  @brief Sets Parent node position in file
+*  @brief Sets Parent node position in storage file
+*  @param parentPosition parent node position in storage file
 */
 void Node::setParent(uint64_t parentPosition) {
-    // TODO what if record position changed (not real?)
+    // TODO what if record position changed (not real if size is not changed?)
     data.parent = parentPosition;
     this->isPersisted = false;
 }
 
 
+/*
+* @brief Returns left sibling node position in storage file
+* @return left sibling node position in storage file
+*/
 uint64_t Node::getLeftSibling() {
     return data.leftSibling;
 }
 
 
+/*
+*  @brief Sets left sibling node position in storage file
+*  @param siblingPosition left sibling node position in storage file
+*/
 void Node::setLeftSibling(uint64_t siblingPosition) {
     data.leftSibling = siblingPosition;
     this->isPersisted = false;
 }
 
 
+/*
+* @brief Returns right sibling node position in storage file
+* @return right sibling node position in storage file
+*/
 uint64_t Node::getRightSibling() {
     return data.rightSibling;
 }
 
 
+/*
+*  @brief Sets right sibling node position in storage file
+*  @param siblingPosition right sibling node position in storage file
+*/
 void Node::setRightSibling(uint64_t siblingPosition) {
     data.rightSibling = siblingPosition;
     this->isPersisted = false;
@@ -183,6 +210,10 @@ void Node::setRightSibling(uint64_t siblingPosition) {
 
 
 
+/*
+*  @brief Handles node overflow by splitting node and interconnecting new nodes
+*  @return returns current root node position in storage file or NOT_FOUMD
+*/
 uint64_t Node::dealOverflow() {
     
     // Get key at middle index for propagation to the parent node
@@ -204,25 +235,30 @@ uint64_t Node::dealOverflow() {
     newRightNode->setParent(getParent());
     newRightNode->setLeftSibling(this->position);
     newRightNode->setRightSibling(this->getRightSibling());
-    newRightNode->persist();
+    newRightNode->persist();    
     if (this->getRightSibling() != NOT_FOUND) {
         std::shared_ptr<Node> theRightSibling = index.getNode(getRightSibling());
         theRightSibling->setLeftSibling(newRightNode->position);
     }
-
     this->setRightSibling(newRightNode->position);
+    this->persist();
 
     // Push middle key up to parent the node (root node returned)
-    std::shared_ptr<Node> theParent = index.getNode(getParent());
-    uint64_t rootNode = theParent->pushUpKey(upKey, position, newRightNode->position);
+    std::shared_ptr<Node> parent = index.getNode(getParent());
+    uint64_t rootNodePos = parent->pushUpKey(upKey, position, newRightNode->position);
+    parent->persist();
     
     // Return current root node position
-    return rootNode;
+    return rootNodePos;
 
 }
 
 
-
+/*
+*  @brief Handles node underflow by borrowing keys from left or right sibling
+*  or by merging this node with left or right sibling
+*  @return returns current root node position in storage file or NOT_FOUMD
+*/
 uint64_t Node::dealUnderflow() {
 
     // if this is the root node, then do nothing and return
