@@ -18,8 +18,9 @@ LeafNode::LeafNode(BalancedIndex& bi) : Node(bi, NodeType::LEAF) {
 }
 
 
-LeafNode::LeafNode(BalancedIndex& bi, uint64_t offsetInFile) : Node(bi) {
+LeafNode::LeafNode(BalancedIndex& bi, uint64_t offsetInFile, NodeData& loadedData) : Node(bi) {
     position = offsetInFile;
+    memcpy(&(this->data), &loadedData, sizeof NodeData);
     isPersisted = true;
 }
 

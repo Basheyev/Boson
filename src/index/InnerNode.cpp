@@ -24,8 +24,9 @@ InnerNode::InnerNode(BalancedIndex& bi) : Node(bi, NodeType::INNER) {
 /*
 * @brief Inner Node Constructor (calls Node Constructor)
 */
-InnerNode::InnerNode(BalancedIndex& bi, uint64_t offsetInFile) : Node(bi) {
+InnerNode::InnerNode(BalancedIndex& bi, uint64_t offsetInFile, NodeData& loadedData) : Node(bi) {
     position = offsetInFile;
+    memcpy(&(this->data), &loadedData, sizeof NodeData);
     isPersisted = true;
 }
 
@@ -144,7 +145,7 @@ uint64_t InnerNode::split() {
     for (size_t i = midIndex + 1; i < data.childrenCount; ++i) {
         // reattach children to new splitted node
         uint64_t childPos = data.children[i];
-        std::unique_ptr<InnerNode> child = std::make_unique<InnerNode>(this->index, childPos);
+        std::shared_ptr<Node> child = Node::loadNode(this->index, childPos);
         child->setParent(newNode->position);
         child->persist();
         // copy childrens to the new node
@@ -198,7 +199,8 @@ uint64_t InnerNode::pushUpKey(uint64_t key, uint64_t leftChild, uint64_t rightCh
 void InnerNode::borrowChildren(uint64_t borrowerPos, uint64_t lender, uint32_t borrowIndex) {
     uint32_t borrowerChildIndex = 0;
 
-    std::unique_ptr<InnerNode> borrower = std::make_unique<InnerNode>(this->index, borrowerPos);
+    std::shared_ptr<Node> untypedBorrower = Node::loadNode(this->index, borrowerPos);
+    std::shared_ptr<InnerNode> borrower = std::dynamic_pointer_cast<InnerNode>(untypedBorrower);
 
     // find borrower child index
     for (uint32_t i = 0; i < data.childrenCount; i++) {
@@ -238,7 +240,8 @@ void InnerNode::borrowChildren(uint64_t borrowerPos, uint64_t lender, uint32_t b
 */
 uint64_t InnerNode::borrowFromSibling(uint64_t key, uint64_t sibling, uint32_t borrowIndex) {
     
-    std::unique_ptr<InnerNode> siblingNode = std::make_unique<InnerNode>(this->index, sibling);
+    std::shared_ptr<Node> untypedSibling = Node::loadNode(this->index, sibling);
+    std::shared_ptr<InnerNode> siblingNode = std::dynamic_pointer_cast<InnerNode>(untypedSibling);
     std::shared_ptr<Node> childNode;
     uint64_t childNodePos = 0;
     uint64_t upKey = 0;
