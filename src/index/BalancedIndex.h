@@ -52,7 +52,7 @@ namespace Boson {
         void pushBack(NodeArray mode, uint64_t value);
         void insertAt(NodeArray mode, uint32_t index, uint64_t value);
         void deleteAt(NodeArray mode, uint32_t index);
-
+        void resize(NodeArray mode, uint32_t newSize);
     };
 
     //-------------------------------------------------------------------------
@@ -61,7 +61,7 @@ namespace Boson {
     friend class BalancedIndex;
     public:
         Node(BalancedIndex& bi, NodeType type);
-        Node(BalancedIndex& bi, uint64_t offsetInFile);
+        static std::shared_ptr<Node> loadNode(BalancedIndex& bi, uint64_t offsetInFile);
         ~Node();
         void persist();
         NodeType getNodeType();
@@ -84,6 +84,7 @@ namespace Boson {
         uint64_t position;            // offset in file
         NodeData data;                // node data
         bool isPersisted;             // is data persisted to storage
+        Node(BalancedIndex& bi);      // protected constructor   
         virtual uint32_t search(uint64_t key) = 0;
         virtual uint64_t split() = 0;
         virtual uint64_t pushUpKey(uint64_t key, uint64_t leftChild, uint64_t rightChild) = 0;
@@ -98,7 +99,7 @@ namespace Boson {
     class InnerNode : public Node {
     public:
         InnerNode(BalancedIndex& bi);
-        InnerNode(BalancedIndex& bi, uint64_t offsetInFile);
+        InnerNode(BalancedIndex& bi, bool loadNode);
         ~InnerNode();
         uint32_t   search(uint64_t key);
         uint64_t   getChildAt(uint32_t index);
@@ -108,9 +109,9 @@ namespace Boson {
         uint64_t   split();
         uint64_t   pushUpKey(uint64_t key, uint64_t leftChild, uint64_t rightChild);
         void       borrowChildren(uint64_t borrower, uint64_t lender, uint32_t borrowIndex);
-        uint64_t   mergeChildren(uint64_t leftChild, uint64_t rightChild);
-        void       mergeWithSibling(uint64_t key, uint64_t rightSibling);
         uint64_t   borrowFromSibling(uint64_t key, uint64_t sibling, uint32_t borrowIndex);
+        uint64_t   mergeChildren(uint64_t leftChild, uint64_t rightChild);
+        void       mergeWithSibling(uint64_t key, uint64_t rightSibling);        
         NodeType   getNodeType();
     };
 
@@ -120,7 +121,7 @@ namespace Boson {
     class LeafNode : public Node {
     public:
         LeafNode(BalancedIndex& bi);
-        LeafNode(BalancedIndex& bi, uint64_t offsetInFile);
+        LeafNode(BalancedIndex& bi, bool loadNode);
         ~LeafNode();
         uint32_t search(uint64_t key);
         uint64_t getValueAt(uint32_t index);
@@ -160,8 +161,6 @@ namespace Boson {
         bool getValue(std::string& value);
     protected:
         RecordFileIO& getRecordsFile();
-        std::shared_ptr<Node> getNode(uint64_t position);
-
     private:
 
         RecordFileIO& records;

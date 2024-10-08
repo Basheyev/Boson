@@ -80,32 +80,3 @@ RecordFileIO& BalancedIndex::getRecordsFile() {
 }
 
 
-/**
-* 
-* 
-* 
-*/
-std::shared_ptr<Node> BalancedIndex::getNode(uint64_t position) {
-
-    NodeData data;
-    // load node data from specified offset in file    
-    records.setPosition(position);
-    uint64_t offset = records.getRecordData(&data, sizeof NodeData);
-    // Throw exception if file not open, can't read or checksum check failed
-    if (offset == NOT_FOUND) {
-        // TODO: maybe we can provide more useful information
-        throw std::ios_base::failure("Can't read node data.");
-    }
-
-    std::shared_ptr<Node> node;
-    // Allocated memory for requered type of node
-    if (data.nodeType == NodeType::INNER) {            
-        node = std::make_shared<InnerNode>(*this, position);
-    } else node = std::make_shared<LeafNode>(*this, position);
-
-    // copy loaded data and turn on persisted flag
-    memcpy(&(node->data), &data, sizeof(NodeData));
-    node->isPersisted = true;
-
-    return node;
-}

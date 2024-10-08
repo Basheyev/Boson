@@ -12,6 +12,12 @@
 using namespace Boson;
 
 
+InnerNode::InnerNode(BalancedIndex &bi, bool loadNode) : Node(bi) {
+
+
+}
+
+
 /*
 * @brief Inner Node Constructor (calls Node Constructor)
 */
@@ -20,12 +26,6 @@ InnerNode::InnerNode(BalancedIndex& bi) : Node(bi, NodeType::INNER) {
 }
 
 
-/*
-* @brief Inner Node Constructor from storage file position (calls Node Constructor)
-*/
-InnerNode::InnerNode(BalancedIndex& bi, uint64_t offsetInFile) : Node(bi, offsetInFile) {
-
-}
 
 
 /*
@@ -118,19 +118,164 @@ void InnerNode::deleteAt(uint32_t index) {
 }
 
 
-
+/*
+*  @brief Split this inner node by half
+*/
 uint64_t InnerNode::split() {
-    return NOT_FOUND;
+
+    // Calculate mid index
+    uint32_t midIndex = this->getKeyCount() / 2;
+
+    // Create new node
+    std::unique_ptr<InnerNode> newNode = std::make_unique<InnerNode>(this->index);
+
+    // Copy keys from this node to new splitted node
+    for (size_t i = midIndex + 1; i < data.keysCount; ++i) {
+        // copy keys to new node
+        newNode->data.pushBack(NodeArray::KEYS, data.keys[i]);
+    }
+
+    // truncate this node's keys list
+    this->data.resize(NodeArray::KEYS, midIndex);
+
+    // Copy childrens from this node to new splitted node
+    for (size_t i = midIndex + 1; i < data.childrenCount; ++i) {
+        // reattach children to new splitted node
+        uint64_t childPos = data.children[i];
+        std::unique_ptr<InnerNode> child = std::make_unique<InnerNode>(this->index, childPos);
+        child->setParent(newNode->position);
+        child->persist();
+        // copy childrens to the new node
+        newNode->data.pushBack(NodeArray::CHILDREN, childPos);
+    }
+    
+    // truncate this node's children list
+    this->data.resize(NodeArray::CHILDREN, midIndex + 1);
+
+    // Persist changes in splitted nodes
+    this->persist();
+    newNode->persist();
+
+    // return splitted node
+    return newNode->position;
 }
 
 
+/*
+* @brief Set key at specified index propogated from child
+* @param key
+* @param leftChild
+* @param rightChild
+*/
 uint64_t InnerNode::pushUpKey(uint64_t key, uint64_t leftChild, uint64_t rightChild) {
+
+    // search key index in this node
+    uint32_t index = search(key);
+
+    // insert key at specified index with left and right child
+    insertAt(index, key, leftChild, rightChild);
+
+    // if there is the node overflow
+    if (isOverflow()) return dealOverflow();
+
+    // if this is the root node then return this node's position in storage file
+    if (getParent() == NOT_FOUND) return this->position;
+
+    // return null pointer
     return NOT_FOUND;
 }
 
 
-void InnerNode::borrowChildren(uint64_t borrower, uint64_t lender, uint32_t borrowIndex) {
 
+/*
+* @brief Borrow children by specifying Borrower, Lender and borrow index
+* @param borrowerPos
+* @param lender
+* @param borrowIndex
+*/
+void InnerNode::borrowChildren(uint64_t borrowerPos, uint64_t lender, uint32_t borrowIndex) {
+    uint32_t borrowerChildIndex = 0;
+
+    std::unique_ptr<InnerNode> borrower = std::make_unique<InnerNode>(this->index, borrowerPos);
+
+    // find borrower child index
+    for (uint32_t i = 0; i < data.childrenCount; i++) {
+        if (data.children[i] == borrowerPos) {
+            borrowerChildIndex = i;
+            break;
+        }
+    }
+
+    // Process borrowing
+    if (borrowIndex == 0) {
+        // borrow from right sibling
+        uint64_t theKey = data.keys[borrowerChildIndex];
+        uint64_t upKey = borrower->borrowFromSibling(theKey, lender, borrowIndex);
+        data.keys[borrowerChildIndex] = upKey;
+        isPersisted = false;
+    }
+    else {
+        // borrow from left sibling
+        uint64_t theKey = data.keys[borrowerChildIndex - 1];
+        uint64_t upKey = borrower->borrowFromSibling(theKey, lender, borrowIndex);
+        data.keys[borrowerChildIndex - 1] = upKey;
+        isPersisted = false;
+    }
+        
+    persist();
+
+}
+
+
+
+/*
+* @brief Borrow key with children from sibling node
+* @param key
+* @param sibling
+* @param borrowIndex
+*/
+uint64_t InnerNode::borrowFromSibling(uint64_t key, uint64_t sibling, uint32_t borrowIndex) {
+    
+    std::unique_ptr<InnerNode> siblingNode = std::make_unique<InnerNode>(this->index, sibling);
+    std::shared_ptr<Node> childNode;
+    uint64_t childNodePos = 0;
+    uint64_t upKey = 0;
+
+    if (borrowIndex == 0) {
+        // borrow the first key from right sibling, append it to tail	
+        // get sibling child node
+        childNodePos = siblingNode->getChildAt(borrowIndex);
+        childNode = Node::loadNode(this->index, childNodePos);
+        // reattach childNode to this node as parent
+        childNode->setParent(this->position);
+        // append borrowed key and child node to the tail of list
+        data.pushBack(NodeArray::KEYS, key);
+        data.pushBack(NodeArray::CHILDREN, childNodePos);
+        // get key propogated to parent node
+        upKey = siblingNode->getKeyAt(0);
+
+        // delete the first key with children from sibling node
+        siblingNode->data.deleteAt(NodeArray::KEYS, 0);
+        siblingNode->data.deleteAt(NodeArray::CHILDREN, 0);        
+    }
+    else {
+        // borrow the last key from left sibling, insert it to head
+        childNodePos = siblingNode->getChildAt(borrowIndex + 1);
+        childNode = Node::loadNode(this->index, childNodePos);
+        // reattach childNode to this node as parent
+        childNode->setParent(this->position);
+        // insert borrowed key and child node to the list at beginning
+        insertAt(0, key, childNodePos, data.children[0]);
+        // get key propogated to parent node
+        upKey = siblingNode->getKeyAt(borrowIndex);
+        // delete key with children from sibling node
+        siblingNode->deleteAt(borrowIndex);
+    }
+
+    this->persist();
+    childNode->persist();
+
+    return upKey;
 }
 
 
@@ -143,10 +288,6 @@ void InnerNode::mergeWithSibling(uint64_t key, uint64_t rightSibling) {
 
 }
 
-
-uint64_t InnerNode::borrowFromSibling(uint64_t key, uint64_t sibling, uint32_t borrowIndex) {
-    return NOT_FOUND;
-}
 
 
 NodeType InnerNode::getNodeType() {

@@ -12,6 +12,12 @@
 
 using namespace Boson;
 
+
+Node::Node(BalancedIndex& bi) : index(bi) {
+    position = NOT_FOUND;
+    isPersisted = true;
+}
+
 /*
 * @brief Creates new index node in file
 * @param bi B+ Tree instance
@@ -33,25 +39,34 @@ Node::Node(BalancedIndex& bi, NodeType type) : index(bi) {
 }
 
 
+
 /*
 * @brief Loads node data from specified position in storage file
 * @param bi B+ Tree instance
 * @param offsetInFile offset of node position in storage file
 */
-Node::Node(BalancedIndex& bi, uint64_t offsetInFile) 
-    : index(bi), position(offsetInFile)
-{    
+std::shared_ptr<Node> Node::loadNode(BalancedIndex& bi, uint64_t offsetInFile) {
+
     // load node data from specified offset in file
-    RecordFileIO& recordsFile = index.getRecordsFile();
-    recordsFile.setPosition(position);
+    RecordFileIO& recordsFile = bi.getRecordsFile();
+    recordsFile.setPosition(offsetInFile);
+
+    NodeData data;
     uint64_t offset = recordsFile.getRecordData(&data, sizeof NodeData);
-    // Throw exception if file not open, can't read or checksum check failed
-    if (offset == NOT_FOUND) {
-        // TODO: maybe we can provide more useful information
-        throw std::ios_base::failure("Can't read node data.");
-    } 
-    // Set flag that data is already persisted
-    isPersisted = true;
+    if (offset == NOT_FOUND) throw std::ios_base::failure("Can't read node data.");
+    
+    std::shared_ptr<Node> node;
+
+    if (data.nodeType == NodeType::INNER)
+        node = std::make_shared<InnerNode>(bi, true);
+    else 
+        node = std::make_shared<LeafNode>(bi, true);
+        
+    node->position = offsetInFile;
+    memcpy(&(node->data), &data, sizeof NodeData);
+    node->isPersisted = true;
+
+    return node;
 
 }
 
@@ -221,7 +236,7 @@ uint64_t Node::dealOverflow() {
     uint64_t upKey = this->getKeyAt(midIndex);
 
     // Split this node by half (returns new splitted node)
-    std::shared_ptr<Node> newRightNode = index.getNode(split());
+    std::shared_ptr<Node> newRightNode = loadNode(index, split());
 
     // if we are splitting the root node
     if (getParent() == NOT_FOUND) {
@@ -237,14 +252,14 @@ uint64_t Node::dealOverflow() {
     newRightNode->setRightSibling(this->getRightSibling());
     newRightNode->persist();    
     if (this->getRightSibling() != NOT_FOUND) {
-        std::shared_ptr<Node> theRightSibling = index.getNode(getRightSibling());
+        std::shared_ptr<Node> theRightSibling = loadNode(index, getRightSibling());
         theRightSibling->setLeftSibling(newRightNode->position);
     }
     this->setRightSibling(newRightNode->position);
     this->persist();
 
     // Push middle key up to parent the node (root node returned)
-    std::shared_ptr<Node> parent = index.getNode(getParent());
+    std::shared_ptr<Node> parent = loadNode(index, getParent());
     uint64_t rootNodePos = parent->pushUpKey(upKey, position, newRightNode->position);
     parent->persist();
     
@@ -268,10 +283,10 @@ uint64_t Node::dealUnderflow() {
 
     // 1. Try to borrow top key from left sibling    
     if (leftSiblingPos != NOT_FOUND) {
-        std::shared_ptr<Node> leftSibling = index.getNode(leftSiblingPos);
+        std::shared_ptr<Node> leftSibling = loadNode(index, leftSiblingPos);
         if (leftSibling->canLendAKey() && leftSibling->getParent() == this->getParent()) {
             uint32_t keyIndex = leftSibling->getKeyCount() - 1;
-            std::shared_ptr<Node> parent = index.getNode(this->getParent());
+            std::shared_ptr<Node> parent = loadNode(index, this->getParent());
             parent->borrowChildren(position, leftSiblingPos, keyIndex);
             parent->persist();
             return NOT_FOUND;
@@ -280,10 +295,10 @@ uint64_t Node::dealUnderflow() {
 
     // 2. Try to borrow lower key from right sibling
     if (rightSiblingPos != NOT_FOUND) {
-        std::shared_ptr<Node> rightSibling = index.getNode(rightSiblingPos);
+        std::shared_ptr<Node> rightSibling = loadNode(index, rightSiblingPos);
         if (rightSibling->canLendAKey() && rightSibling->getParent() == this->getParent()) {
             uint32_t keyIndex = 0;
-            std::shared_ptr<Node> parent = index.getNode(this->getParent());
+            std::shared_ptr<Node> parent = loadNode(index, this->getParent());
             parent->borrowChildren(position, rightSiblingPos, keyIndex);
             parent->persist();
             return NOT_FOUND;
@@ -292,9 +307,9 @@ uint64_t Node::dealUnderflow() {
 
     // 3. Try to merge with left sibling
     if (leftSiblingPos != NOT_FOUND) {  
-        std::shared_ptr<Node> leftSibling = index.getNode(leftSiblingPos); 
+        std::shared_ptr<Node> leftSibling = loadNode(index, leftSiblingPos);
         if (leftSibling->getParent() == this->getParent()) {  
-            std::shared_ptr<Node> parent = index.getNode(this->getParent());
+            std::shared_ptr<Node> parent = loadNode(index, this->getParent());
             uint64_t rootNodePos = parent->mergeChildren(leftSiblingPos, this->position);
             parent->persist();
             return rootNodePos;
@@ -302,7 +317,7 @@ uint64_t Node::dealUnderflow() {
     } 
     
     // 4. Try to merge with right sibling        
-    std::shared_ptr<Node> parent = index.getNode(this->getParent());
+    std::shared_ptr<Node> parent = loadNode(index, this->getParent());
     uint64_t rootNodePos = parent->mergeChildren(this->position, rightSiblingPos);
     parent->persist();
     return rootNodePos;
