@@ -2,7 +2,7 @@
 
 #include "BalancedTreeTest.h"
 
-using namespace Boson;
+using namespace Research;
 using namespace std;
 
 
@@ -29,7 +29,7 @@ bool BalancedTreeTest::testLeafNode(bool verbose) {
 	bool testPassed = true;
 	cout << "Testing LeafNode class logic:" << endl;
 	//------------------------------------------------------------------------
-	LeafNode ln;
+	Research::LeafNode<uint64_t, char*> ln(10);
 	testPassed &= assert(" - create leaf node of order 10...", ln.getKeyCount()==0);
 	//------------------------------------------------------------------------
 	ln.insertKey(10, "Baurzhan");
@@ -78,7 +78,7 @@ bool BalancedTreeTest::testLeafNode(bool verbose) {
 		ln.deleteKey(69) && ln.search(69)==NOT_FOUND);
 	if (verbose) ln.print(1);
 	//------------------------------------------------------------------------
-	LeafNode* splittedNode = (LeafNode*) ln.split();
+	LeafNode<uint64_t, char*>* splittedNode = (LeafNode<uint64_t, char*>*) ln.split();
 	testPassed &= assert(" - check node split...",
 		ln.getKeyCount() == 4 && !ln.canLendAKey() && splittedNode->getKeyCount() == 5 &&
 		splittedNode->getKeyAt(0)==45);
@@ -108,9 +108,9 @@ bool BalancedTreeTest::testInnerNode(bool verbose) {
 
 bool BalancedTreeTest::testBalancedTree(bool verbose) {
 	bool result = true;
-	CachedFileIO file;
+	Boson::CachedFileIO file;
 	file.open("f:/treedata.bin");
-	BalancedTree* bt = buildTree(file, verbose);
+	BalancedTreeIndex<uint64_t, char*>* bt = buildTree(file, verbose);
 	result &= (bt != nullptr);
 	result &= deleteTree(bt, verbose);
 	result &= testPerformance(verbose);
@@ -119,10 +119,10 @@ bool BalancedTreeTest::testBalancedTree(bool verbose) {
 }
 
 
-BalancedTree* BalancedTreeTest::buildTree(CachedFileIO& cachedFile, bool verbose) {
-	BalancedTree* bt = new BalancedTree(RecordFileIO(cachedFile));
-	cout << "- size of leaf node " << sizeof(LeafNode) << " bytes" << endl;
-	cout << "- size of inner node " << sizeof(InnerNode) << " bytes" << endl;
+BalancedTreeIndex<uint64_t, char*>* BalancedTreeTest::buildTree(Boson::CachedFileIO& cachedFile, bool verbose) {
+	BalancedTreeIndex<uint64_t, char*>* bt = new BalancedTreeIndex<uint64_t, char*>(10);
+	cout << "- size of leaf node " << sizeof(LeafNode<uint64_t, char*>) << " bytes" << endl;
+	cout << "- size of inner node " << sizeof(InnerNode<uint64_t>) << " bytes" << endl;
 	bt->insert(10, "Baurzhan");
 	bt->insert(73, "Theya");
 	bt->insert(14, "Bolat");
@@ -148,7 +148,7 @@ BalancedTree* BalancedTreeTest::buildTree(CachedFileIO& cachedFile, bool verbose
 }
 
 
-bool BalancedTreeTest::deleteTree(BalancedTree* bt, bool verbose) {
+bool BalancedTreeTest::deleteTree(BalancedTreeIndex<uint64_t, char*>* bt, bool verbose) {
 	cout << "- deleting entries count=" << bt->getEntriesCount() << endl;
 	bt->erase(14);	if (verbose) bt->printTree();
 	bt->erase(11);	if (verbose) bt->printTree();
@@ -186,9 +186,9 @@ bool BalancedTreeTest::testPerformance(bool verbose) {
 
 	size_t entriesCount = 1000000;
 
-	CachedFileIO file;
+	Boson::CachedFileIO file;
 	file.open("f:/treeperformance.bin");
-	BalancedTree* bt = new BalancedTree(RecordFileIO(file));
+	BalancedTreeIndex<uint64_t, char*>* bt = new BalancedTreeIndex<uint64_t, char*>(10);
 
 	cout << "-------------------------------------------------------------" << endl;
 	cout << "Performance" << endl;

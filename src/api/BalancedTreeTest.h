@@ -3,6 +3,7 @@
 #define _ITERATOR_DEBUG_LEVEL 0
 
 #include "BalancedTreeIndex.h"
+#include "BalancedIndex.h"
 
 #include <chrono>
 #include <iostream>
@@ -10,7 +11,7 @@
 
 
 
-namespace Boson {
+namespace Research {
 
 	class BalancedTreeTest {
 	public:
@@ -25,7 +26,7 @@ namespace Boson {
 		bool testPerformance(bool verbose = true);
 		bool testTextIndex(bool verbose = true);
 
-		Research::BalancedTreeIndex<size_t, char*>* buildTree(CachedFileIO& cachedFile, bool verbose);
+		Research::BalancedTreeIndex<size_t, char*>* buildTree(Boson::CachedFileIO& cachedFile, bool verbose);
 		bool deleteTree(Research::BalancedTreeIndex<size_t, char*>* bt, bool verbose);
 	};
 

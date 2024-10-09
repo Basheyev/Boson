@@ -26,17 +26,18 @@
 
 #include <string>
 
-using namespace Boson;
+using namespace Research;
 using namespace std;
 
 
 int main()
 {
-    //BalancedTreeTest bpt;
-	//bpt.run();
-	RecordFileIOTest rst;
+    BalancedTreeTest bpt;
+	bpt.run(true);
+
+	//RecordFileIOTest rst;
 	//rst.run("F:/records.bin");
-	rst.runLoadTest("F:/largeFile.bin", 1000000);	
+	//rst.runLoadTest("F:/largeFile.bin", 1000000);	
 	//CachedFileIOTest cft("F:/cachedfile.bin");
 	//cft.run(1000000);
 }
