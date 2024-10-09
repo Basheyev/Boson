@@ -284,13 +284,83 @@ uint64_t InnerNode::borrowFromSibling(uint64_t key, uint64_t sibling, uint32_t b
 }
 
 
-uint64_t InnerNode::mergeChildren(uint64_t leftChild, uint64_t rightChild) {
+/*
+*  @brief Merge children of InnerNode by specifying left and right child
+*  @param leftChild to merge
+*  @param rightChild to merge
+*/
+uint64_t InnerNode::mergeChildren(uint64_t leftChildPos, uint64_t rightChildPos) {
+    
+    // Find corresponding key index of left child    
+    uint32_t i = 0; // FIXME: What if left child doesnt belong to this node? Causes wrong access
+    while (i < data.childrenCount - 1) {
+        if (data.children[i] == leftChildPos) break;
+        i++;
+    }
+    uint64_t key = data.keys[i];
+
+    // Merge two children and push key into the left child node
+    std::shared_ptr<Node> leftChildNode = Node::loadNode(this->index, leftChildPos);
+    std::shared_ptr<InnerNode> leftChild = std::dynamic_pointer_cast<InnerNode>(leftChildNode);
+    leftChild->mergeWithSibling(key, rightChildPos);
+
+    // Remove the key, keep the left child and abandon the right child
+    this->deleteAt(i);
+
+    // If there is underflow propagate borrow or merge to parent
+    if (this->isUnderflow()) {
+        // If this node is root node (no parent)
+        if (getParent() == NOT_FOUND) {
+            // if this node is empy
+            if (data.keysCount == 0) {
+                leftChild->setParent(NOT_FOUND);
+                return leftChildPos;
+            }
+            else return NOT_FOUND;
+        }
+        return dealUnderflow();
+    }
     return NOT_FOUND;
 }
 
 
-void InnerNode::mergeWithSibling(uint64_t key, uint64_t rightSibling) {
+void InnerNode::mergeWithSibling(uint64_t key, uint64_t rightSiblingPos) {
 
+    std::shared_ptr<Node> rightSiblingNode = Node::loadNode(this->index, rightSiblingPos);
+    std::shared_ptr<InnerNode> rightSibling = std::dynamic_pointer_cast<InnerNode>(rightSiblingNode);
+    std::shared_ptr<Node> siblingChild, afterRight;
+    uint64_t siblingChildPos;
+
+    // Push key into keys
+    this->data.pushBack(NodeArray::KEYS, key);
+
+    // Copy sibling keys
+    for (uint32_t i = 0; i < data.keysCount; ++i) {
+        this->data.pushBack(NodeArray::KEYS, rightSibling->getKeyAt(i));        
+    }
+
+    // Copy sibling children
+    for (uint32_t i = 0; i < rightSibling->getKeyCount() + 1; ++i) {
+        // get sibling's child
+        siblingChildPos = rightSibling->getChildAt(i);
+        siblingChild = std::dynamic_pointer_cast<InnerNode>(Node::loadNode(this->index, siblingChildPos));
+        // reattach sibling's child to this node
+        siblingChild->setParent(this->position);
+        // copy sibling child to this node
+        this->data.pushBack(NodeArray::CHILDREN, siblingChildPos);        
+    }
+
+    // Interrconnect siblings
+    this->setRightSibling(rightSibling->data.rightSibling);
+    if (rightSibling->data.rightSibling != NOT_FOUND) {
+        afterRight = std::dynamic_pointer_cast<InnerNode>
+            (Node::loadNode(this->index, rightSibling->data.rightSibling));
+        afterRight->setLeftSibling(this->position);
+    }
+
+    // Clear and delete right sibling from storage and memory
+    Node::deleteNode(this->index, rightSiblingPos);
+    rightSibling.reset();
 }
 
 

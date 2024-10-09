@@ -69,6 +69,19 @@ std::shared_ptr<Node> Node::loadNode(BalancedIndex& bi, uint64_t offsetInFile) {
 
 
 /*
+* @brief Deletes node data from specified position in storage file
+* @param bi B+ Tree instance
+* @param offsetInFile offset of node position in storage file
+*/
+void Node::deleteNode(BalancedIndex& bi, uint64_t offsetInFile) {    
+    RecordFileIO& recordsFile = bi.getRecordsFile();
+    recordsFile.setPosition(offsetInFile);
+    recordsFile.removeRecord();
+}
+
+
+
+/*
 * @brief Checks if node data is persisted
 */
 Node::~Node() {

@@ -64,6 +64,7 @@ namespace Boson {
     public:        
         Node(BalancedIndex& bi, NodeType type);
         static std::shared_ptr<Node> loadNode(BalancedIndex& bi, uint64_t offsetInFile);
+        static void Node::deleteNode(BalancedIndex& bi, uint64_t offsetInFile);
         ~Node();
         void persist();
         NodeType getNodeType();
@@ -91,9 +92,9 @@ namespace Boson {
         virtual uint64_t split() = 0;
         virtual uint64_t pushUpKey(uint64_t key, uint64_t leftChild, uint64_t rightChild) = 0;
         virtual uint64_t mergeChildren(uint64_t leftChild, uint64_t rightChild) = 0;
-        virtual void  mergeWithSibling(uint64_t key, uint64_t rightSibling) = 0;
+        virtual void     mergeWithSibling(uint64_t key, uint64_t rightSibling) = 0;
         virtual uint64_t borrowFromSibling(uint64_t key, uint64_t sibling, uint32_t borrowIndex) = 0;
-        virtual void  borrowChildren(uint64_t borrow0er, uint64_t lender, uint32_t borrowIndex) = 0;
+        virtual void     borrowChildren(uint64_t borrow0er, uint64_t lender, uint32_t borrowIndex) = 0;
     };
           
     //-------------------------------------------------------------------------
