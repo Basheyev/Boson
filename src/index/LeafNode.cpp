@@ -72,7 +72,7 @@ uint32_t LeafNode::search(uint64_t key) {
 */
 std::shared_ptr<std::string> LeafNode::getValueAt(uint32_t index) {
 
-    // load node data from specified offset in file
+    // Go to required position in storage file
     RecordFileIO& recordsFile = this->index.getRecordsFile();
     uint64_t offsetInFile = data.values[index];
     recordsFile.setPosition(offsetInFile);    
@@ -94,23 +94,49 @@ std::shared_ptr<std::string> LeafNode::getValueAt(uint32_t index) {
 
 /*
 *  @brief Set value at specified index in this node
-* 
+*  @param index of value
+*  @param value string
 */
 void LeafNode::setValueAt(uint32_t index, const std::string& value) {
     
-    // TODO:
-    // get value position in records file
-    // set new value in records file
-    // save position (if changed)
+    // Go to required position in storage file
+    RecordFileIO& recordsFile = this->index.getRecordsFile();
+    uint64_t offsetInFile = data.values[index];
+    recordsFile.setPosition(offsetInFile);
 
+    // Write value to the storage file
+    uint32_t valueLength = value.length() + 1;
+    const char* cStr = value.c_str();
+    uint64_t offset = recordsFile.setRecordData(cStr, valueLength);
+    if (offset == NOT_FOUND) throw std::ios_base::failure("Can't write value.");
+
+    // update offset if its changed
+    data.values[index] = offset;
+    isPersisted = false;
 }
 
 
+/*
+*  @brief Insert key/value pair to this node in sorted order
+*  @param key
+*  @param value
+*/
 bool LeafNode::insertKey(uint64_t key, const std::string& value) {
-    return false;
+    // find index to insert new key/value pair in sorted order
+    size_t insertIndex = searchPlaceFor(key);
+    if (insertIndex == NOT_FOUND) return false;
+    // insert key/value
+    insertAt(insertIndex, key, value);
+    return true;
 }
 
 
+/*
+*  @brief Insert key/value pair at specified index in this node
+*  @param index
+*  @param key
+*  @param value
+*/
 void LeafNode::insertAt(uint32_t index, uint64_t key, const std::string& value) {
 
 }
