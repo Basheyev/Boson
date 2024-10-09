@@ -2,8 +2,7 @@
 
 #define _ITERATOR_DEBUG_LEVEL 0
 
-#include "BalancedTreeIndex.h"
-#include "BalancedIndex.h"
+#include "InMemoryBPTree.h"
 
 #include <chrono>
 #include <iostream>
@@ -13,7 +12,12 @@
 
 namespace Research {
 
-	class BalancedTreeTest {
+
+	using BPTree = Research::BalancedTreeIndex<uint64_t, char*>;
+	using BPInner = Research::InnerNode<uint64_t>;
+	using BPLeaf = Research::LeafNode<uint64_t, char*>;
+
+	class InMemoryTest {
 	public:
 		bool run(bool verbose = true);
 	private:
@@ -26,8 +30,8 @@ namespace Research {
 		bool testPerformance(bool verbose = true);
 		bool testTextIndex(bool verbose = true);
 
-		Research::BalancedTreeIndex<size_t, char*>* buildTree(Boson::CachedFileIO& cachedFile, bool verbose);
-		bool deleteTree(Research::BalancedTreeIndex<size_t, char*>* bt, bool verbose);
+		BPTree* buildTree(bool verbose);
+		bool deleteTree(BPTree* bt, bool verbose);
 	};
 
 };

@@ -1,12 +1,14 @@
 #define _ITERATOR_DEBUG_LEVEL 0
 
-#include "BalancedTreeTest.h"
+#include "InMemoryTest.h"
 
 using namespace Research;
 using namespace std;
 
 
-bool BalancedTreeTest::run(bool verbose) {
+
+
+bool InMemoryTest::run(bool verbose) {
 	bool result = true;
 	result &= testLeafNode(verbose);
 	result &= testInnerNode(verbose);
@@ -16,7 +18,7 @@ bool BalancedTreeTest::run(bool verbose) {
 
 
 
-bool BalancedTreeTest::assert(char* msg, bool expr) {
+bool InMemoryTest::assert(char* msg, bool expr) {
 	cout << msg;
 	if (expr) cout << "OK"; else cout << "FAILED";
 	cout << endl;
@@ -25,11 +27,11 @@ bool BalancedTreeTest::assert(char* msg, bool expr) {
 
 
 
-bool BalancedTreeTest::testLeafNode(bool verbose) {
+bool InMemoryTest::testLeafNode(bool verbose) {
 	bool testPassed = true;
 	cout << "Testing LeafNode class logic:" << endl;
 	//------------------------------------------------------------------------
-	Research::LeafNode<uint64_t, char*> ln(10);
+	Research::BPLeaf ln(10);
 	testPassed &= assert(" - create leaf node of order 10...", ln.getKeyCount()==0);
 	//------------------------------------------------------------------------
 	ln.insertKey(10, "Baurzhan");
@@ -42,7 +44,7 @@ bool BalancedTreeTest::testLeafNode(bool verbose) {
 	ln.insertKey(32, "Aimgul");
 	ln.insertKey(57, "Tair");
 	ln.insertKey(98, "Igor");
-	testPassed &= assert(" - insert four records and check canLandAKey...",
+	testPassed &= assert(" - insert four records and check canLendAKey...",
 		ln.canLendAKey() && !ln.isUnderflow());
 	if (verbose) ln.print(1);
 	//------------------------------------------------------------------------	
@@ -78,7 +80,7 @@ bool BalancedTreeTest::testLeafNode(bool verbose) {
 		ln.deleteKey(69) && ln.search(69)==NOT_FOUND);
 	if (verbose) ln.print(1);
 	//------------------------------------------------------------------------
-	LeafNode<uint64_t, char*>* splittedNode = (LeafNode<uint64_t, char*>*) ln.split();
+	BPLeaf* splittedNode = (BPLeaf*) ln.split();
 	testPassed &= assert(" - check node split...",
 		ln.getKeyCount() == 4 && !ln.canLendAKey() && splittedNode->getKeyCount() == 5 &&
 		splittedNode->getKeyAt(0)==45);
@@ -101,28 +103,25 @@ bool BalancedTreeTest::testLeafNode(bool verbose) {
 }
 
 
-bool BalancedTreeTest::testInnerNode(bool verbose) {
+bool InMemoryTest::testInnerNode(bool verbose) {
 	return true;
 }
 
 
-bool BalancedTreeTest::testBalancedTree(bool verbose) {
+bool InMemoryTest::testBalancedTree(bool verbose) {
 	bool result = true;
-	Boson::CachedFileIO file;
-	file.open("f:/treedata.bin");
-	BalancedTreeIndex<uint64_t, char*>* bt = buildTree(file, verbose);
+	BPTree* bt = buildTree(verbose);
 	result &= (bt != nullptr);
 	result &= deleteTree(bt, verbose);
 	result &= testPerformance(verbose);
-	file.close();
 	return result;
 }
 
 
-BalancedTreeIndex<uint64_t, char*>* BalancedTreeTest::buildTree(Boson::CachedFileIO& cachedFile, bool verbose) {
-	BalancedTreeIndex<uint64_t, char*>* bt = new BalancedTreeIndex<uint64_t, char*>(10);
-	cout << "- size of leaf node " << sizeof(LeafNode<uint64_t, char*>) << " bytes" << endl;
-	cout << "- size of inner node " << sizeof(InnerNode<uint64_t>) << " bytes" << endl;
+BPTree* InMemoryTest::buildTree(bool verbose) {
+	BPTree* bt = new BPTree(10);
+	cout << "- size of leaf node " << sizeof(BPLeaf) << " bytes" << endl;
+	cout << "- size of inner node " << sizeof(BPInner) << " bytes" << endl;
 	bt->insert(10, "Baurzhan");
 	bt->insert(73, "Theya");
 	bt->insert(14, "Bolat");
@@ -148,7 +147,7 @@ BalancedTreeIndex<uint64_t, char*>* BalancedTreeTest::buildTree(Boson::CachedFil
 }
 
 
-bool BalancedTreeTest::deleteTree(BalancedTreeIndex<uint64_t, char*>* bt, bool verbose) {
+bool InMemoryTest::deleteTree(BPTree* bt, bool verbose) {
 	cout << "- deleting entries count=" << bt->getEntriesCount() << endl;
 	bt->erase(14);	if (verbose) bt->printTree();
 	bt->erase(11);	if (verbose) bt->printTree();
@@ -182,13 +181,11 @@ bool BalancedTreeTest::deleteTree(BalancedTreeIndex<uint64_t, char*>* bt, bool v
 
 
 
-bool BalancedTreeTest::testPerformance(bool verbose) {
+bool InMemoryTest::testPerformance(bool verbose) {
 
 	size_t entriesCount = 1000000;
 
-	Boson::CachedFileIO file;
-	file.open("f:/treeperformance.bin");
-	BalancedTreeIndex<uint64_t, char*>* bt = new BalancedTreeIndex<uint64_t, char*>(10);
+	BPTree* bt = new BPTree(10);
 
 	cout << "-------------------------------------------------------------" << endl;
 	cout << "Performance" << endl;
@@ -238,33 +235,6 @@ bool BalancedTreeTest::testPerformance(bool verbose) {
 
 	delete[] value;
 
-	file.close();
-
 	return true;
 }
 
-
-
-bool BalancedTreeTest::testTextIndex(bool verbose) {
-	/*BalancedTree bti;
-
-	bti.insert("Bolat", 8.14);
-	bti.insert("Maksat", 9.14);
-	bti.insert("Sanat", 7.14);
-	bti.insert("Uat", 6.14);
-	bti.insert("Kuat", 1.14);
-	bti.insert("Ali", 2.14);
-	bti.insert("Zangar", 3.14567);
-	bti.insert("Shokan", 4.14);
-	bti.insert("Hasan", 5.14);
-
-	bti.printTree();
-
-	bti.erase("Maksat");
-
-	bti.printTree();
-
-	std::cout << bti.search("Zangar") << std::endl;*/
-
-	return true;
-}

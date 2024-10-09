@@ -37,9 +37,9 @@ add_executable (Boson
     "src/index/LeafNode.cpp"  
     "src/index/NodeData.cpp"
 
-    "src/template/BalancedTreeTest.cpp"
-    "src/template/BalancedTreeTest.h"     
-    "src/template/BalancedTreeIndex.h" 
+    "src/template/InMemoryTest.cpp"
+    "src/template/InMemoryTest.h"     
+    "src/template/InMemoryBPTree.h" 
 )
 
 set_property(TARGET Boson 

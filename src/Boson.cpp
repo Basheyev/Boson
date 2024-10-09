@@ -21,8 +21,8 @@
 #include "RecordFileIO.h"
 #include "RecordFileIOTest.h"
 
-#include "BalancedIndex.h"
-#include "BalancedTreeTest.h"
+#include "InMemoryBPTree.h"
+#include "InMemoryTest.h"
 
 #include <string>
 
@@ -32,8 +32,8 @@ using namespace std;
 
 int main()
 {
-    BalancedTreeTest bpt;
-	bpt.run(true);
+	InMemoryTest imt;
+	imt.run(true);
 
 	//RecordFileIOTest rst;
 	//rst.run("F:/records.bin");
