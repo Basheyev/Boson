@@ -6,7 +6,7 @@ cmake_minimum_required (VERSION 3.8)
 project ("Boson")
 
 include_directories(
-    "src/api" 
+    "src/template" 
     "src/document" 
     "src/index" 
     "src/storage" 
@@ -37,9 +37,9 @@ add_executable (Boson
     "src/index/LeafNode.cpp"  
     "src/index/NodeData.cpp"
 
-    "src/api/BalancedTreeTest.cpp"
-    "src/api/BalancedTreeTest.h"     
-    "src/api/BalancedTreeIndex.h" 
+    "src/template/BalancedTreeTest.cpp"
+    "src/template/BalancedTreeTest.h"     
+    "src/template/BalancedTreeIndex.h" 
 )
 
 set_property(TARGET Boson 
