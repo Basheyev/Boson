@@ -127,7 +127,7 @@ namespace Boson {
         LeafNode(BalancedIndex& bi, uint64_t offsetInFile, NodeData& loadedData);
         ~LeafNode();
         uint32_t search(uint64_t key);
-        uint64_t getValueAt(uint32_t index);
+        std::shared_ptr<std::string> getValueAt(uint32_t index);
         void     setValueAt(uint32_t index, const std::string& value);
         bool     insertKey(uint64_t key, const std::string& value);
         void     insertAt(uint32_t index, uint64_t key, const std::string& value);
@@ -149,6 +149,7 @@ namespace Boson {
 
     class BalancedIndex {
     friend class Node;
+    friend class LeafNode;
     public:
         BalancedIndex(RecordFileIO& rf);
         ~BalancedIndex();                

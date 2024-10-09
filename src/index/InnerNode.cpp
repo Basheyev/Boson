@@ -15,6 +15,7 @@ using namespace Boson;
 
 /*
 * @brief Inner Node Constructor (calls Node Constructor)
+* @param bi BalancedIndex object
 */
 InnerNode::InnerNode(BalancedIndex& bi) : Node(bi, NodeType::INNER) {
     
@@ -22,7 +23,10 @@ InnerNode::InnerNode(BalancedIndex& bi) : Node(bi, NodeType::INNER) {
 
 
 /*
-* @brief Inner Node Constructor (calls Node Constructor)
+* @brief Inner Node Constructor (used from Node::loadNode)
+* @param bi BalancedIndex object
+* @param offsetInFile position in the storage file
+* @param loadedData NodeData object with loaded data
 */
 InnerNode::InnerNode(BalancedIndex& bi, uint64_t offsetInFile, NodeData& loadedData) : Node(bi) {
     position = offsetInFile;
@@ -324,6 +328,12 @@ uint64_t InnerNode::mergeChildren(uint64_t leftChildPos, uint64_t rightChildPos)
 }
 
 
+
+/*
+*  @brief Merge with sibling InnerNode by specifying key and right sibling
+*  @param key
+*  @param rightSiblingPos
+*/
 void InnerNode::mergeWithSibling(uint64_t key, uint64_t rightSiblingPos) {
 
     std::shared_ptr<Node> rightSiblingNode = Node::loadNode(this->index, rightSiblingPos);
@@ -364,7 +374,10 @@ void InnerNode::mergeWithSibling(uint64_t key, uint64_t rightSiblingPos) {
 }
 
 
-
+/*
+*  @brief returns node type
+*  @return node type
+*/
 NodeType InnerNode::getNodeType() {
     return NodeType::INNER;
 }
