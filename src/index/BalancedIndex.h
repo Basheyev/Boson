@@ -130,7 +130,9 @@ namespace Boson {
         std::shared_ptr<std::string> getValueAt(uint32_t index);
         void     setValueAt(uint32_t index, const std::string& value);
         bool     insertKey(uint64_t key, const std::string& value);
+        bool     insertKey(uint64_t key, uint64_t valuePosition);
         void     insertAt(uint32_t index, uint64_t key, const std::string& value);
+        void     insertAt(uint32_t index, uint64_t key, uint64_t valuePosition);
         bool     deleteKey(uint64_t key);
         void     deleteAt(uint32_t index);
         uint64_t split();

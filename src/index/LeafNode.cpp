@@ -105,7 +105,7 @@ void LeafNode::setValueAt(uint32_t index, const std::string& value) {
     recordsFile.setPosition(offsetInFile);
 
     // Write value to the storage file
-    uint32_t valueLength = value.length() + 1;
+    uint32_t valueLength = (uint32_t) value.length() + 1;
     const char* cStr = value.c_str();
     uint64_t offset = recordsFile.setRecordData(cStr, valueLength);
     if (offset == NOT_FOUND) throw std::ios_base::failure("Can't write value.");
@@ -123,10 +123,25 @@ void LeafNode::setValueAt(uint32_t index, const std::string& value) {
 */
 bool LeafNode::insertKey(uint64_t key, const std::string& value) {
     // find index to insert new key/value pair in sorted order
-    size_t insertIndex = searchPlaceFor(key);
+    uint32_t insertIndex = searchPlaceFor(key);
     if (insertIndex == NOT_FOUND) return false;
     // insert key/value
     insertAt(insertIndex, key, value);
+    return true;
+}
+
+
+/*
+*  @brief Insert key/value pair to this node in sorted order
+*  @param key
+*  @param value
+*/
+bool LeafNode::insertKey(uint64_t key, uint64_t valuePosition) {
+    // find index to insert new key/value pair in sorted order
+    uint32_t insertIndex = searchPlaceFor(key);
+    if (insertIndex == NOT_FOUND) return false;
+    // insert key/value
+    insertAt(insertIndex, key, valuePosition);
     return true;
 }
 
@@ -138,22 +153,90 @@ bool LeafNode::insertKey(uint64_t key, const std::string& value) {
 *  @param value
 */
 void LeafNode::insertAt(uint32_t index, uint64_t key, const std::string& value) {
+    // insert key
+    data.insertAt(NodeArray::KEYS, index, key);
 
+    // Create record in storage file
+    RecordFileIO& recordsFile = this->index.getRecordsFile();
+    uint32_t valueLength = (uint32_t) value.length() + 1;
+    const char* cStr = value.c_str();    
+    uint64_t offsetInFile = recordsFile.createRecord(cStr, valueLength);
+    if (offsetInFile == NOT_FOUND) throw std::ios_base::failure("Can't write value.");
+    
+    // insert value pointer
+    data.insertAt(NodeArray::VALUES, index, offsetInFile);
+    
+    isPersisted = false;
 }
 
 
+/*
+*  @brief Insert key/value pair at specified index in this node
+*  @param index
+*  @param key
+*  @param value
+*/
+void LeafNode::insertAt(uint32_t index, uint64_t key, uint64_t valuePosition) {
+    // insert key
+    data.insertAt(NodeArray::KEYS, index, key);
+    // insert value pointer
+    data.insertAt(NodeArray::VALUES, index, valuePosition);
+
+    isPersisted = false;
+}
+
+
+
+
+/*
+*  @brief Delete key/value pair by key in this node
+*  @param key value
+*  @return true if ok, or false if index not found
+*/
 bool LeafNode::deleteKey(uint64_t key) {
-    return false;
+    uint32_t deleteIndex = search(key);
+    if (deleteIndex == NOT_FOUND) return false;
+    deleteAt(deleteIndex);
+    return true;
 }
 
 
+/*
+* @brief Delete key/value pair at specified index in this node
+* @param index 
+*/
 void LeafNode::deleteAt(uint32_t index) {
-
+    // get value position in storage file
+    uint64_t offsetInFile = data.values[index];
+    // Find record in storage file
+    RecordFileIO& recordsFile = this->index.getRecordsFile();
+    if (!recordsFile.setPosition(offsetInFile))
+        throw std::ios_base::failure("Can't delete value.");
+    // Delete value record in storage file
+    recordsFile.removeRecord();
+    // Delete key/value pair
+    data.deleteAt(NodeArray::KEYS, index);
+    data.deleteAt(NodeArray::VALUES, index);        
 }
 
 
+/*
+* @brief Split this node by half and return new splitted node
+* @return new node position in storage file
+*/
 uint64_t LeafNode::split() {
-    return NOT_FOUND;
+    uint32_t midIndex = data.keysCount / 2;
+
+    std::unique_ptr<LeafNode> newNode = std::make_unique<LeafNode>(this->index);
+
+    for (size_t i = midIndex; i < data.keysCount; ++i) {
+        newNode->insertKey(data.keys[i], data.values[i]);        
+    }
+
+    data.resize(NodeArray::KEYS, midIndex);
+    data.resize(NodeArray::VALUES, midIndex);
+    
+    return newNode->position;
 }
 
 

@@ -206,7 +206,7 @@ bool RecordFileIO::previous() {
 *
 */
 uint64_t RecordFileIO::createRecord(const void* data, uint32_t length) {
-	if (!cachedFile.isOpen() || cachedFile.isReadOnly()) return false;
+	if (!cachedFile.isOpen() || cachedFile.isReadOnly()) return NOT_FOUND;
 	// find free record of required length
 	RecordHeader newRecordHeader;
 	uint64_t offset = allocateRecord(length, newRecordHeader);
@@ -241,7 +241,7 @@ uint64_t RecordFileIO::createRecord(const void* data, uint32_t length) {
 *
 */
 uint64_t RecordFileIO::removeRecord() {
-	if (!cachedFile.isOpen() || cachedFile.isReadOnly() || currentPosition == NOT_FOUND) return false;
+	if (!cachedFile.isOpen() || cachedFile.isReadOnly() || currentPosition == NOT_FOUND) return NOT_FOUND;
 	// check siblings
 	uint64_t leftSiblingOffset = recordHeader.previous;
 	uint64_t rightSiblingOffset = recordHeader.next;
