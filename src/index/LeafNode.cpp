@@ -116,6 +116,36 @@ void LeafNode::setValueAt(uint32_t index, const std::string& value) {
 }
 
 
+
+/*
+*  @brief Search index for new key in sorted order (NOT_FOUND returned if key duplicate)
+*  @param key
+*  @return index for new key
+*/
+uint32_t LeafNode::searchPlaceFor(uint64_t key) {
+
+    int32_t insertIndex = data.keysCount;
+    int32_t start = 0;                            // we need signed integers for
+    int32_t end = data.keysCount - 1;             // correct comparison in while loop
+    int32_t mid;                                  // middle index can not be negative
+    uint64_t entry;                               // variable to hold value
+
+    while (start <= end) {                        // while start index <= end index
+        mid = start + (end - start) / 2;          // calculate middle index between start & end
+        entry = data.keys[mid];                   // get value in keys array at middle index
+        if (entry == key) return NOT_FOUND_KEY;   // if value equals to key - key duplicate!
+        if (key < entry) {                        // if key < value 
+            end = mid - 1;                        // bound end index to middle-1
+            insertIndex = mid;                    // save index where next entry is greater
+        }
+        else if (key > entry) start = mid + 1;    // if key > value bound start index to middle+1 
+    }
+
+    return insertIndex;
+}
+
+
+
 /*
 *  @brief Insert key/value pair to this node in sorted order
 *  @param key
@@ -181,7 +211,6 @@ void LeafNode::insertAt(uint32_t index, uint64_t key, uint64_t valuePosition) {
     data.insertAt(NodeArray::KEYS, index, key);
     // insert value pointer
     data.insertAt(NodeArray::VALUES, index, valuePosition);
-
     isPersisted = false;
 }
 
@@ -201,6 +230,7 @@ bool LeafNode::deleteKey(uint64_t key) {
 }
 
 
+
 /*
 * @brief Delete key/value pair at specified index in this node
 * @param index 
@@ -216,8 +246,10 @@ void LeafNode::deleteAt(uint32_t index) {
     recordsFile.removeRecord();
     // Delete key/value pair
     data.deleteAt(NodeArray::KEYS, index);
-    data.deleteAt(NodeArray::VALUES, index);        
+    data.deleteAt(NodeArray::VALUES, index);     
+    isPersisted = false;
 }
+
 
 
 /*
@@ -226,57 +258,128 @@ void LeafNode::deleteAt(uint32_t index) {
 */
 uint64_t LeafNode::split() {
     uint32_t midIndex = data.keysCount / 2;
-
     std::unique_ptr<LeafNode> newNode = std::make_unique<LeafNode>(this->index);
-
     for (size_t i = midIndex; i < data.keysCount; ++i) {
         newNode->insertKey(data.keys[i], data.values[i]);        
     }
-
     data.resize(NodeArray::KEYS, midIndex);
     data.resize(NodeArray::VALUES, midIndex);
-    
+    isPersisted = false;
     return newNode->position;
 }
 
 
-void LeafNode::merge(uint64_t key, uint64_t siblingRight) {
+/*
+*  @brief Merges two leaf nodes
+*  @param key
+*  @param sibling
+*/
 
+/*
+void LeafNode::merge(uint64_t key, uint64_t siblingPos) {
+    std::shared_ptr<LeafNode> siblingLeaf = 
+        std::dynamic_pointer_cast<LeafNode>(Node::loadNode(index, siblingPos));  
+    // copy keys and values from sibling node to this node
+    for (size_t i = 0; i < siblingLeaf->getKeyCount(); i++) {
+        data.pushBack(NodeArray::KEYS, siblingLeaf->data.keys[i]);
+        data.pushBack(NodeArray::VALUES, siblingLeaf->data.values[i]);
+    }
+    // interconnect siblings
+    uint64_t rightSiblingPos = siblingLeaf->getRightSibling();
+    setRightSibling(rightSiblingPos);
+    if (rightSiblingPos != NOT_FOUND) {
+        std::shared_ptr<LeafNode> rightSibling =
+            std::dynamic_pointer_cast<LeafNode>(Node::loadNode(index, rightSiblingPos));
+        rightSibling->setLeftSibling(this->position);
+    }
+    // Delete sibling node
+    siblingLeaf.reset();
+    Node::deleteNode(index, siblingPos);   
+    isPersisted = false;
+}*/
+
+
+/*
+*  @brief Merge this leaf node with right sibling (why its equivalent to to merge)
+*  @param key
+*  @param sibling
+*/
+void LeafNode::mergeWithSibling(uint64_t key, uint64_t siblingPos) {
+    std::shared_ptr<LeafNode> siblingLeaf =
+        std::dynamic_pointer_cast<LeafNode>(Node::loadNode(index, siblingPos));
+    // copy keys and values from sibling node to this node
+    for (size_t i = 0; i < siblingLeaf->getKeyCount(); i++) {
+        data.pushBack(NodeArray::KEYS, siblingLeaf->data.keys[i]);
+        data.pushBack(NodeArray::VALUES, siblingLeaf->data.values[i]);
+    }
+    // interconnect siblings
+    uint64_t rightSiblingPos = siblingLeaf->getRightSibling();
+    setRightSibling(rightSiblingPos);
+    if (rightSiblingPos != NOT_FOUND) {
+        std::shared_ptr<LeafNode> rightSibling =
+            std::dynamic_pointer_cast<LeafNode>(Node::loadNode(index, rightSiblingPos));
+        rightSibling->setLeftSibling(this->position);
+    }
+    // Delete sibling node
+    siblingLeaf.reset();
+    Node::deleteNode(index, siblingPos);
+
+    isPersisted = false;
 }
 
 
-uint64_t LeafNode::pushUpKey(uint64_t key, uint64_t leftChild, uint64_t rightChild) {
-    return NOT_FOUND;
+/*
+*  @brief Borrow child node at specified index from sibling and return new middle key
+*  @param key
+*  @param siblingPos
+*  @param borrowIndex
+*/
+uint64_t LeafNode::borrowFromSibling(uint64_t key, uint64_t siblingPos, uint32_t borrowIndex) {
+
+    std::shared_ptr<LeafNode> siblingNode =
+        std::dynamic_pointer_cast<LeafNode>(Node::loadNode(index, siblingPos));
+
+    // insert borrowed key/value pair
+    uint64_t borrowedKey = siblingNode->data.keys[borrowIndex];
+    uint64_t borrowedValuePos = siblingNode->data.values[borrowIndex];
+    this->insertKey(borrowedKey, borrowedValuePos);
+
+    // delete borrowed key/value pair in sibling node
+    siblingNode->deleteAt(borrowIndex);
+    
+    isPersisted = false;
+
+    // return new middle key
+    if (borrowIndex == 0)
+        return siblingNode->getKeyAt(0);
+    else
+        return this->getKeyAt(0);
 }
 
 
-void LeafNode::borrowChildren(uint64_t borrower, uint64_t lender, uint32_t borrowIndex) {
 
-}
-
-
-uint64_t LeafNode::mergeChildren(uint64_t leftChild, uint64_t rightChild) {
-    return NOT_FOUND;
-}
-
-
-void LeafNode::mergeWithSibling(uint64_t key, uint64_t rightSibling) {
-
-}
-
-
-uint64_t LeafNode::borrowFromSibling(uint64_t key, uint64_t sibling, uint32_t borrowIndex) {
-    return NOT_FOUND;
-}
-
-
+/*
+*  @brief returns node type
+*  @return node type
+*/
 NodeType LeafNode::getNodeType() {
     return NodeType::LEAF;
 }
 
 
-uint32_t LeafNode::searchPlaceFor(uint64_t key) {
 
-    return NOT_FOUND_KEY;
+
+uint64_t LeafNode::pushUpKey(uint64_t key, uint64_t leftChild, uint64_t rightChild) {
+    throw std::runtime_error("Unsupported operation: leaf node can't push keys up.");
+}
+
+
+void LeafNode::borrowChildren(uint64_t borrower, uint64_t lender, uint32_t borrowIndex) {
+    throw std::runtime_error("Unsupported operation: leaf node can't process children borrowing.");
+}
+
+
+uint64_t LeafNode::mergeChildren(uint64_t leftChild, uint64_t rightChild) {
+    throw std::runtime_error("Unsupported operation: leaf node can't merge children.");
 }
 
