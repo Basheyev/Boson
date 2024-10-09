@@ -77,13 +77,17 @@ std::shared_ptr<std::string> LeafNode::getValueAt(uint32_t index) {
     uint64_t offsetInFile = data.values[index];
     recordsFile.setPosition(offsetInFile);    
 
-    uint32_t valueLength = recordsFile.getDataLength();
-    std::unique_ptr<char> data = std::make_unique<char>(valueLength);
-    uint64_t offset = recordsFile.getRecordData(data.get(), valueLength);
+    // load data from storage file record
+    uint32_t valueLength = recordsFile.getDataLength() + 1;
+    std::unique_ptr<char> cStr = std::make_unique<char>(valueLength);
+    uint64_t offset = recordsFile.getRecordData(cStr.get(), valueLength);
     if (offset == NOT_FOUND) throw std::ios_base::failure("Can't read value.");
 
-    // FIXME: is data is null terminated?
-    return std::make_shared<std::string>(data.get(), valueLength);
+    // add null terminator to C style string
+    cStr.get()[valueLength - 1] = 0; 
+
+    // convert to C++ string and return as shared pointer
+    return std::make_shared<std::string>(cStr.get());
 }
 
 
