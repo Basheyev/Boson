@@ -90,9 +90,9 @@ bool InMemoryTest::testLeafNode(bool verbose) {
 		splittedNode->print(1);
 	}
 	//------------------------------------------------------------------------
-	ln.insertKey(39, "Hasar");
+	ln.insertKey(39, "Birlesbek");
 	splittedNode->deleteKey(45);
-	ln.merge(NOT_FOUND, splittedNode);
+	ln.mergeWithSibling(NOT_FOUND, splittedNode);
 	testPassed &= assert(" - check nodes merge: insert key 39 (A), delete key 45 (B) and merge A+B...", 
 		ln.getKeyCount() == 9);
 	if (verbose) ln.print(1);

@@ -858,29 +858,6 @@ namespace Research {
 
 
 	//-------------------------------------------------------------------------------------------------
-	// Merges two leaf nodes
-	//-------------------------------------------------------------------------------------------------
-	template <typename KEY, typename VALUE> void LeafNode<KEY, VALUE>::merge(KEY key, Node<KEY>* sibling) {
-		LeafNode<KEY,VALUE>* siblingLeaf = (LeafNode<KEY,VALUE>*)sibling;
-
-		// copy keys and values from sibling node to this node
-		for (size_t i = 0; i < siblingLeaf->getKeyCount(); i++) {
-			keys.push_back(siblingLeaf->getKeyAt(i));
-			values.push_back(siblingLeaf->getValueAt(i));
-		}
-
-		// interconnect siblings
-		setRightSibling(siblingLeaf->rightSibling);
-		if (siblingLeaf->rightSibling != nullptr) {
-			siblingLeaf->rightSibling->setLeftSibling(this);
-		}
-
-		// Delete sibling node
-		delete siblingLeaf;
-	}
-
-
-	//-------------------------------------------------------------------------------------------------
 	// Unsupported operation for leaf node
 	//-------------------------------------------------------------------------------------------------
 	template <typename KEY, typename VALUE> Node<KEY>* LeafNode<KEY, VALUE>::pushUpKey(KEY key, Node<KEY>* leftChild, Node<KEY>* rightChild) {

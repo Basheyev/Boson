@@ -136,7 +136,6 @@ namespace Boson {
         bool     deleteKey(uint64_t key);
         void     deleteAt(uint32_t index);
         uint64_t split();
-        //void     merge(uint64_t key, uint64_t sibling);
         uint64_t pushUpKey(uint64_t key, uint64_t leftChild, uint64_t rightChild);
         void     borrowChildren(uint64_t borrower, uint64_t lender, uint32_t borrowIndex);
         uint64_t mergeChildren(uint64_t leftChild, uint64_t rightChild);

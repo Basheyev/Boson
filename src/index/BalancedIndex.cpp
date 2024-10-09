@@ -16,7 +16,7 @@
 
 using namespace Boson;
 
-
+// TODO: implementation
 
 BalancedIndex::BalancedIndex(RecordFileIO& rf) : records(rf) {
     rootPosition = 0;
