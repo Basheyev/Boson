@@ -27,6 +27,7 @@ BalancedIndex::BalancedIndex(RecordFileIO& rf) : records(rf) {
         // root record
         root = std::make_shared<InnerNode>(*this);
         uint64_t rootPos = root->persist();
+        updateRoot(rootPos);
     } else {
         // look up root position
         records.getRecordData(&rootPosition, sizeof rootPosition);
@@ -80,12 +81,17 @@ bool BalancedIndex::insert(uint64_t key, const std::string& value) {
     bool isInserted = leaf->insertKey(key, value);
     if (leaf->isOverflow()) {
         uint64_t newRootPos = leaf->dealOverflow();
-        if (newRootPos != NOT_FOUND) updateRoot(newRootPos);
+        if (newRootPos != NOT_FOUND) {
+            updateRoot(newRootPos);
+        }
     }
     return isInserted;
 }
 
 
+/*
+*  @brief Update key/value pair
+*/
 bool BalancedIndex::update(uint64_t key, const std::string& value) {
     std::shared_ptr<LeafNode> leaf = findLeafNode(key);
     uint32_t valueIndex = leaf->search(key);
@@ -95,18 +101,29 @@ bool BalancedIndex::update(uint64_t key, const std::string& value) {
 }
 
 
-bool BalancedIndex::search(uint64_t key, std::string& value) {
-    return false;
+std::shared_ptr<std::string> BalancedIndex::search(uint64_t key) {
+    std::shared_ptr<LeafNode> leaf = findLeafNode(key);    
+    uint32_t index = leaf->search(key);
+    // FIXME: For non-pointer types returning nullptr is invalid 
+    return (index == KEY_NOT_FOUND) ? nullptr : leaf->getValueAt(index);
 }
 
 
 
 bool BalancedIndex::erase(uint64_t key) {
-    return false;
-}
-
-uint64_t BalancedIndex::getEntriesCount() {
-    return 0;
+    std::shared_ptr<LeafNode> leaf = findLeafNode(key);
+    if (leaf->deleteKey(key)) {
+        if (leaf->isUnderflow()) {
+            uint64_t newRootPos = leaf->dealUnderflow();
+            if (newRootPos != NOT_FOUND) {
+                std::shared_ptr<LeafNode> newRoot =
+                    std::dynamic_pointer_cast<LeafNode>(Node::loadNode(*this, newRootPos));
+                newRoot->setParent(NOT_FOUND);
+                updateRoot(newRootPos);
+            }
+        }
+    }
+    return true;
 }
 
 
@@ -123,10 +140,6 @@ bool BalancedIndex::next() {
 }
 
 bool BalancedIndex::previous() {
-    return false;
-}
-
-bool BalancedIndex::getValue(std::string& value) {
     return false;
 }
 

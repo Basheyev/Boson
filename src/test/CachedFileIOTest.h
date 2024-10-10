@@ -8,8 +8,6 @@
 #pragma once
 
 
-#define _ITERATOR_DEBUG_LEVEL 0
-
 #include <cstdio>
 #include <iostream>
 #include <locale>

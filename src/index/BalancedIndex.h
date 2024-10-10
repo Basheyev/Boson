@@ -159,14 +159,12 @@ namespace Boson {
         ~BalancedIndex();       
         bool insert(uint64_t key, const std::string& value);
         bool update(uint64_t key, const std::string& value);
-        bool search(uint64_t key, std::string& value);
+        std::shared_ptr<std::string> search(uint64_t key);
         bool erase(uint64_t key);
-        uint64_t getEntriesCount();
         bool first();
         bool last();
         bool next();
-        bool previous();
-        bool getValue(std::string& value);
+        bool previous();        
     protected:
         RecordFileIO& getRecordsFile();
         std::shared_ptr<LeafNode> findLeafNode(uint64_t key);
