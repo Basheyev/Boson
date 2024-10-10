@@ -23,7 +23,7 @@ namespace Boson {
     constexpr uint64_t TREE_ORDER = 5;
     constexpr uint64_t MAX_DEGREE = TREE_ORDER - 1;
     constexpr uint64_t MIN_DEGREE = TREE_ORDER / 2;
-    constexpr uint32_t NOT_FOUND_KEY = -1;
+    constexpr uint32_t KEY_NOT_FOUND = -1;
 
     typedef enum : uint32_t { INNER = 1, LEAF = 2 } NodeType;
     typedef enum : uint32_t { KEYS = 1, CHILDREN = 2, VALUES = 2 } NodeArray;
@@ -61,12 +61,14 @@ namespace Boson {
     class BalancedIndex;
 
     class Node {
+    friend class BalancedIndex;
     public:        
         Node(BalancedIndex& bi, NodeType type);
         static std::shared_ptr<Node> loadNode(BalancedIndex& bi, uint64_t offsetInFile);
         static void Node::deleteNode(BalancedIndex& bi, uint64_t offsetInFile);
         ~Node();
-        void persist();
+        uint64_t getPosition();
+        uint64_t persist();
         NodeType getNodeType();
         uint32_t getKeyCount();
         bool     isOverflow();
@@ -121,7 +123,7 @@ namespace Boson {
 
     //-------------------------------------------------------------------------
 
-    class LeafNode : public Node {
+    class LeafNode : public Node {        
     public:
         LeafNode(BalancedIndex& bi);
         LeafNode(BalancedIndex& bi, uint64_t offsetInFile, NodeData& loadedData);
@@ -147,13 +149,14 @@ namespace Boson {
     };
 
     //-------------------------------------------------------------------------
-
+    
+    
     class BalancedIndex {
     friend class Node;
     friend class LeafNode;
     public:
         BalancedIndex(RecordFileIO& rf);
-        ~BalancedIndex();                
+        ~BalancedIndex();       
         bool insert(uint64_t key, const std::string& value);
         bool update(uint64_t key, const std::string& value);
         bool search(uint64_t key, std::string& value);
@@ -166,16 +169,13 @@ namespace Boson {
         bool getValue(std::string& value);
     protected:
         RecordFileIO& getRecordsFile();
+        std::shared_ptr<LeafNode> findLeafNode(uint64_t key);
+        void BalancedIndex::updateRoot(uint64_t newRootPosition);
     private:
 
         RecordFileIO& records;
         uint64_t rootPosition;
-        uint64_t cursorPosition;
-
-
-
-        // Node manipulations
-
+        std::shared_ptr<InnerNode> root;
 
     };
 

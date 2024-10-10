@@ -89,11 +89,19 @@ Node::~Node() {
 }
 
 
+
+/*
+* @brief Returns position of the node in the storage file
+*/
+uint64_t Node::getPosition() {
+    return position;
+}
+
 /*
 * @brief Persists node data to the storage
 * @return returns current offset of record or NOT_FOUND if fails
 */
-void Node::persist() {
+uint64_t Node::persist() {
     // write node data to specified position
     RecordFileIO& recordsFile = index.getRecordsFile();
     recordsFile.setPosition(position);    
@@ -106,6 +114,7 @@ void Node::persist() {
     position = offset;
     // Set flag that data is already persisted
     isPersisted = true;
+    return position;
 }
 
 

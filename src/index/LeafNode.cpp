@@ -61,7 +61,7 @@ uint32_t LeafNode::search(uint64_t key) {
             if (key > entry) start = mid + 1;     // if key > value bound start index to middle+1 
     }
 
-    return NOT_FOUND_KEY;                             // Key is definitely not found
+    return KEY_NOT_FOUND;                             // Key is definitely not found
 }
 
 
@@ -133,7 +133,7 @@ uint32_t LeafNode::searchPlaceFor(uint64_t key) {
     while (start <= end) {                        // while start index <= end index
         mid = start + (end - start) / 2;          // calculate middle index between start & end
         entry = data.keys[mid];                   // get value in keys array at middle index
-        if (entry == key) return NOT_FOUND_KEY;   // if value equals to key - key duplicate!
+        if (entry == key) return KEY_NOT_FOUND;   // if value equals to key - key duplicate!
         if (key < entry) {                        // if key < value 
             end = mid - 1;                        // bound end index to middle-1
             insertIndex = mid;                    // save index where next entry is greater
