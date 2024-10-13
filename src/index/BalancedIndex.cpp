@@ -9,6 +9,8 @@
 
 
 #include <memory>
+#include <algorithm>
+#include <sstream>
 #include <ios>
 
 #include "BalancedIndex.h"
@@ -49,13 +51,24 @@ BalancedIndex::~BalancedIndex() {
 * 
 */
 std::shared_ptr<LeafNode> BalancedIndex::findLeafNode(uint64_t key) {
+    std::vector<uint64_t> stack;
     std::shared_ptr<Node> node = root;
     std::shared_ptr<InnerNode> innerNode;
     uint32_t childIndex;
     while (node->getNodeType() == NodeType::INNER) {
         childIndex = node->search(key);
         innerNode = std::dynamic_pointer_cast<InnerNode>(node);
-        node = Node::loadNode(*this, innerNode->getChildAt(childIndex));
+        uint64_t storagePos = innerNode->getChildAt(childIndex);
+        if (std::find(stack.begin(), stack.end(), storagePos) != stack.end()) {
+            std::stringstream ss;
+            ss << "Cyclic references in index tree!\n";
+            for (const auto& val : stack) {
+                ss << val << "\n";  // Add each integer to the stream
+            }                        
+            throw std::runtime_error(ss.str());
+        }
+        stack.push_back(storagePos);
+        node = Node::loadNode(*this, storagePos);
     }
     return std::dynamic_pointer_cast<LeafNode>(node);
 }
@@ -77,7 +90,9 @@ void BalancedIndex::updateRoot(uint64_t newRootPosition) {
 *  @brief Insert key/value pair
 */
 bool BalancedIndex::insert(uint64_t key, const std::string& value) {
-    std::shared_ptr<LeafNode> leaf = findLeafNode(key);
+    
+    std::shared_ptr<LeafNode> leaf = findLeafNode(key); // FIXME: bug
+
     bool isInserted = leaf->insertKey(key, value);
     if (leaf->isOverflow()) {
         uint64_t newRootPos = leaf->dealOverflow();

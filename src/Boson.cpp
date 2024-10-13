@@ -38,27 +38,52 @@ int main()
 	
 	cf.open("D:/bptree.bin");
 
-	if (cf.isOpen()) {
-		RecordFileIO *rf = new RecordFileIO(cf);
-		BalancedIndex *bi = new BalancedIndex(*rf);
+	try {
+		if (cf.isOpen()) {
+			RecordFileIO* rf = new RecordFileIO(cf);
+			BalancedIndex* bi = new BalancedIndex(*rf);
+
+			bi->insert(1, "Bolat");
+			bi->insert(2, "Ayoka");
+			bi->insert(3, "Teya");
+			bi->insert(4, "Malika");
+			bi->insert(5, "Shariha");
+			bi->insert(6, "Nikhya");
+			bi->insert(7, "Arman");
+			bi->insert(8, "Khanat");
+			bi->insert(9, "Baurzhan"); // FIXME: somewhere here cyclic reference created
+			bi->insert(10, "Igor");
+			bi->insert(11, "Tanya");
+			bi->insert(12, "Azat");
+			bi->insert(13, "Dualet");
+			bi->insert(14, "Berik");   // FIXME: Cyclic reference
+			bi->insert(15, "Meirzhan");
+			bi->insert(16, "Rakhim");
+			bi->insert(17, "Anastasiya");
+			bi->insert(18, "Victor");
+			bi->insert(19, "Andrew");
+			bi->insert(20, "Asem");
+			bi->insert(21, "Aset");
+			bi->insert(22, "Yerlan");
+			bi->insert(23, "Sanzhar");
+			bi->insert(24, "Askhat");
+
+			cf.flush();
 
 
-		bi->insert(1, "Bolat");
-		bi->insert(2, "Ayoka");
-		bi->insert(3, "Teya");
-		bi->insert(4, "Malika");
-        bi->insert(5, "Shariha");
-		bi->insert(6, "Nikhya");
-		cf.flush();
-					
-		
-		cout << *bi->search(5) << std::endl;
+			//bi->update(23, "Aishoka");
 
-		delete bi;
-		delete rf;
+			cout << *bi->search(23) << std::endl;
 
-		cf.close();
-	
+			delete bi;
+			delete rf;
+
+			cf.close();
+
+		}
+	}
+	catch (const std::runtime_error& e) {
+		std:cout << "Error: " << e.what() << std::endl;
 	}
 
 	return 0;
