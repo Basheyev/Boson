@@ -54,12 +54,12 @@ int main()
 			bi->insert(6, "Nikhya");
 			bi->insert(7, "Arman");
 			bi->insert(8, "Khanat");
-			bi->insert(9, "Baurzhan"); // FIXME: somewhere here cyclic reference created
+			bi->insert(9, "Baurzhan");
 			bi->insert(10, "Igor");
 			bi->insert(11, "Tanya");
 			bi->insert(12, "Azat");
 			bi->insert(13, "Dualet");
-			/*bi->insert(14, "Berik");   // FIXME: Cyclic reference
+			bi->insert(14, "Berik");
 			bi->insert(15, "Meirzhan");
 			bi->insert(16, "Rakhim");
 			bi->insert(17, "Anastasiya");
@@ -69,7 +69,7 @@ int main()
 			bi->insert(21, "Aset");
 			bi->insert(22, "Yerlan");
 			bi->insert(23, "Sanzhar");
-			bi->insert(24, "Askhat");*/
+			bi->insert(24, "Askhat");
 
 			cf.flush();
 

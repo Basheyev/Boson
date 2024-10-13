@@ -92,7 +92,9 @@ void BalancedIndex::updateRoot(uint64_t newRootPosition) {
 */
 bool BalancedIndex::insert(uint64_t key, const std::string& value) {
     
-    std::shared_ptr<LeafNode> leaf = findLeafNode(key); // FIXME: bug
+    std::shared_ptr<LeafNode> leaf = findLeafNode(key);
+
+    if (leaf->search(key) != KEY_NOT_FOUND) return false;
 
     bool isInserted = leaf->insertKey(key, value);
     if (leaf->isOverflow()) {

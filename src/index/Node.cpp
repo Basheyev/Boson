@@ -146,7 +146,7 @@ uint32_t Node::getKeyCount() {
 *  @return true if keys count more than MAX_DEGREE
 */
 bool Node::isOverflow() {
-    return data.keysCount > MAX_DEGREE;
+    return data.keysCount >= MAX_DEGREE;
 }
 
 
