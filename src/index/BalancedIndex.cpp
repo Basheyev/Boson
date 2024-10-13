@@ -16,24 +16,24 @@
 
 using namespace Boson;
 
-// TODO: implementation
+
 
 BalancedIndex::BalancedIndex(RecordFileIO& rf) : records(rf) {
     // check if file is open
     if (!rf.isOpen()) throw std::runtime_error("Can't open file.");
     // Check if file has its first record as DB header
     if (!records.first()) {
-        records.createRecord(&rootPosition, sizeof rootPosition);
+        uint64_t referencePos = records.createRecord(&rootPosition, sizeof rootPosition);
         // root record
-        root = std::make_shared<InnerNode>(*this);
-        uint64_t rootPos = root->persist();
-        updateRoot(rootPos);
+        root = std::make_shared<LeafNode>(*this);
+        rootPosition = root->persist();
+        records.setPosition(referencePos);
+        records.setRecordData(&rootPosition, sizeof rootPosition);
     } else {
         // look up root position
         records.getRecordData(&rootPosition, sizeof rootPosition);
         // load root record
-        root = std::dynamic_pointer_cast<InnerNode>
-            (Node::loadNode(*this, rootPosition));
+        root = Node::loadNode(*this, rootPosition);
     }
 }
 

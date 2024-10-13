@@ -173,7 +173,7 @@ namespace Boson {
 
         RecordFileIO& records;
         uint64_t rootPosition;
-        std::shared_ptr<InnerNode> root;
+        std::shared_ptr<Node> root;
 
     };
 

@@ -45,6 +45,10 @@ int main()
 		bi.insert(1, "Teya");
 		bi.insert(2, "Ayoka");
 		bi.insert(3, "Bolat");
+		
+		
+
+		cout << bi.search(1) << std::endl;
 
 		cf.close();
 	}
