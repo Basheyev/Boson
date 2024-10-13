@@ -11,6 +11,7 @@
 #include <memory>
 #include <algorithm>
 #include <sstream>
+#include <iostream>
 #include <ios>
 
 #include "BalancedIndex.h"
@@ -162,5 +163,24 @@ bool BalancedIndex::previous() {
 RecordFileIO& BalancedIndex::getRecordsFile() {
     return records;
 }
+
+
+
+void BalancedIndex::printTree() {
+    printTreeLevel(root, 0);
+}
+
+
+void BalancedIndex::printTreeLevel(std::shared_ptr<Node> node, int level) {            
+    for (int t = 0; t < level; t++) std::cout << "    ";
+    std::cout << *(node->toString()) << "\n";
+    if (node->getNodeType() == NodeType::INNER) {
+        for (int i = 0; i < node->data.childrenCount; i++) {
+            std::shared_ptr<Node> chld = Node::loadNode(*this, node->data.children[i]);
+            printTreeLevel(chld, level + 1);
+        }        
+    }
+}
+
 
 

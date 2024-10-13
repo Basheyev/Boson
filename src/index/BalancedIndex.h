@@ -97,6 +97,7 @@ namespace Boson {
         virtual void     mergeWithSibling(uint64_t key, uint64_t rightSibling) = 0;
         virtual uint64_t borrowFromSibling(uint64_t key, uint64_t sibling, uint32_t borrowIndex) = 0;
         virtual void     borrowChildren(uint64_t borrow0er, uint64_t lender, uint32_t borrowIndex) = 0;
+        virtual std::shared_ptr<std::string> toString() = 0;
     };
           
     //-------------------------------------------------------------------------
@@ -118,6 +119,7 @@ namespace Boson {
         uint64_t   mergeChildren(uint64_t leftChild, uint64_t rightChild);
         void       mergeWithSibling(uint64_t key, uint64_t rightSibling);        
         NodeType   getNodeType();
+        std::shared_ptr<std::string> toString();
     };
 
 
@@ -144,6 +146,7 @@ namespace Boson {
         void     mergeWithSibling(uint64_t key, uint64_t rightSibling);
         uint64_t borrowFromSibling(uint64_t key, uint64_t sibling, uint32_t borrowIndex);
         NodeType getNodeType();
+        std::shared_ptr<std::string> toString();
     private:
         uint32_t searchPlaceFor(uint64_t key);
     };
@@ -165,10 +168,12 @@ namespace Boson {
         bool last();
         bool next();
         bool previous();   
+        void printTree();
     protected:
         RecordFileIO& getRecordsFile();
         std::shared_ptr<LeafNode> findLeafNode(uint64_t key);
         void updateRoot(uint64_t newRootPosition);
+        void printTreeLevel(std::shared_ptr<Node> node, int level);
     private:
 
         RecordFileIO& records;

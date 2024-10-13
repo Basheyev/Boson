@@ -7,10 +7,10 @@
 ******************************************************************************/
 
 #include "BalancedIndex.h"
+#include <sstream>
 #include <ios>
 
 using namespace Boson;
-
 
 /*
 * @brief Leaf Node Constructor (calls Node Constructor)
@@ -354,6 +354,22 @@ NodeType LeafNode::getNodeType() {
     return NodeType::LEAF;
 }
 
+
+/*
+*  @brief returns string of childrens of this node
+*  @return string of childrens of this node
+*/
+std::shared_ptr<std::string> LeafNode::toString() {
+    std::stringstream ss;
+    ss << "L:[";
+    for (int i = 0; i < data.valuesCount; i++) {
+        bool isNotLast = (i < data.valuesCount - 1);        
+        std::shared_ptr<std::string> value = this->getValueAt(i);
+        ss << data.keys[i] << ":'" << *value << (isNotLast ? "', " : "'");
+    }
+    ss << "]";
+    return std::make_shared<std::string>(ss.str());
+}
 
 
 

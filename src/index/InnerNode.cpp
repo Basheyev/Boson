@@ -6,6 +6,9 @@
 *
 ******************************************************************************/
 
+
+#include <sstream>
+
 #include "BalancedIndex.h"
 
 
@@ -384,5 +387,20 @@ void InnerNode::mergeWithSibling(uint64_t key, uint64_t rightSiblingPos) {
 */
 NodeType InnerNode::getNodeType() {
     return NodeType::INNER;
+}
+
+
+/*
+*  @brief returns string of childrens of this node
+*  @return string of childrens of this node
+*/
+std::shared_ptr<std::string> InnerNode::toString() {
+    std::stringstream ss;
+    ss << "I:[";
+    for (int i = 0; i < data.keysCount; i++) {
+        ss << data.keys[i] << ((i < data.keysCount - 1) ? ", " : "");
+    }
+    ss << "]";
+    return std::make_shared<std::string>(ss.str());
 }
 

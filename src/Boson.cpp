@@ -44,6 +44,9 @@ int main()
 			BalancedIndex* bi = new BalancedIndex(*rf);
 
 			bi->insert(1, "Bolat");
+
+
+			
 			bi->insert(2, "Ayoka");
 			bi->insert(3, "Teya");
 			bi->insert(4, "Malika");
@@ -56,7 +59,7 @@ int main()
 			bi->insert(11, "Tanya");
 			bi->insert(12, "Azat");
 			bi->insert(13, "Dualet");
-			bi->insert(14, "Berik");   // FIXME: Cyclic reference
+			/*bi->insert(14, "Berik");   // FIXME: Cyclic reference
 			bi->insert(15, "Meirzhan");
 			bi->insert(16, "Rakhim");
 			bi->insert(17, "Anastasiya");
@@ -66,14 +69,15 @@ int main()
 			bi->insert(21, "Aset");
 			bi->insert(22, "Yerlan");
 			bi->insert(23, "Sanzhar");
-			bi->insert(24, "Askhat");
+			bi->insert(24, "Askhat");*/
 
 			cf.flush();
 
+			bi->printTree();
 
 			//bi->update(23, "Aishoka");
 
-			cout << *bi->search(23) << std::endl;
+			//cout << *bi->search(23) << std::endl;
 
 			delete bi;
 			delete rf;
