@@ -27,7 +27,12 @@ Node::Node(BalancedIndex& bi, NodeType type) : index(bi) {
     
     // initialize values    
     this->data.nodeType = type;
-    
+    this->data.parent = NOT_FOUND;
+    this->data.leftSibling = NOT_FOUND;
+    this->data.rightSibling = NOT_FOUND;        
+    this->data.keysCount = 0;
+    this->data.childrenCount = 0;
+        
     // allocate space in file
     RecordFileIO& recordFile = index.getRecordsFile();
     uint64_t offset = recordFile.createRecord(&data, sizeof NodeData);

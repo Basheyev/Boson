@@ -294,7 +294,7 @@ namespace Research {
 		size_t midIndex = this->getKeyCount() / 2;
 		KEY upKey = this->getKeyAt(midIndex);
 
-		// Split this node by half (returns new splitted node)
+		// Split this node by half (returns new splitted node)``
 		Node<KEY>* newRightNode = this->split();
 
 		// if we are splitting the root node

@@ -48,7 +48,7 @@ void NodeData::insertAt(NodeArray mode, uint32_t index, uint64_t value) {
     uint32_t  max = (mode == NodeArray::KEYS) ? MAX_DEGREE : TREE_ORDER;
     
     // check boundaries
-    if (index < 0 || index > length || length >= max) {
+    if (index < 0 || index > length || length > max) {
         std::cerr << "NodeData Insert At: invalid index or array is full!" << std::endl;
         return;
     }

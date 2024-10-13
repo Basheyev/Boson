@@ -40,17 +40,19 @@ int main()
 
 	if (cf.isOpen()) {
 		RecordFileIO *rf = new RecordFileIO(cf);
-
-		// FIXME - load node give null values in data block
 		BalancedIndex *bi = new BalancedIndex(*rf);
 
-/*		bi->insert(1, "Teya");
-        bi->insert(2, "Ayoka");
-		bi->insert(3, "Bolat");
-		cf.flush();*/
-					
 
-		cout << *bi->search(3) << std::endl;
+		bi->insert(1, "Bolat");
+		bi->insert(2, "Ayoka");
+		bi->insert(3, "Teya");
+		bi->insert(4, "Malika");
+        bi->insert(5, "Shariha");
+		bi->insert(6, "Nikhya");
+		cf.flush();
+					
+		
+		cout << *bi->search(5) << std::endl;
 
 		delete bi;
 		delete rf;

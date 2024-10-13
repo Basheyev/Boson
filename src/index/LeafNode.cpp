@@ -126,7 +126,7 @@ void LeafNode::setValueAt(uint32_t index, const std::string& value) {
 
 
 /*
-*  @brief Search index for new key in sorted order (NOT_FOUND returned if key duplicate)
+*  @brief Search index for new key in sorted order (KEY_NOT_FOUND returned if key duplicate)
 *  @param key
 *  @return index for new key
 */
@@ -162,7 +162,7 @@ uint32_t LeafNode::searchPlaceFor(uint64_t key) {
 bool LeafNode::insertKey(uint64_t key, const std::string& value) {
     // find index to insert new key/value pair in sorted order
     uint32_t insertIndex = searchPlaceFor(key);
-    if (insertIndex == NOT_FOUND) return false;
+    if (insertIndex == KEY_NOT_FOUND) return false;
     // insert key/value
     insertAt(insertIndex, key, value);
     return true;
@@ -177,7 +177,7 @@ bool LeafNode::insertKey(uint64_t key, const std::string& value) {
 bool LeafNode::insertKey(uint64_t key, uint64_t valuePosition) {
     // find index to insert new key/value pair in sorted order
     uint32_t insertIndex = searchPlaceFor(key);
-    if (insertIndex == NOT_FOUND) return false;
+    if (insertIndex == KEY_NOT_FOUND) return false;
     // insert key/value
     insertAt(insertIndex, key, valuePosition);
     return true;
