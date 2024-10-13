@@ -6,10 +6,9 @@ cmake_minimum_required (VERSION 3.8)
 project ("Boson")
 
 include_directories(
-    "src/template" 
-    "src/document" 
-    "src/index" 
+    "src/index"     
     "src/storage" 
+    "src/template"     
     "src/test")
 
 # Добавьте источник в исполняемый файл этого проекта.
@@ -21,10 +20,7 @@ add_executable (Boson
     "src/storage/RecordFileIO.cpp"   
     "src/storage/CachedFileIO.h" 
     "src/storage/CachedFileIO.cpp" 
-
-    
-     
-    
+           
     "src/test/CachedFileIOTest.h" 
     "src/test/CachedFileIOTest.cpp"  
     "src/test/RecordFileIOTest.h"
@@ -44,7 +40,7 @@ add_executable (Boson
 
 set_property(TARGET Boson 
     PROPERTY 
-        CXX_STANDARD 17
+        CXX_STANDARD 20
 )
 
 # TODO: Добавьте тесты и целевые объекты, если это необходимо.
