@@ -65,7 +65,7 @@ namespace Boson {
     public:        
         Node(BalancedIndex& bi, NodeType type);
         static std::shared_ptr<Node> loadNode(BalancedIndex& bi, uint64_t offsetInFile);
-        static void Node::deleteNode(BalancedIndex& bi, uint64_t offsetInFile);
+        static void deleteNode(BalancedIndex& bi, uint64_t offsetInFile);
         ~Node();
         uint64_t getPosition();
         uint64_t persist();
@@ -168,7 +168,7 @@ namespace Boson {
     protected:
         RecordFileIO& getRecordsFile();
         std::shared_ptr<LeafNode> findLeafNode(uint64_t key);
-        void BalancedIndex::updateRoot(uint64_t newRootPosition);
+        void updateRoot(uint64_t newRootPosition);
     private:
 
         RecordFileIO& records;

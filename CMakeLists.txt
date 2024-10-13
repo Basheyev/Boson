@@ -40,7 +40,7 @@ add_executable (Boson
 
 set_property(TARGET Boson 
     PROPERTY 
-        CXX_STANDARD 20
+        CXX_STANDARD 17
 )
 
 # TODO: Добавьте тесты и целевые объекты, если это необходимо.
