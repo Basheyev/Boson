@@ -79,15 +79,23 @@ std::shared_ptr<std::string> LeafNode::getValueAt(uint32_t index) {
 
     // load data from storage file record
     uint32_t valueLength = recordsFile.getDataLength() + 1;
-    std::unique_ptr<char> cStr = std::make_unique<char>(valueLength);
-    uint64_t offset = recordsFile.getRecordData(cStr.get(), valueLength);
+    
+    char* cStr = new char[valueLength];
+
+    uint64_t offset = recordsFile.getRecordData(cStr, valueLength);
     if (offset == NOT_FOUND) throw std::ios_base::failure("Can't read value.");
 
     // add null terminator to C style string
-    cStr.get()[valueLength - 1] = 0; 
+    cStr[valueLength - 1] = 0; 
 
     // convert to C++ string and return as shared pointer
-    return std::make_shared<std::string>(cStr.get());
+    std::shared_ptr<std::string> cppStr = std::make_shared<std::string>();
+    
+    *cppStr = cStr;
+
+    delete[] cStr;
+
+    return cppStr;
 }
 
 
@@ -196,7 +204,8 @@ void LeafNode::insertAt(uint32_t index, uint64_t key, const std::string& value) 
     // insert value pointer
     data.insertAt(NodeArray::VALUES, index, offsetInFile);
     
-    isPersisted = false;
+    //isPersisted = false;
+    persist();
 }
 
 
@@ -211,7 +220,9 @@ void LeafNode::insertAt(uint32_t index, uint64_t key, uint64_t valuePosition) {
     data.insertAt(NodeArray::KEYS, index, key);
     // insert value pointer
     data.insertAt(NodeArray::VALUES, index, valuePosition);
-    isPersisted = false;
+    
+    //isPersisted = false;
+    persist();
 }
 
 
@@ -247,7 +258,8 @@ void LeafNode::deleteAt(uint32_t index) {
     // Delete key/value pair
     data.deleteAt(NodeArray::KEYS, index);
     data.deleteAt(NodeArray::VALUES, index);     
-    isPersisted = false;
+    //isPersisted = false;
+    persist();
 }
 
 
@@ -264,39 +276,14 @@ uint64_t LeafNode::split() {
     }
     data.resize(NodeArray::KEYS, midIndex);
     data.resize(NodeArray::VALUES, midIndex);
+    
     isPersisted = false;
+    
+    newNode->persist();
+    this->persist();
+
     return newNode->position;
 }
-
-
-/*
-*  @brief Merges two leaf nodes
-*  @param key
-*  @param sibling
-*/
-
-/*
-void LeafNode::merge(uint64_t key, uint64_t siblingPos) {
-    std::shared_ptr<LeafNode> siblingLeaf = 
-        std::dynamic_pointer_cast<LeafNode>(Node::loadNode(index, siblingPos));  
-    // copy keys and values from sibling node to this node
-    for (size_t i = 0; i < siblingLeaf->getKeyCount(); i++) {
-        data.pushBack(NodeArray::KEYS, siblingLeaf->data.keys[i]);
-        data.pushBack(NodeArray::VALUES, siblingLeaf->data.values[i]);
-    }
-    // interconnect siblings
-    uint64_t rightSiblingPos = siblingLeaf->getRightSibling();
-    setRightSibling(rightSiblingPos);
-    if (rightSiblingPos != NOT_FOUND) {
-        std::shared_ptr<LeafNode> rightSibling =
-            std::dynamic_pointer_cast<LeafNode>(Node::loadNode(index, rightSiblingPos));
-        rightSibling->setLeftSibling(this->position);
-    }
-    // Delete sibling node
-    siblingLeaf.reset();
-    Node::deleteNode(index, siblingPos);   
-    isPersisted = false;
-}*/
 
 
 /*
@@ -347,7 +334,8 @@ uint64_t LeafNode::borrowFromSibling(uint64_t key, uint64_t siblingPos, uint32_t
     // delete borrowed key/value pair in sibling node
     siblingNode->deleteAt(borrowIndex);
     
-    isPersisted = false;
+    //isPersisted = false;
+    persist();
 
     // return new middle key
     if (borrowIndex == 0)

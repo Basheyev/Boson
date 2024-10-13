@@ -164,7 +164,7 @@ namespace Boson {
         bool first();
         bool last();
         bool next();
-        bool previous();        
+        bool previous();   
     protected:
         RecordFileIO& getRecordsFile();
         std::shared_ptr<LeafNode> findLeafNode(uint64_t key);

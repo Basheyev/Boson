@@ -359,7 +359,8 @@ uint64_t RecordFileIO::getRecordData(void* data, uint32_t length) {
 	uint64_t dataOffset = currentPosition + sizeof RecordHeader;
 	cachedFile.read(dataOffset, data, bytesToRead);
 	// check data consistency by checksum
-	if (checksum((uint8_t*) data, bytesToRead) != recordHeader.dataChecksum) return NOT_FOUND;
+	uint32_t dataCheckSum = checksum((uint8_t*)data, bytesToRead);
+	if (dataCheckSum != recordHeader.dataChecksum) return NOT_FOUND;
 	return currentPosition;
 }
 
@@ -382,13 +383,18 @@ uint64_t RecordFileIO::setRecordData(const void* data, uint32_t length) {
 	if (!cachedFile.isOpen() || cachedFile.isReadOnly() || 
 		currentPosition == NOT_FOUND) return NOT_FOUND;
 	// if there is enough capacity in record
-	if (length < recordHeader.recordCapacity) {
+	if (length <= recordHeader.recordCapacity) {
 		// Update header data length info without affecting ID
 		recordHeader.dataLength = length;
+		// Update checksum
+		recordHeader.dataChecksum = checksum((uint8_t*)data, length);
+		uint32_t headerLength = sizeof RecordHeader - sizeof recordHeader.headChecksum;
+		recordHeader.headChecksum = checksum((uint8_t*) &recordHeader, headerLength);
 		// Write record header and data to the storage file
 		constexpr uint64_t HEADER_SIZE = sizeof RecordHeader;
 		cachedFile.write(currentPosition, &recordHeader, HEADER_SIZE);
 		cachedFile.write(currentPosition + HEADER_SIZE, data, length);
+
 		return currentPosition;
 	}
 

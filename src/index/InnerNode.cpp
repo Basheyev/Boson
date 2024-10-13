@@ -81,7 +81,8 @@ uint64_t InnerNode::getChildAt(uint32_t index) {
 */
 void InnerNode::setChildAt(uint32_t index, uint64_t childNode) {
     data.children[index] = childNode;
-    isPersisted = false;
+    //isPersisted = false;
+    persist();
 }
 
 
@@ -111,6 +112,8 @@ void InnerNode::insertAt(uint32_t index, uint64_t key, uint64_t leftChild, uint6
         // add right child to the end of children list
         data.pushBack(NodeArray::CHILDREN, rightChild);  
 
+    persist();
+
 }
 
 
@@ -121,7 +124,8 @@ void InnerNode::insertAt(uint32_t index, uint64_t key, uint64_t leftChild, uint6
 void InnerNode::deleteAt(uint32_t index) {
     data.deleteAt(NodeArray::KEYS, index);
     data.deleteAt(NodeArray::CHILDREN, index + 1);
-    isPersisted = false;
+    //isPersisted = false;
+    persist();
 }
 
 

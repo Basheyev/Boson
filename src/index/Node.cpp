@@ -273,6 +273,7 @@ uint64_t Node::dealOverflow() {
     if (this->getRightSibling() != NOT_FOUND) {
         std::shared_ptr<Node> theRightSibling = loadNode(index, getRightSibling());
         theRightSibling->setLeftSibling(newRightNode->position);
+        theRightSibling->persist();
     }
     this->setRightSibling(newRightNode->position);
     this->persist();
@@ -280,6 +281,7 @@ uint64_t Node::dealOverflow() {
     // Push middle key up to parent the node (root node returned)
     std::shared_ptr<Node> parent = loadNode(index, getParent());
     uint64_t rootNodePos = parent->pushUpKey(upKey, position, newRightNode->position);
+
     parent->persist();
     
     // Return current root node position

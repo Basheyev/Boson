@@ -35,32 +35,29 @@ using namespace std;
 int main()
 {
 	CachedFileIO cf;
-	cf.open("F:/bptree.bin");
+	
+	cf.open("D:/bptree.bin");
+
 	if (cf.isOpen()) {
-		RecordFileIO rf(cf);
-		BalancedIndex bi(rf);
+		RecordFileIO *rf = new RecordFileIO(cf);
 
-		// FIXME - root is not leaf (!)
+		// FIXME - load node give null values in data block
+		BalancedIndex *bi = new BalancedIndex(*rf);
 
-		bi.insert(1, "Teya");
-		bi.insert(2, "Ayoka");
-		bi.insert(3, "Bolat");
-		
-		
+/*		bi->insert(1, "Teya");
+        bi->insert(2, "Ayoka");
+		bi->insert(3, "Bolat");
+		cf.flush();*/
+					
 
-		cout << bi.search(1) << std::endl;
+		cout << *bi->search(3) << std::endl;
+
+		delete bi;
+		delete rf;
 
 		cf.close();
+	
 	}
-
-	//InMemoryTest imt;
-	//imt.run(true);
-
-	//RecordFileIOTest rst;
-	//rst.run("F:/records.bin");
-	//rst.runLoadTest("F:/largeFile.bin", 1000000);	
-	//CachedFileIOTest cft("F:/cachedfile.bin");
-	//cft.run(1000000);
 
 	return 0;
 }
