@@ -71,6 +71,7 @@ namespace Boson {
         uint64_t persist();
         NodeType getNodeType();
         uint32_t getKeyCount();
+        bool     isRootNode();
         bool     isOverflow();
         bool     isUnderflow();
         bool     canLendAKey();

@@ -142,11 +142,20 @@ uint32_t Node::getKeyCount() {
 
 
 /*
+*  @brief Returns if this node is Root
+*  @return is root node
+*/
+bool Node::isRootNode() {
+    return data.parent == NOT_FOUND;
+}
+
+
+/*
 *  @brief Returns whether node keys count > M-1
 *  @return true if keys count more than MAX_DEGREE
 */
 bool Node::isOverflow() {
-    return data.keysCount > MAX_DEGREE;
+    return data.keysCount >= MAX_DEGREE;
 }
 
 
@@ -260,37 +269,38 @@ uint64_t Node::dealOverflow() {
     uint64_t upKey = this->getKeyAt(midIndex);
 
     // Split this node by half (returns new splitted node)
-    std::shared_ptr<Node> newRightNode = loadNode(index, split());
+    uint64_t splittedRightNodePos = this->split();
+    std::shared_ptr<Node> splittedRightNode = loadNode(index, splittedRightNodePos);
 
     // if we are splitting the root node
-    if (getParent() == NOT_FOUND) {
+    if (this->getParent() == NOT_FOUND) {
         // create new root node and set as parent to this node (grow at root)
-        std::unique_ptr<InnerNode> newRootNode = std::make_unique<InnerNode>(index);        
+        std::unique_ptr<InnerNode> newRootNode = std::make_unique<InnerNode>(index);                
         this->setParent(newRootNode->position);
         this->persist();
     }
 
     // Interconnect splitted node's parent and siblings
-    newRightNode->setParent(getParent());
-    newRightNode->setLeftSibling(this->position);
-    newRightNode->setRightSibling(this->getRightSibling());
-    newRightNode->persist();    
+    splittedRightNode->setParent(this->getParent());
+    splittedRightNode->setLeftSibling(this->position);
+    splittedRightNode->setRightSibling(this->getRightSibling());
+    splittedRightNode->persist();    
     if (this->getRightSibling() != NOT_FOUND) {
         std::shared_ptr<Node> theRightSibling = loadNode(index, getRightSibling());
-        theRightSibling->setLeftSibling(newRightNode->position);
+        theRightSibling->setLeftSibling(splittedRightNode->position);
         theRightSibling->persist();
     }
-    this->setRightSibling(newRightNode->position);
+    this->setRightSibling(splittedRightNode->position);
+    // save changes
     this->persist();
 
     // Push middle key up to parent the node (root node returned)
-    std::shared_ptr<Node> parent = loadNode(index, getParent());
-    uint64_t rootNodePos = parent->pushUpKey(upKey, position, newRightNode->position);
-
+    std::shared_ptr<Node> parent = loadNode(index, this->getParent());
+    uint64_t parentPos = parent->pushUpKey(upKey, position, splittedRightNode->position);
     parent->persist();
     
     // Return current root node position
-    return rootNodePos;
+    return parentPos;
 
 }
 

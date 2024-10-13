@@ -193,9 +193,9 @@ uint64_t InnerNode::pushUpKey(uint64_t key, uint64_t leftChild, uint64_t rightCh
     if (isOverflow()) return dealOverflow();
 
     // if this is the root node then return this node's position in storage file
-    if (getParent() == NOT_FOUND) return this->position;
+    if (isRootNode()) return this->position;
 
-    // return null pointer
+    // return NOT_FOUND otherwise
     return NOT_FOUND;
 }
 
@@ -397,7 +397,7 @@ NodeType InnerNode::getNodeType() {
 std::shared_ptr<std::string> InnerNode::toString() {
     std::stringstream ss;
     ss << "I:[";
-    for (int i = 0; i < data.keysCount; i++) {
+    for (uint32_t i = 0; i < data.keysCount; i++) {
         ss << data.keys[i] << ((i < data.keysCount - 1) ? ", " : "");
     }
     ss << "]";

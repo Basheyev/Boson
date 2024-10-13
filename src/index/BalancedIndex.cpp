@@ -94,15 +94,20 @@ bool BalancedIndex::insert(uint64_t key, const std::string& value) {
     
     std::shared_ptr<LeafNode> leaf = findLeafNode(key);
 
-    if (leaf->search(key) != KEY_NOT_FOUND) return false;
+    if (leaf->search(key) != KEY_NOT_FOUND) {
+        return false;
+    }
 
     bool isInserted = leaf->insertKey(key, value);
-    if (leaf->isOverflow()) {
-        uint64_t newRootPos = leaf->dealOverflow();
-        if (newRootPos != NOT_FOUND) {
-            updateRoot(newRootPos);
-        }
+    if (leaf->isOverflow()) {        
+        uint64_t rootPos = leaf->dealOverflow();
+        // if this is root node position update it
+        if (rootPos != NOT_FOUND) updateRoot(rootPos);
+        
     }
+
+    printTree();
+
     return isInserted;
 }
 
@@ -175,7 +180,8 @@ void BalancedIndex::printTree() {
 
 void BalancedIndex::printTreeLevel(std::shared_ptr<Node> node, int level) {            
     for (int t = 0; t < level; t++) std::cout << "    ";
-    std::cout << *(node->toString()) << "\n";
+    std::shared_ptr<std::string> nodeStr = node->toString();
+    std::cout << *nodeStr << ":" << node->position << "\n";
     if (node->getNodeType() == NodeType::INNER) {
         for (int i = 0; i < node->data.childrenCount; i++) {
             std::shared_ptr<Node> chld = Node::loadNode(*this, node->data.children[i]);

@@ -35,14 +35,14 @@ using namespace std;
 void insertRecords(BalancedIndex* bi) {
 	bi->insert(1, "Bolat");
 	bi->insert(2, "Ayoka");
-	bi->insert(3, "Teya");
-	bi->insert(4, "Malika");
+	bi->insert(3, "Teya"); 
+	bi->insert(4, "Malika"); 
 	bi->insert(5, "Shariha");
-	bi->insert(6, "Nikhya");
+	bi->insert(6, "Nikhya"); 
 	bi->insert(7, "Arman");
-	bi->insert(8, "Khanat");
+	bi->insert(8, "Khanat"); 
 	bi->insert(9, "Baurzhan");
-	bi->insert(10, "Igor");
+	bi->insert(10, "Igor"); 
 	bi->insert(11, "Tanya");
 	bi->insert(12, "Azat");
 	bi->insert(13, "Dualet");
@@ -57,7 +57,30 @@ void insertRecords(BalancedIndex* bi) {
 	bi->insert(22, "Yerlan");
 	bi->insert(23, "Sanzhar");
 	bi->insert(24, "Askhat");
-
+	bi->insert(25, "Sheriazdan");
+	bi->insert(26, "Mariyam");
+	bi->insert(27, "Aliya");
+	bi->insert(28, "Erbol");
+	bi->insert(29, "Asker");
+	bi->insert(30, "Galiya");
+	bi->insert(31, "Amantai");
+	bi->insert(32, "Kuantai");
+	bi->insert(33, "Nartai");
+	bi->insert(34, "Tulkibai");
+	bi->insert(35, "Dyisenbai");
+	bi->insert(36, "Seisenbai");
+	bi->insert(37, "Sarsenbai");
+	bi->insert(38, "Beisembai");
+	bi->insert(39, "Zhumabai");
+	bi->insert(40, "Senbai");
+	bi->insert(41, "Zheksenbai");
+	bi->insert(42, "Otyzbai");
+	bi->insert(43, "Kyrykbai");
+	bi->insert(44, "Elubai");
+	bi->insert(45, "Alpysbai");
+	bi->insert(46, "Zhetpisbai");
+	bi->insert(47, "Seksenbai");
+	bi->insert(48, "Toksanbai");
 }
 
 
@@ -72,11 +95,11 @@ int main()
 			RecordFileIO* rf = new RecordFileIO(cf);
 			BalancedIndex* bi = new BalancedIndex(*rf);
 			insertRecords(bi);
-			cf.flush();
+			//cf.flush();
 			bi->printTree();
-			bi->update(23, "Aishoka");
-			cout << "Replace record: " << 23 << " to '" << *bi->search(23) << "'" << std::endl;
-			bi->printTree();
+			//bi->update(23, "Aishoka");
+			//cout << "Replace record: " << 23 << " to '" << *bi->search(23) << "'" << std::endl;
+			//bi->printTree();
 			delete bi;
 			delete rf;
 
