@@ -61,7 +61,7 @@ namespace Boson {
     class BalancedIndex;
 
     class Node {
-    friend class BalancedIndex;
+        friend class BalancedIndex;
     public:        
         Node(BalancedIndex& bi, NodeType type);
         static std::shared_ptr<Node> loadNode(BalancedIndex& bi, uint64_t offsetInFile);
@@ -85,7 +85,7 @@ namespace Boson {
         void     setRightSibling(uint64_t siblingPosition);
         uint64_t dealOverflow();
         uint64_t dealUnderflow();
-    protected:
+    //protected:
         BalancedIndex& index;         // reference to index   
         uint64_t position;            // offset in file
         NodeData data;                // node data

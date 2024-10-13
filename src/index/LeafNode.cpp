@@ -292,8 +292,7 @@ uint64_t LeafNode::split() {
 *  @param sibling
 */
 void LeafNode::mergeWithSibling(uint64_t key, uint64_t siblingPos) {
-    std::shared_ptr<LeafNode> siblingLeaf =
-        std::dynamic_pointer_cast<LeafNode>(Node::loadNode(index, siblingPos));
+    std::shared_ptr<Node> siblingLeaf = Node::loadNode(index, siblingPos);
     // copy keys and values from sibling node to this node
     for (size_t i = 0; i < siblingLeaf->getKeyCount(); i++) {
         data.pushBack(NodeArray::KEYS, siblingLeaf->data.keys[i]);
@@ -303,15 +302,13 @@ void LeafNode::mergeWithSibling(uint64_t key, uint64_t siblingPos) {
     uint64_t rightSiblingPos = siblingLeaf->getRightSibling();
     setRightSibling(rightSiblingPos);
     if (rightSiblingPos != NOT_FOUND) {
-        std::shared_ptr<LeafNode> rightSibling =
-            std::dynamic_pointer_cast<LeafNode>(Node::loadNode(index, rightSiblingPos));
+        std::shared_ptr<Node> rightSibling = Node::loadNode(index, rightSiblingPos);
         rightSibling->setLeftSibling(this->position);
     }
     // Delete sibling node
-    siblingLeaf.reset();
     Node::deleteNode(index, siblingPos);
-
-    isPersisted = false;
+    persist();
+    //isPersisted = false;
 }
 
 
@@ -362,7 +359,7 @@ NodeType LeafNode::getNodeType() {
 std::shared_ptr<std::string> LeafNode::toString() {
     std::stringstream ss;
     ss << "L:[";
-    for (int i = 0; i < data.valuesCount; i++) {
+    for (uint32_t i = 0; i < data.valuesCount; i++) {
         bool isNotLast = (i < data.valuesCount - 1);        
         std::shared_ptr<std::string> value = this->getValueAt(i);
         ss << data.keys[i] << ":'" << *value << (isNotLast ? "', " : "'");

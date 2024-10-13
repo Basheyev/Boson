@@ -84,6 +84,37 @@ void insertRecords(BalancedIndex* bi) {
 }
 
 
+
+void removeRecords(BalancedIndex* bi) {
+	bi->erase(1);	
+	/*bi->erase(3); // FIXME: bug
+	bi->erase(5); 
+	bi->erase(7);
+	bi->erase(9);
+	bi->erase(11);
+	bi->erase(13);
+	bi->erase(15);
+	bi->erase(17);
+	bi->erase(19);
+	bi->erase(21);
+	bi->erase(23);
+	bi->erase(25);
+	bi->erase(27);
+	bi->erase(29);
+	bi->erase(31);
+	bi->erase(33);
+	bi->erase(35);
+	bi->erase(37);
+	bi->erase(39);
+	bi->erase(41);
+	bi->erase(43);
+	bi->erase(45);
+	bi->erase(47);*/
+}
+
+
+
+
 int main()
 {
 	CachedFileIO cf;
@@ -95,7 +126,12 @@ int main()
 			RecordFileIO* rf = new RecordFileIO(cf);
 			BalancedIndex* bi = new BalancedIndex(*rf);
 			insertRecords(bi);
-			//cf.flush();
+			cf.flush();
+			bi->printTree();
+			cout << "-------------------------------------------------------------------------\n";
+			// TODO: debug remove records
+
+			removeRecords(bi);
 			bi->printTree();
 			//bi->update(23, "Aishoka");
 			//cout << "Replace record: " << 23 << " to '" << *bi->search(23) << "'" << std::endl;

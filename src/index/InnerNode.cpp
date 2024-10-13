@@ -312,8 +312,7 @@ uint64_t InnerNode::mergeChildren(uint64_t leftChildPos, uint64_t rightChildPos)
 
     // Merge two children and push key into the left child node
     std::shared_ptr<Node> leftChildNode = Node::loadNode(this->index, leftChildPos);
-    std::shared_ptr<InnerNode> leftChild = std::dynamic_pointer_cast<InnerNode>(leftChildNode);
-    leftChild->mergeWithSibling(key, rightChildPos);
+    leftChildNode->mergeWithSibling(key, rightChildPos);
 
     // Remove the key, keep the left child and abandon the right child
     this->deleteAt(i);
@@ -324,7 +323,7 @@ uint64_t InnerNode::mergeChildren(uint64_t leftChildPos, uint64_t rightChildPos)
         if (getParent() == NOT_FOUND) {
             // if this node is empy
             if (data.keysCount == 0) {
-                leftChild->setParent(NOT_FOUND);
+                leftChildNode->setParent(NOT_FOUND);
                 return leftChildPos;
             }
             else return NOT_FOUND;
@@ -352,7 +351,7 @@ void InnerNode::mergeWithSibling(uint64_t key, uint64_t rightSiblingPos) {
     this->data.pushBack(NodeArray::KEYS, key);
 
     // Copy sibling keys
-    for (uint32_t i = 0; i < data.keysCount; ++i) {
+    for (uint32_t i = 0; i < rightSibling->data.keysCount; ++i) {
         this->data.pushBack(NodeArray::KEYS, rightSibling->getKeyAt(i));        
     }
 
@@ -360,7 +359,7 @@ void InnerNode::mergeWithSibling(uint64_t key, uint64_t rightSiblingPos) {
     for (uint32_t i = 0; i < rightSibling->getKeyCount() + 1; ++i) {
         // get sibling's child
         siblingChildPos = rightSibling->getChildAt(i);
-        siblingChild = std::dynamic_pointer_cast<InnerNode>(Node::loadNode(this->index, siblingChildPos));
+        siblingChild = Node::loadNode(this->index, siblingChildPos);
         // reattach sibling's child to this node
         siblingChild->setParent(this->position);
         // copy sibling child to this node
@@ -370,8 +369,7 @@ void InnerNode::mergeWithSibling(uint64_t key, uint64_t rightSiblingPos) {
     // Interrconnect siblings
     this->setRightSibling(rightSibling->data.rightSibling);
     if (rightSibling->data.rightSibling != NOT_FOUND) {
-        afterRight = std::dynamic_pointer_cast<InnerNode>
-            (Node::loadNode(this->index, rightSibling->data.rightSibling));
+        afterRight = Node::loadNode(this->index, rightSibling->data.rightSibling);
         afterRight->setLeftSibling(this->position);
     }
 

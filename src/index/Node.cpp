@@ -8,6 +8,7 @@
 
 
 #include "BalancedIndex.h"
+#include <sstream>
 #include <ios>
 
 using namespace Boson;
@@ -58,7 +59,11 @@ std::shared_ptr<Node> Node::loadNode(BalancedIndex& bi, uint64_t offsetInFile) {
 
     NodeData data;
     uint64_t offset = recordsFile.getRecordData(&data, sizeof NodeData);
-    if (offset == NOT_FOUND) throw std::ios_base::failure("Can't read node data.");
+    if (offset == NOT_FOUND) {
+        std::stringstream ss;
+        ss << "Can't read node data at " << offsetInFile << " ";
+        throw std::ios_base::failure(ss.str());
+    }
     
     std::shared_ptr<Node> node;
 
