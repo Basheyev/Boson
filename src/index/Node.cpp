@@ -360,7 +360,11 @@ uint64_t Node::dealUnderflow() {
     // 4. Try to merge with right sibling        
     std::shared_ptr<Node> parent = loadNode(index, this->getParent());
     uint64_t rootNodePos = parent->mergeChildren(this->position, rightSiblingPos);
-    parent->persist();
+    // FIXME: parent object could be changed after merge children
+    // this local pointer is rewrites correct valus with old ones
+    // SOLUTION: may be we shoud enhance loadNode method to share 
+    // same links on same position
+    //parent->persist();
     return rootNodePos;
 
 }

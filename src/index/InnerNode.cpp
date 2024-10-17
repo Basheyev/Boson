@@ -318,14 +318,16 @@ uint64_t InnerNode::mergeChildren(uint64_t leftChildPos, uint64_t rightChildPos)
 
     // Remove the key, keep the left child and abandon the right child
     this->deleteAt(i);
+    this->persist();
 
     // If there is underflow propagate borrow or merge to parent
     if (this->isUnderflow()) {
         // If this node is root node (no parent)
         if (isRootNode()) {
-            // if this node is empy
+            // if this node is empty
             if (data.keysCount == 0) {
                 leftChildNode->setParent(NOT_FOUND);
+                leftChildNode->persist();
                 return leftChildPos;
             }
             else return NOT_FOUND;
@@ -376,8 +378,11 @@ void InnerNode::mergeWithSibling(uint64_t key, uint64_t rightSiblingPos) {
     }
 
     // Clear and delete right sibling from storage and memory
-    Node::deleteNode(this->index, rightSiblingPos);
     rightSibling.reset();
+    Node::deleteNode(this->index, rightSiblingPos); 
+
+    // Persist this node
+    this->persist();
 }
 
 

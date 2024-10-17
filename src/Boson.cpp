@@ -130,6 +130,11 @@ int main()
 			//bi->printTree();
 			cout << "-------------------------------------------------------------------------\n";
 			
+
+			// FIXME: enhance Node::loadNode metod to share same objects of node
+			// Hypotesis: old local sahred_ptrs rewrite modified values with old ones
+
+
 			// FIXME: remove records - 
 			// fails when accessing merged node from root
 			// Suspicious methods:
