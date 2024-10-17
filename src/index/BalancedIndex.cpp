@@ -21,21 +21,22 @@ using namespace Boson;
 
 
 
-BalancedIndex::BalancedIndex(RecordFileIO& rf) : records(rf) {
+BalancedIndex::BalancedIndex(RecordFileIO& rf) : recordsFile(rf) {
     // check if file is open
     if (!rf.isOpen()) throw std::runtime_error("Can't open file.");
     // Check if file has its first record as DB header
-    if (!records.first()) {
+    if (!recordsFile.first()) {
         memset(&indexHeader, 0, sizeof IndexHeader);
-        uint64_t referencePos = records.createRecord(&indexHeader, sizeof indexHeader);
+        uint64_t referencePos = recordsFile.createRecord(&indexHeader, sizeof indexHeader);
         // root record
-        root = std::make_shared<LeafNode>(*this);        
+        root = std::make_shared<LeafNode>(*this);      
+        indexHeader.treeOrder = TREE_ORDER;
         indexHeader.rootPosition = root->persist();
-        records.setPosition(referencePos);
-        records.setRecordData(&indexHeader, sizeof indexHeader);
+        recordsFile.setPosition(referencePos);
+        recordsFile.setRecordData(&indexHeader, sizeof indexHeader);
     } else {
         // look up root position
-        records.getRecordData(&indexHeader, sizeof indexHeader);
+        recordsFile.getRecordData(&indexHeader, sizeof indexHeader);
         // load root record
         root = Node::loadNode(*this, indexHeader.rootPosition);
     }
@@ -94,9 +95,9 @@ void BalancedIndex::updateRoot(uint64_t newRootPosition) {
 */
 void BalancedIndex::persistIndexHeader() {
     // Header is first record in records file
-    records.first();
+    recordsFile.first();
     // Persist index header data
-    records.setRecordData(&indexHeader, sizeof indexHeader);
+    recordsFile.setRecordData(&indexHeader, sizeof indexHeader);
 }
 
 
@@ -153,6 +154,7 @@ std::shared_ptr<std::string> BalancedIndex::search(uint64_t key) {
 
 bool BalancedIndex::erase(uint64_t key) {
     std::shared_ptr<LeafNode> leaf = findLeafNode(key);
+
     if (leaf->deleteKey(key)) {
         if (leaf->isUnderflow()) {
             uint64_t newRootPos = leaf->dealUnderflow();
@@ -162,12 +164,14 @@ bool BalancedIndex::erase(uint64_t key) {
                 updateRoot(newRootPos);
             }
         }
-    }
+        
+        indexHeader.recordsCount--;
+        persistIndexHeader();
+        return true;
 
-    indexHeader.recordsCount--;
-    persistIndexHeader();
+    }    
 
-    return true;
+    return false;
 }
 
 
@@ -189,7 +193,7 @@ bool BalancedIndex::previous() {
 
 
 RecordFileIO& BalancedIndex::getRecordsFile() {
-    return records;
+    return recordsFile;
 }
 
 

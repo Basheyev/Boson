@@ -157,6 +157,7 @@ namespace Boson {
 
     class IndexHeader {
     public:
+        uint64_t treeOrder;       // Tree order
         uint64_t rootPosition;    // Root node position in the storage file
         uint64_t recordsCount;    // Total records count
         uint64_t indexCounter;    // Index key counter
@@ -186,7 +187,7 @@ namespace Boson {
         void printTreeLevel(std::shared_ptr<Node> node, int level);
     private:
 
-        RecordFileIO& records;
+        RecordFileIO& recordsFile;
         IndexHeader indexHeader;
         std::shared_ptr<Node> root;
 

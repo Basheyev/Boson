@@ -235,7 +235,7 @@ void LeafNode::insertAt(uint32_t index, uint64_t key, uint64_t valuePosition) {
 */
 bool LeafNode::deleteKey(uint64_t key) {
     uint32_t deleteIndex = search(key);
-    if (deleteIndex == NOT_FOUND) return false;
+    if (deleteIndex == KEY_NOT_FOUND) return false;
     deleteAt(deleteIndex);
     return true;
 }

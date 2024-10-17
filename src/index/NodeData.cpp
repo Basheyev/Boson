@@ -87,6 +87,9 @@ void NodeData::deleteAt(NodeArray mode, uint32_t index) {
         values[i] = values[i + 1];
     }
 
+    // clear deleted value for debug purposes
+    values[length - 1] = 0;
+
     // decrease length counter
     length--;
 }
@@ -98,8 +101,20 @@ void NodeData::deleteAt(NodeArray mode, uint32_t index) {
 * @param newSize new size of the array
 */
 void NodeData::resize(NodeArray mode, uint32_t newSize) {
-    if (mode == NodeArray::KEYS)
+    if (mode == NodeArray::KEYS) {
+        // clear deleted keys for debug purposes
+        if (newSize < keysCount) {
+            uint32_t gap = keysCount - newSize;
+            memset(&keys[newSize], 0, gap * sizeof uint64_t);
+        }
         keysCount = newSize;
-    else
-        childrenCount = newSize;
+    }
+    else {
+        // clear deleted children/values for debug purposes
+        if (newSize < childrenCount) {
+            uint32_t gap = childrenCount - newSize;
+            memset(&children[newSize], 0, gap * sizeof uint64_t);
+        }
+        childrenCount = newSize;        
+    }
 }

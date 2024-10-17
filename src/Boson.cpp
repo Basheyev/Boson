@@ -33,6 +33,7 @@ using namespace std;
 
 
 void insertRecords(BalancedIndex* bi) {
+	bi->insert(1, "Unknown guy");
 	bi->insert(10, "Bolat");
 	bi->insert(20, "Ayoka");
 	bi->insert(30, "Teya"); 
@@ -126,14 +127,19 @@ int main()
 			RecordFileIO* rf = new RecordFileIO(cf);
 			BalancedIndex* bi = new BalancedIndex(*rf);
 			insertRecords(bi);
-	//		cf.flush();
-			bi->printTree();
+			//bi->printTree();
 			cout << "-------------------------------------------------------------------------\n";
 			
-			// FIXME: debug remove records - fails when accessing merged node from root
+			// FIXME: remove records - 
+			// fails when accessing merged node from root
+			// Suspicious methods:
+			// - dealUnderflow()
+			// - mergeChildren()
+			// - mergeWithSibling()
+			// - pushUpKey()
 
-	//		removeRecords(bi);
-	//		bi->printTree();
+			removeRecords(bi);
+			bi->printTree();
 			delete bi;
 			delete rf;
 
