@@ -28,7 +28,7 @@ namespace Boson {
     typedef enum : uint32_t { INNER = 1, LEAF = 2 } NodeType;
     typedef enum : uint32_t { KEYS = 1, CHILDREN = 2, VALUES = 2 } NodeArray;
 
-    
+
     //-------------------------------------------------------------------------
 
     class NodeData {
@@ -42,14 +42,14 @@ namespace Boson {
             uint32_t childrenCount;
             uint32_t valuesCount;
         };
-        uint64_t keys[TREE_ORDER];        
+        uint64_t keys[TREE_ORDER];
         union {
             uint64_t children[TREE_ORDER];
             uint64_t values[TREE_ORDER];
         };
 
         NodeData();
-       
+
         void pushBack(NodeArray mode, uint64_t value);
         void insertAt(NodeArray mode, uint32_t index, uint64_t value);
         void deleteAt(NodeArray mode, uint32_t index);
@@ -57,12 +57,12 @@ namespace Boson {
     };
 
     //-------------------------------------------------------------------------
-    
+
     class BalancedIndex;
 
     class Node {
         friend class BalancedIndex;
-    public:        
+    public:
         Node(BalancedIndex& bi, NodeType type);
         static std::shared_ptr<Node> loadNode(BalancedIndex& bi, uint64_t offsetInFile);
         static void deleteNode(BalancedIndex& bi, uint64_t offsetInFile);
@@ -85,7 +85,7 @@ namespace Boson {
         void     setRightSibling(uint64_t siblingPosition);
         uint64_t dealOverflow();
         uint64_t dealUnderflow();
-    //protected:
+        //protected:
         BalancedIndex& index;         // reference to index   
         uint64_t position;            // offset in file
         NodeData data;                // node data
@@ -100,7 +100,7 @@ namespace Boson {
         virtual void     borrowChildren(uint64_t borrow0er, uint64_t lender, uint32_t borrowIndex) = 0;
         virtual std::shared_ptr<std::string> toString() = 0;
     };
-          
+
     //-------------------------------------------------------------------------
 
     class InnerNode : public Node {
@@ -118,7 +118,7 @@ namespace Boson {
         void       borrowChildren(uint64_t borrower, uint64_t lender, uint32_t borrowIndex);
         uint64_t   borrowFromSibling(uint64_t key, uint64_t sibling, uint32_t borrowIndex);
         uint64_t   mergeChildren(uint64_t leftChild, uint64_t rightChild);
-        void       mergeWithSibling(uint64_t key, uint64_t rightSibling);        
+        void       mergeWithSibling(uint64_t key, uint64_t rightSibling);
         NodeType   getNodeType();
         std::shared_ptr<std::string> toString();
     };
@@ -126,7 +126,7 @@ namespace Boson {
 
     //-------------------------------------------------------------------------
 
-    class LeafNode : public Node {        
+    class LeafNode : public Node {
     public:
         LeafNode(BalancedIndex& bi);
         LeafNode(BalancedIndex& bi, uint64_t offsetInFile, NodeData& loadedData);
@@ -153,7 +153,15 @@ namespace Boson {
     };
 
     //-------------------------------------------------------------------------
-    
+
+
+    class IndexHeader {
+    public:
+        uint64_t rootPosition;    // Root node position in the storage file
+        uint64_t recordsCount;    // Total records count
+        uint64_t indexCounter;    // Index key counter
+    };
+
     
     class BalancedIndex {
     friend class Node;
@@ -174,11 +182,12 @@ namespace Boson {
         RecordFileIO& getRecordsFile();
         std::shared_ptr<LeafNode> findLeafNode(uint64_t key);
         void updateRoot(uint64_t newRootPosition);
+        void persistIndexHeader();
         void printTreeLevel(std::shared_ptr<Node> node, int level);
     private:
 
         RecordFileIO& records;
-        uint64_t rootPosition;
+        IndexHeader indexHeader;
         std::shared_ptr<Node> root;
 
     };

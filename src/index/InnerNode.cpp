@@ -125,9 +125,11 @@ void InnerNode::insertAt(uint32_t index, uint64_t key, uint64_t leftChild, uint6
 *  @param index of key to delete
 */
 void InnerNode::deleteAt(uint32_t index) {
+    uint32_t childIndex = index + 1;
+    uint64_t childrenPos = data.children[childIndex];
     data.deleteAt(NodeArray::KEYS, index);
-    data.deleteAt(NodeArray::CHILDREN, index + 1);
-    //isPersisted = false;
+    data.deleteAt(NodeArray::CHILDREN, childIndex);
+    Node::deleteNode(this->index, childrenPos);
     persist();
 }
 
@@ -301,9 +303,9 @@ uint64_t InnerNode::borrowFromSibling(uint64_t key, uint64_t sibling, uint32_t b
 *  @param rightChild to merge
 */
 uint64_t InnerNode::mergeChildren(uint64_t leftChildPos, uint64_t rightChildPos) {
-    
+    // TODO: What if left child doesnt belong to this node? Causes wrong access
     // Find corresponding key index of left child    
-    uint32_t i = 0; // FIXME: What if left child doesnt belong to this node? Causes wrong access
+    uint32_t i = 0; 
     while (i < data.childrenCount - 1) {
         if (data.children[i] == leftChildPos) break;
         i++;
@@ -320,7 +322,7 @@ uint64_t InnerNode::mergeChildren(uint64_t leftChildPos, uint64_t rightChildPos)
     // If there is underflow propagate borrow or merge to parent
     if (this->isUnderflow()) {
         // If this node is root node (no parent)
-        if (getParent() == NOT_FOUND) {
+        if (isRootNode()) {
             // if this node is empy
             if (data.keysCount == 0) {
                 leftChildNode->setParent(NOT_FOUND);
@@ -394,9 +396,14 @@ NodeType InnerNode::getNodeType() {
 */
 std::shared_ptr<std::string> InnerNode::toString() {
     std::stringstream ss;
-    ss << "I:[";
+    ss << "Inner: Keys=[";
     for (uint32_t i = 0; i < data.keysCount; i++) {
         ss << data.keys[i] << ((i < data.keysCount - 1) ? ", " : "");
+    }
+    ss << "]";
+    ss << " Children=[";
+    for (uint32_t i = 0; i < data.childrenCount; i++) {
+        ss << data.children[i] << ((i < data.childrenCount - 1) ? ", " : "");
     }
     ss << "]";
     return std::make_shared<std::string>(ss.str());

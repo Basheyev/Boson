@@ -278,7 +278,7 @@ uint64_t Node::dealOverflow() {
     std::shared_ptr<Node> splittedRightNode = loadNode(index, splittedRightNodePos);
 
     // if we are splitting the root node
-    if (this->getParent() == NOT_FOUND) {
+    if (isRootNode()) {
         // create new root node and set as parent to this node (grow at root)
         std::unique_ptr<InnerNode> newRootNode = std::make_unique<InnerNode>(index);                
         this->setParent(newRootNode->position);

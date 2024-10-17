@@ -358,7 +358,7 @@ NodeType LeafNode::getNodeType() {
 */
 std::shared_ptr<std::string> LeafNode::toString() {
     std::stringstream ss;
-    ss << "L:[";
+    ss << "Leaf: Values=[";
     for (uint32_t i = 0; i < data.valuesCount; i++) {
         bool isNotLast = (i < data.valuesCount - 1);        
         std::shared_ptr<std::string> value = this->getValueAt(i);

@@ -26,17 +26,18 @@ BalancedIndex::BalancedIndex(RecordFileIO& rf) : records(rf) {
     if (!rf.isOpen()) throw std::runtime_error("Can't open file.");
     // Check if file has its first record as DB header
     if (!records.first()) {
-        uint64_t referencePos = records.createRecord(&rootPosition, sizeof rootPosition);
+        memset(&indexHeader, 0, sizeof IndexHeader);
+        uint64_t referencePos = records.createRecord(&indexHeader, sizeof indexHeader);
         // root record
-        root = std::make_shared<LeafNode>(*this);
-        rootPosition = root->persist();
+        root = std::make_shared<LeafNode>(*this);        
+        indexHeader.rootPosition = root->persist();
         records.setPosition(referencePos);
-        records.setRecordData(&rootPosition, sizeof rootPosition);
+        records.setRecordData(&indexHeader, sizeof indexHeader);
     } else {
         // look up root position
-        records.getRecordData(&rootPosition, sizeof rootPosition);
+        records.getRecordData(&indexHeader, sizeof indexHeader);
         // load root record
-        root = Node::loadNode(*this, rootPosition);
+        root = Node::loadNode(*this, indexHeader.rootPosition);
     }
 }
 
@@ -76,16 +77,28 @@ std::shared_ptr<LeafNode> BalancedIndex::findLeafNode(uint64_t key) {
 
 
 /*
-*  @brief set new index root InnerNode and update 
+*  @brief Set new index root InnerNode and update 
 */
 void BalancedIndex::updateRoot(uint64_t newRootPosition) {
-    // assign new root and update its position
-    root = std::dynamic_pointer_cast<InnerNode>(Node::loadNode(*this, newRootPosition));
-    rootPosition = root->getPosition();
-    // update header
-    records.first();
-    records.setRecordData(&rootPosition, sizeof rootPosition);
+    // update root position
+    indexHeader.rootPosition = newRootPosition;
+    // assign new root node
+    root = Node::loadNode(*this, newRootPosition);        
+    // persist header
+    persistIndexHeader();
 }
+
+
+/*
+*  @brief Persist balanced index header to storage
+*/
+void BalancedIndex::persistIndexHeader() {
+    // Header is first record in records file
+    records.first();
+    // Persist index header data
+    records.setRecordData(&indexHeader, sizeof indexHeader);
+}
+
 
 /*
 *  @brief Insert key/value pair
@@ -102,9 +115,14 @@ bool BalancedIndex::insert(uint64_t key, const std::string& value) {
     if (leaf->isOverflow()) {        
         uint64_t rootPos = leaf->dealOverflow();
         // if this is root node position update it
-        if (rootPos != NOT_FOUND) updateRoot(rootPos);
+        if (rootPos != NOT_FOUND) {
+            updateRoot(rootPos);
+        }
         
     }
+
+    indexHeader.recordsCount++;
+    persistIndexHeader();
 
     printTree();
 
@@ -139,13 +157,16 @@ bool BalancedIndex::erase(uint64_t key) {
         if (leaf->isUnderflow()) {
             uint64_t newRootPos = leaf->dealUnderflow();
             if (newRootPos != NOT_FOUND) {
-                std::shared_ptr<LeafNode> newRoot =
-                    std::dynamic_pointer_cast<LeafNode>(Node::loadNode(*this, newRootPos));
+                std::shared_ptr<Node> newRoot = Node::loadNode(*this, newRootPos);
                 newRoot->setParent(NOT_FOUND);
                 updateRoot(newRootPos);
             }
         }
     }
+
+    indexHeader.recordsCount--;
+    persistIndexHeader();
+
     return true;
 }
 
@@ -174,6 +195,9 @@ RecordFileIO& BalancedIndex::getRecordsFile() {
 
 
 void BalancedIndex::printTree() {
+    std::cout << "--------------------------------------------\n";
+    std::cout << "Root node postion: " << indexHeader.rootPosition << " ";
+    std::cout << "Records count: " << indexHeader.recordsCount << std::endl;
     printTreeLevel(root, 0);
 }
 
@@ -181,9 +205,9 @@ void BalancedIndex::printTree() {
 void BalancedIndex::printTreeLevel(std::shared_ptr<Node> node, int level) {            
     for (int t = 0; t < level; t++) std::cout << "    ";
     std::shared_ptr<std::string> nodeStr = node->toString();
-    std::cout << *nodeStr << ":" << node->position << "\n";
+    std::cout << *nodeStr << " pos=" << node->position << "\n";
     if (node->getNodeType() == NodeType::INNER) {
-        for (int i = 0; i < node->data.childrenCount; i++) {
+        for (uint32_t i = 0; i < node->data.childrenCount; i++) {
             std::shared_ptr<Node> chld = Node::loadNode(*this, node->data.children[i]);
             printTreeLevel(chld, level + 1);
         }        
