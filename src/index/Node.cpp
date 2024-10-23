@@ -8,8 +8,6 @@
 
 
 #include "BalancedIndex.h"
-#include <sstream>
-#include <ios>
 
 using namespace Boson;
 
@@ -42,6 +40,7 @@ Node::Node(BalancedIndex& bi, NodeType type) : index(bi) {
     }
     this->position = offset;
     this->isPersisted = true;
+
 }
 
 
@@ -53,10 +52,11 @@ Node::Node(BalancedIndex& bi, NodeType type) : index(bi) {
 */
 std::shared_ptr<Node> Node::loadNode(BalancedIndex& bi, uint64_t offsetInFile) {
 
+    std::shared_ptr<Node> node;
+
     // load node data from specified offset in file
     RecordFileIO& recordsFile = bi.getRecordsFile();
     recordsFile.setPosition(offsetInFile);
-
     NodeData data;
     uint64_t offset = recordsFile.getRecordData(&data, sizeof NodeData);
     if (offset == NOT_FOUND) {
@@ -64,15 +64,22 @@ std::shared_ptr<Node> Node::loadNode(BalancedIndex& bi, uint64_t offsetInFile) {
         ss << "Can't read node data at " << offsetInFile << " ";
         throw std::ios_base::failure(ss.str());
     }
-    
-    std::shared_ptr<Node> node;
 
     // create required node
-    if (data.nodeType == NodeType::INNER)
+    if (data.nodeType == NodeType::INNER) {
         node = std::make_shared<InnerNode>(bi, offset, data);
-    else 
+#ifdef _DEBUG
+     //   std::cout << "Inner Node loaded (" << node->position << ")" << std::endl;
+#endif
+    }
+    else {
         node = std::make_shared<LeafNode>(bi, offset, data);
-        
+#ifdef _DEBUG
+     //   std::cout << "Leaf Node loaded (" << node->position << ")" << std::endl;
+#endif
+    }
+
+
     return node;
 
 }
@@ -95,7 +102,12 @@ void Node::deleteNode(BalancedIndex& bi, uint64_t offsetInFile) {
 * @brief Checks if node data is persisted
 */
 Node::~Node() {
-    if (!isPersisted) persist();
+    if (!isPersisted) {
+        persist();
+#ifdef _DEBUG
+        std::cout << "Node destructed and persisted (" << position << ")" << std::endl;
+#endif        
+    }
 }
 
 
@@ -118,12 +130,19 @@ uint64_t Node::persist() {
     // Throw exception if file not open or can't write
     uint64_t offset = recordsFile.setRecordData(&data, sizeof NodeData);
     if (offset == NOT_FOUND) {
-        throw std::ios_base::failure("Can't persist node data.");
+        std::stringstream ss;
+        ss << "Can't persist node data at " << position;        
+        throw std::ios_base::failure(ss.str());
     }
     // Offset of record in the file could have been changed, so we update it
     position = offset;
     // Set flag that data is already persisted
     isPersisted = true;
+
+#ifdef _DEBUG
+    std::cout << "Node at " << position << " is persisted: " << *toString() << std::endl;
+#endif
+
     return position;
 }
 
@@ -268,6 +287,11 @@ void Node::setRightSibling(uint64_t siblingPosition) {
 *  @return returns current root node position in storage file or NOT_FOUMD
 */
 uint64_t Node::dealOverflow() {
+
+#ifdef _DEBUG
+    std::cout << std::endl;
+    std::cout << "Overflow detected in the node (" << position << "):" << *toString() << std::endl;
+#endif
     
     // Get key at middle index for propagation to the parent node
     uint32_t midIndex = this->getKeyCount() / 2;
@@ -316,6 +340,11 @@ uint64_t Node::dealOverflow() {
 *  @return returns current root node position in storage file or NOT_FOUMD
 */
 uint64_t Node::dealUnderflow() {
+
+#ifdef _DEBUG
+    std::cout << std::endl;
+    std::cout << "Underflow detected in the node (" << position << "):" << *toString() << std::endl;
+#endif
 
     // if this is the root node, then do nothing and return
     if (this->getParent() == NOT_FOUND) return NOT_FOUND;

@@ -312,6 +312,11 @@ uint64_t InnerNode::mergeChildren(uint64_t leftChildPos, uint64_t rightChildPos)
     }
     uint64_t key = data.keys[i];
 
+#ifdef _DEBUG
+    std::cout << "Mergin children of inner node " << position 
+        << " - [" << leftChildPos << ", " << rightChildPos << "]" << std::endl;
+#endif
+
     // Merge two children and push key into the left child node
     std::shared_ptr<Node> leftChildNode = Node::loadNode(this->index, leftChildPos);
     leftChildNode->mergeWithSibling(key, rightChildPos);
@@ -324,6 +329,10 @@ uint64_t InnerNode::mergeChildren(uint64_t leftChildPos, uint64_t rightChildPos)
     if (this->isUnderflow()) {
         // If this node is root node (no parent)
         if (isRootNode()) {
+            
+            // prevent overwrite of this actual root shared_ptr by other instances
+            index.updateRoot(this->position);
+
             // if this node is empty
             if (data.keysCount == 0) {
                 leftChildNode->setParent(NOT_FOUND);
@@ -351,6 +360,11 @@ void InnerNode::mergeWithSibling(uint64_t key, uint64_t rightSiblingPos) {
     std::shared_ptr<Node> siblingChild, afterRight;
     uint64_t siblingChildPos;
 
+#ifdef _DEBUG
+    std::cout << "Left sibling: " << *toString() << std::endl;
+    std::cout << "Right sibling: " << *rightSibling->toString() << std::endl;
+#endif
+
     // Push key into keys
     this->data.pushBack(NodeArray::KEYS, key);
 
@@ -375,14 +389,18 @@ void InnerNode::mergeWithSibling(uint64_t key, uint64_t rightSiblingPos) {
     if (rightSibling->data.rightSibling != NOT_FOUND) {
         afterRight = Node::loadNode(this->index, rightSibling->data.rightSibling);
         afterRight->setLeftSibling(this->position);
+        afterRight->persist();
     }
-
-    // Clear and delete right sibling from storage and memory
-    rightSibling.reset();
-    Node::deleteNode(this->index, rightSiblingPos); 
-
+    
     // Persist this node
     this->persist();
+#ifdef _DEBUG
+    std::cout << "Merged inner node: " << *toString() << std::endl;
+    std::cout << "Right sibling deleted at " << rightSiblingPos << std::endl;
+#endif
+
+    // Clear and delete right sibling from storage and memory
+    Node::deleteNode(this->index, rightSiblingPos); 
 }
 
 

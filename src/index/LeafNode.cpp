@@ -7,8 +7,6 @@
 ******************************************************************************/
 
 #include "BalancedIndex.h"
-#include <sstream>
-#include <ios>
 
 using namespace Boson;
 
@@ -234,9 +232,21 @@ void LeafNode::insertAt(uint32_t index, uint64_t key, uint64_t valuePosition) {
 *  @return true if ok, or false if index not found
 */
 bool LeafNode::deleteKey(uint64_t key) {
+#ifdef _DEBUG
+    std::cout << std::endl;
+    std::cout << "Deleteing key " << key << " in the leaf node (" << position << ")" << std::endl;
+#endif
     uint32_t deleteIndex = search(key);
-    if (deleteIndex == KEY_NOT_FOUND) return false;
+    if (deleteIndex == KEY_NOT_FOUND) {
+#ifdef _DEBUG
+        std::cout << "key not found in the node" << std::endl;
+#endif
+        return false;
+    }
     deleteAt(deleteIndex);
+#ifdef _DEBUG
+    std::cout << "Key deleted (" << position << "): " << *toString() << std::endl;
+#endif
     return true;
 }
 
@@ -269,6 +279,11 @@ void LeafNode::deleteAt(uint32_t index) {
 * @return new node position in storage file
 */
 uint64_t LeafNode::split() {
+
+#ifdef _DEBUG
+       std::cout << "Splitting node at " << position << ": " << *toString() << std::endl;
+#endif
+
     uint32_t midIndex = data.keysCount / 2;
     std::unique_ptr<LeafNode> newNode = std::make_unique<LeafNode>(this->index);
     for (size_t i = midIndex; i < data.keysCount; ++i) {
@@ -282,6 +297,11 @@ uint64_t LeafNode::split() {
     newNode->persist();
     this->persist();
 
+#ifdef _DEBUG
+    std::cout << "Left at " << position << ": " << *toString() << std::endl;
+    std::cout << "Right at " << newNode->position << ": " << *toString() << std::endl;
+#endif
+
     return newNode->position;
 }
 
@@ -293,6 +313,13 @@ uint64_t LeafNode::split() {
 */
 void LeafNode::mergeWithSibling(uint64_t key, uint64_t siblingPos) {
     std::shared_ptr<Node> siblingLeaf = Node::loadNode(index, siblingPos);
+
+
+#ifdef _DEBUG
+    std::cout << "Left sibling: " << *toString() << std::endl;
+    std::cout << "Right sibling: " << *siblingLeaf->toString() << std::endl;
+#endif
+
     // copy keys and values from sibling node to this node
     for (size_t i = 0; i < siblingLeaf->getKeyCount(); i++) {
         data.pushBack(NodeArray::KEYS, siblingLeaf->data.keys[i]);
@@ -307,6 +334,12 @@ void LeafNode::mergeWithSibling(uint64_t key, uint64_t siblingPos) {
     }
     // Delete sibling node
     Node::deleteNode(index, siblingPos);
+
+#ifdef _DEBUG
+    std::cout << "Merged leaf node: " << *toString() << std::endl;
+    std::cout << "Right sibling deleted at " << rightSiblingPos << std::endl;
+#endif
+
     persist();
     //isPersisted = false;
 }
@@ -331,6 +364,11 @@ uint64_t LeafNode::borrowFromSibling(uint64_t key, uint64_t siblingPos, uint32_t
     // delete borrowed key/value pair in sibling node
     siblingNode->deleteAt(borrowIndex);
     
+#ifdef _DEBUG
+    std::cout << "Leaf node (" << position << ") borrowed value from sibling (" 
+        << siblingPos << "): " << *toString() << std::endl;
+#endif
+
     //isPersisted = false;
     persist();
 

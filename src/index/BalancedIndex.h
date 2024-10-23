@@ -13,9 +13,14 @@
 
 #include "RecordFileIO.h"
 
+#include <unordered_map>
 #include <cinttypes>
 #include <string>
 #include <memory>
+#include <sstream>
+#include <iostream>
+#include <ios>
+
 
 namespace Boson {
 
@@ -85,11 +90,12 @@ namespace Boson {
         void     setRightSibling(uint64_t siblingPosition);
         uint64_t dealOverflow();
         uint64_t dealUnderflow();
-        //protected:
+  
         BalancedIndex& index;         // reference to index   
         uint64_t position;            // offset in file
         NodeData data;                // node data
         bool isPersisted;             // is data persisted to storage        
+
         Node(BalancedIndex& bi);
         virtual uint32_t search(uint64_t key) = 0;
         virtual uint64_t split() = 0;
@@ -179,10 +185,10 @@ namespace Boson {
         bool next();
         bool previous();   
         void printTree();
+        void updateRoot(uint64_t newRootPosition);
     protected:
         RecordFileIO& getRecordsFile();
-        std::shared_ptr<LeafNode> findLeafNode(uint64_t key);
-        void updateRoot(uint64_t newRootPosition);
+        std::shared_ptr<LeafNode> findLeafNode(uint64_t key);        
         void persistIndexHeader();
         void printTreeLevel(std::shared_ptr<Node> node, int level);
     private:
