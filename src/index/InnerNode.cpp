@@ -313,7 +313,7 @@ uint64_t InnerNode::mergeChildren(uint64_t leftChildPos, uint64_t rightChildPos)
     uint64_t key = data.keys[i];
 
 #ifdef _DEBUG
-    std::cout << "Mergin children of inner node " << position 
+    std::cout << "Merging children of inner node " << position 
         << " - [" << leftChildPos << ", " << rightChildPos << "]" << std::endl;
 #endif
 
@@ -323,7 +323,7 @@ uint64_t InnerNode::mergeChildren(uint64_t leftChildPos, uint64_t rightChildPos)
 
     // Remove the key, keep the left child and abandon the right child
     this->deleteAt(i);
-    this->persist();
+    //this->persist();
 
     // If there is underflow propagate borrow or merge to parent
     if (this->isUnderflow()) {
@@ -427,8 +427,12 @@ std::shared_ptr<std::string> InnerNode::toString() {
     ss << " Children=[";
     for (uint32_t i = 0; i < data.childrenCount; i++) {
         ss << data.children[i] << ((i < data.childrenCount - 1) ? ", " : "");
+    }    
+    ss << "] : parent(";
+    if (data.parent == NOT_FOUND) {
+        ss << "no)";
     }
-    ss << "]";
+    else ss << data.parent << ")";
     return std::make_shared<std::string>(ss.str());
 }
 

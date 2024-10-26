@@ -54,7 +54,7 @@ void insertRecords(BalancedIndex* bi) {
 	bi->insert(170, "Anastasiya");
 	bi->insert(180, "Victor");
 	bi->insert(190, "Andrew");
-	/*bi->insert(200, "Asem");
+	bi->insert(200, "Asem");
 	bi->insert(210, "Aset");
 	bi->insert(220, "Yerlan");
 	bi->insert(230, "Sanzhar");
@@ -82,12 +82,16 @@ void insertRecords(BalancedIndex* bi) {
 	bi->insert(450, "Alpysbai");
 	bi->insert(460, "Zhetpisbai");
 	bi->insert(470, "Seksenbai");
-	bi->insert(480, "Toksanbai");*/
+	bi->insert(480, "Toksanbai");
 }
 
 
 
 void removeRecords(BalancedIndex* bi) {
+	cout << std::endl;
+	cout << "-------------------------------------------------------------------------\n";
+	cout << "DELETING RECRODS\n";
+	cout << "-------------------------------------------------------------------------\n";
 	bi->erase(1);	
 	/*bi->erase(30);
 	bi->erase(50); 
@@ -115,7 +119,13 @@ void removeRecords(BalancedIndex* bi) {
 }
 
 
-
+// FIXME: inserting still not working
+// FIXME: when records changes its position in file its not updated in the tree
+// 
+// 
+// FIXME: maybe modified nodes are overwritten with old values
+// FIXME: more than five elements in the node
+// FXIME: crashes when can't find node that was deleted
 
 int main()
 {
@@ -135,16 +145,12 @@ int main()
 			insertRecords(bi);
 			bi->printTree();
 			
-			cout << std::endl;
-			cout << "-------------------------------------------------------------------------\n";
-			cout << "DELETING RECRODS\n";
-			cout << "-------------------------------------------------------------------------\n";
 
 			removeRecords(bi);
 			bi->printTree();
 
-			insertRecords(bi);
-			bi->printTree();
+		//	insertRecords(bi);
+		//	bi->printTree();
 
 			delete bi;
 			delete rf;

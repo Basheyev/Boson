@@ -81,7 +81,12 @@ std::shared_ptr<std::string> LeafNode::getValueAt(uint32_t index) {
     char* cStr = new char[valueLength];
 
     uint64_t offset = recordsFile.getRecordData(cStr, valueLength);
-    if (offset == NOT_FOUND) throw std::ios_base::failure("Can't read value.");
+    if (offset == NOT_FOUND) {
+        std::stringstream ss;
+        ss << std::endl;
+        ss << "Can't read value of Leaf Node at " << position << " value position: " << offsetInFile;
+        throw std::ios_base::failure(ss.str());
+    }
 
     // add null terminator to C style string
     cStr[valueLength - 1] = 0; 
@@ -299,7 +304,7 @@ uint64_t LeafNode::split() {
 
 #ifdef _DEBUG
     std::cout << "Left at " << position << ": " << *toString() << std::endl;
-    std::cout << "Right at " << newNode->position << ": " << *toString() << std::endl;
+    std::cout << "Right at " << newNode->position << ": " << *newNode->toString() << std::endl;
 #endif
 
     return newNode->position;
@@ -337,7 +342,7 @@ void LeafNode::mergeWithSibling(uint64_t key, uint64_t siblingPos) {
 
 #ifdef _DEBUG
     std::cout << "Merged leaf node: " << *toString() << std::endl;
-    std::cout << "Right sibling deleted at " << rightSiblingPos << std::endl;
+    std::cout << "Right sibling deleted at " << siblingPos << std::endl;
 #endif
 
     persist();
@@ -402,7 +407,10 @@ std::shared_ptr<std::string> LeafNode::toString() {
         std::shared_ptr<std::string> value = this->getValueAt(i);
         ss << data.keys[i] << ":'" << *value << (isNotLast ? "', " : "'");
     }
-    ss << "]";
+    ss << "] : parent(";
+    if (data.parent == NOT_FOUND) {
+        ss << "no)";
+    } else ss << data.parent << ")";
     return std::make_shared<std::string>(ss.str());
 }
 

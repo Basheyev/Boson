@@ -107,7 +107,10 @@ void BalancedIndex::updateRoot(uint64_t newRootPosition) {
 */
 void BalancedIndex::persistIndexHeader() {
 #ifdef _DEBUG
-    std::cout << "Index header persisted" << std::endl;
+    std::cout << "Index header persisted: root=" 
+        << indexHeader.rootPosition << ", records count="
+        << indexHeader.recordsCount
+        << std::endl;
 #endif
     // Header is first record in records file
     recordsFile.first();
@@ -133,6 +136,7 @@ bool BalancedIndex::insert(uint64_t key, const std::string& value) {
     }
 
     bool isInserted = leaf->insertKey(key, value);
+
     if (leaf->isOverflow()) {        
         uint64_t rootPos = leaf->dealOverflow();
         // if this is root node position update it

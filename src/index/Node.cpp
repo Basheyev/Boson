@@ -126,16 +126,22 @@ uint64_t Node::getPosition() {
 uint64_t Node::persist() {
     // write node data to specified position
     RecordFileIO& recordsFile = index.getRecordsFile();
-    recordsFile.setPosition(position);    
-    // Throw exception if file not open or can't write
+    recordsFile.setPosition(position);        
     uint64_t offset = recordsFile.setRecordData(&data, sizeof NodeData);
+    // Throw exception if file not open or can't write
     if (offset == NOT_FOUND) {
         std::stringstream ss;
         ss << "Can't persist node data at " << position;        
         throw std::ios_base::failure(ss.str());
     }
+
+
     // Offset of record in the file could have been changed, so we update it
-    position = offset;
+    if (offset != position) {
+        std::cout << "Node migrated in file from " << position << " to " << offset << std::endl;
+        position = offset;
+
+    }
     // Set flag that data is already persisted
     isPersisted = true;
 
@@ -175,11 +181,12 @@ bool Node::isRootNode() {
 
 
 /*
-*  @brief Returns whether node keys count > M-1
-*  @return true if keys count more than MAX_DEGREE
+*  @brief Returns whether node keys or children count > M-1
+*  @return true if keys or children count more than MAX_DEGREE
 */
 bool Node::isOverflow() {
-    return data.keysCount >= MAX_DEGREE;
+    return data.keysCount > MAX_DEGREE ||
+           data.childrenCount > MAX_DEGREE;
 }
 
 
@@ -326,7 +333,7 @@ uint64_t Node::dealOverflow() {
     // Push middle key up to parent the node (root node returned)
     std::shared_ptr<Node> parent = loadNode(index, this->getParent());
     uint64_t parentPos = parent->pushUpKey(upKey, position, splittedRightNode->position);
-    parent->persist();
+//  already saved changes, don't call parent->persist();
     
     // Return current root node position
     return parentPos;
