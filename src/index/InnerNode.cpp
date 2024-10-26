@@ -301,19 +301,24 @@ uint64_t InnerNode::borrowFromSibling(uint64_t key, uint64_t sibling, uint32_t b
     }
     else {
         // borrow the last key from left sibling, insert it to head
-        childNodePos = siblingNode->getChildAt(borrowIndex + 1);
+        uint32_t childIndex = borrowIndex + 1;
+        childNodePos = siblingNode->getChildAt(childIndex);
         childNode = Node::loadNode(this->index, childNodePos);
         // reattach childNode to this node as parent
         childNode->setParent(this->position);
-        // insert borrowed key and child node to the list at beginning
-        insertAt(0, key, childNodePos, data.children[0]);
+        // insert borrowed key and child node to the beginning of the list
+        this->insertAt(0, key, childNodePos, data.children[0]);
         // get key propogated to parent node
         upKey = siblingNode->getKeyAt(borrowIndex);
         // delete key with children from sibling node
-        siblingNode->deleteAt(borrowIndex);
+        siblingNode->data.deleteAt(NodeArray::KEYS, borrowIndex);
+        siblingNode->data.deleteAt(NodeArray::CHILDREN, childIndex);
+        
     }
 
+    // Persist all modified nodes
     this->persist();
+    siblingNode->persist();    
     childNode->persist();
 
     return upKey;

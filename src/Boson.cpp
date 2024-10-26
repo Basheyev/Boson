@@ -107,8 +107,8 @@ void removeRecords(BalancedIndex* bi) {
 	bi->erase(250);
 	bi->erase(270);
 	bi->erase(290);
-	/*bi->erase(310);
-	bi->erase(330);
+	bi->erase(310);
+	/*bi->erase(330);
 	bi->erase(350);
 	bi->erase(370);
 	bi->erase(390);
@@ -120,8 +120,8 @@ void removeRecords(BalancedIndex* bi) {
 
 
 
-// FIXME: why five children after merge?
 // FIXME: borrowFromSibling - debug
+// FIXME: NOT_FOUND in the Keys !!!! of 1622 node
 
 int main()
 {
