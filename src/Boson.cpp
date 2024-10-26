@@ -33,7 +33,7 @@ using namespace std;
 
 
 void insertRecords(BalancedIndex* bi) {
-	//bi->insert(1, "Unknown guy");
+	bi->insert(1, "Unknown guy");
 	bi->insert(341, "WWWWWWWWWWW");
 	bi->insert(10, "Bolat");
 	bi->insert(20, "Ayoka");
@@ -112,7 +112,7 @@ void removeRecords(BalancedIndex* bi) {
 	bi->erase(350);
 	bi->erase(370);
 	bi->erase(390);
-	/*bi->erase(410);
+	bi->erase(410);
 	bi->erase(430);
 	bi->erase(450);
 	bi->erase(470);
@@ -129,6 +129,7 @@ void removeRecords(BalancedIndex* bi) {
 	bi->erase(180);
 	bi->erase(200);
 	bi->erase(220);
+	
 	bi->erase(240);
 	bi->erase(260);
 	bi->erase(280);
@@ -140,14 +141,12 @@ void removeRecords(BalancedIndex* bi) {
 	bi->erase(400);
 	bi->erase(420);
 	bi->erase(440);
-	bi->erase(460);*/
-	//bi->erase(480);
+	bi->erase(460);
+	bi->erase(480);
 }
 
 
 
-// FIXME: borrowFromSibling - debug
-// FIXME: NOT_FOUND in the Keys !!!! of 1622 node
 
 int main()
 {
@@ -163,18 +162,15 @@ int main()
 			RecordFileIO* rf = new RecordFileIO(cf);
 			BalancedIndex* bi = new BalancedIndex(*rf);					
 
-			//bi->printTree();
 			insertRecords(bi);
-			bi->printTree();
 			
 			uint64_t key = 480;
 			auto value = *bi->search(key);
 
-			std::cout << "SEARCH KEY:" << std::endl;
-			std::cout << key << "=" << value << std::endl;
+		//	std::cout << "SEARCH KEY:" << std::endl;
+		//	std::cout << key << "=" << value << std::endl;
 
 			removeRecords(bi);
-			bi->printTree();
 
 		//	insertRecords(bi);
 		//	bi->printTree();

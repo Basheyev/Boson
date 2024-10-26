@@ -186,10 +186,12 @@ bool BalancedIndex::erase(uint64_t key) {
     if (leaf->deleteKey(key)) {
         if (leaf->isUnderflow()) {
             uint64_t newRootPos = leaf->dealUnderflow();
-            if (newRootPos != NOT_FOUND) {
-                //std::shared_ptr<Node> newRoot = Node::loadNode(*this, newRootPos);
-                //newRoot->setParent(NOT_FOUND);
+            // if root changed
+            if (newRootPos != NOT_FOUND) {                
                 updateRoot(newRootPos);
+            } else {
+                // update root data if possibly changed
+                root = Node::loadNode(*this, indexHeader.rootPosition);
             }
         }
 #ifdef _DEBUG

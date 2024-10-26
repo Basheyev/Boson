@@ -241,6 +241,9 @@ bool LeafNode::deleteKey(uint64_t key) {
 #ifdef _DEBUG
     std::cout << std::endl;
     std::cout << "Deleteing key " << key << " in the leaf node (" << position << ")" << std::endl;
+    if (this->position == 128) {
+        std::cout << "ATTENTION! Deleting key = " << key << std::endl;
+    }
 #endif
     uint32_t deleteIndex = search(key);
     if (deleteIndex == KEY_NOT_FOUND) {
@@ -371,6 +374,7 @@ uint64_t LeafNode::borrowFromSibling(uint64_t key, uint64_t siblingPos, uint32_t
 
     // delete borrowed key/value pair in sibling node
     //siblingNode->deleteAt(borrowIndex);
+    siblingNode->data.deleteAt(NodeArray::KEYS, borrowIndex);
     siblingNode->data.deleteAt(NodeArray::VALUES, borrowIndex);
     siblingNode->persist();
     
