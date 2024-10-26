@@ -303,7 +303,7 @@ uint64_t InnerNode::borrowFromSibling(uint64_t key, uint64_t sibling, uint32_t b
 *  @param rightChild to merge
 */
 uint64_t InnerNode::mergeChildren(uint64_t leftChildPos, uint64_t rightChildPos) {
-    // TODO: What if left child doesnt belong to this node? Causes wrong access
+    
     // Find corresponding key index of left child    
     uint32_t i = 0; 
     while (i < data.childrenCount - 1) {
@@ -326,7 +326,10 @@ uint64_t InnerNode::mergeChildren(uint64_t leftChildPos, uint64_t rightChildPos)
     //this->persist();
 
     // If there is underflow propagate borrow or merge to parent
-    if (this->isUnderflow()) {
+    //if (this->isUnderflow()) {
+
+    // If there is overflow propagate borrow or merge to parent
+    if (this->isOverflow()) {
         // If this node is root node (no parent)
         if (isRootNode()) {
             
@@ -340,8 +343,10 @@ uint64_t InnerNode::mergeChildren(uint64_t leftChildPos, uint64_t rightChildPos)
                 return leftChildPos;
             }
             else return NOT_FOUND;
-        }
-        return dealUnderflow();
+
+
+        //} return dealUnderflow();
+        } return dealOverflow();
     }
     return NOT_FOUND;
 }
