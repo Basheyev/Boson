@@ -341,8 +341,8 @@ uint64_t InnerNode::mergeChildren(uint64_t leftChildPos, uint64_t rightChildPos)
     uint64_t key = data.keys[i];
 
 #ifdef _DEBUG
-    std::cout << "Merging children of inner node " << position 
-        << " - [" << leftChildPos << ", " << rightChildPos << "]" << std::endl;
+    std::cout << "Merging children of inner node (" << position 
+        << ") - [" << leftChildPos << ", " << rightChildPos << "]" << std::endl;
 #endif
 
     // Merge two children and push key into the left child node
@@ -351,7 +351,7 @@ uint64_t InnerNode::mergeChildren(uint64_t leftChildPos, uint64_t rightChildPos)
 
     // Remove the key, keep the left child and abandon the right child
     this->deleteAt(i);
-    
+
     // FIXME: underflow / overflow?
 
     // If there is underflow propagate borrow or merge to parent
@@ -361,7 +361,7 @@ uint64_t InnerNode::mergeChildren(uint64_t leftChildPos, uint64_t rightChildPos)
             // prevent overwrite of this actual root shared_ptr by other instances
             index.updateRoot(this->position);
             index.persistIndexHeader();
-            // if this node is empty
+            // if this node is empty - promote merged left child as root
             if (data.keysCount == 0) {
                 leftChildNode->setParent(NOT_FOUND);
                 leftChildNode->persist();
@@ -441,6 +441,7 @@ void InnerNode::mergeWithSibling(uint64_t key, uint64_t rightSiblingPos) {
     
     // Persist this node
     this->persist();
+
 #ifdef _DEBUG
     std::cout << "Merged inner node: " << *toString() << std::endl;
     std::cout << "Right sibling deleted at " << rightSiblingPos << std::endl;

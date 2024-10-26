@@ -366,7 +366,7 @@ uint64_t Node::dealUnderflow() {
             uint32_t keyIndex = leftSibling->getKeyCount() - 1;
             std::shared_ptr<Node> parent = loadNode(index, this->getParent());
             parent->borrowChildren(position, leftSiblingPos, keyIndex);
-            parent->persist();
+          //  parent->persist();
             return NOT_FOUND;
         }
     }
@@ -378,7 +378,7 @@ uint64_t Node::dealUnderflow() {
             uint32_t keyIndex = 0;
             std::shared_ptr<Node> parent = loadNode(index, this->getParent());
             parent->borrowChildren(position, rightSiblingPos, keyIndex);
-            parent->persist();
+          //  parent->persist();
             return NOT_FOUND;
         }
     }
@@ -389,7 +389,7 @@ uint64_t Node::dealUnderflow() {
         if (leftSibling->getParent() == this->getParent()) {  
             std::shared_ptr<Node> parent = loadNode(index, this->getParent());
             uint64_t rootNodePos = parent->mergeChildren(leftSiblingPos, this->position);
-            parent->persist();
+            //parent->persist();
             return rootNodePos;
         }
     } 

@@ -340,25 +340,15 @@ void LeafNode::mergeWithSibling(uint64_t key, uint64_t siblingPos) {
         rightSibling->setLeftSibling(this->position);
     }
 
-    /*
-    uint64_t siblingParentPos = siblingLeaf->getParent();
-    if (siblingParentPos != NOT_FOUND) {
-        std::shared_ptr<Node> siblingParent = Node::loadNode(index, siblingParentPos);
-        siblingParent->data.
-
-    }*/
-
     // Delete sibling node
-    Node::deleteNode(index, siblingPos);
-    // FIXME: how to delete reference in parent node
+    // FIXME: do I need this? Node::deleteNode(index, siblingPos);    
 
 #ifdef _DEBUG
-    std::cout << "Merged leaf node: " << *toString() << std::endl;
-    std::cout << "Right sibling deleted at " << siblingPos << std::endl;
+    std::cout << "Merged leaf node: " << *toString() << std::endl;    
 #endif
 
-    persist();
-    //isPersisted = false;
+    this->persist();   
+
 }
 
 

@@ -108,14 +108,40 @@ void removeRecords(BalancedIndex* bi) {
 	bi->erase(270);
 	bi->erase(290);
 	bi->erase(310);
-	/*bi->erase(330);
+	bi->erase(330);
 	bi->erase(350);
 	bi->erase(370);
 	bi->erase(390);
-	bi->erase(410);
+	/*bi->erase(410);
 	bi->erase(430);
 	bi->erase(450);
-	bi->erase(470);*/
+	bi->erase(470);
+
+	
+	bi->erase(20);
+	bi->erase(40);
+	bi->erase(60);
+	bi->erase(80);
+	bi->erase(100);
+	bi->erase(120);
+	bi->erase(140);
+	bi->erase(160);
+	bi->erase(180);
+	bi->erase(200);
+	bi->erase(220);
+	bi->erase(240);
+	bi->erase(260);
+	bi->erase(280);
+	bi->erase(300);
+	bi->erase(320);
+	bi->erase(340);
+	bi->erase(360);
+	bi->erase(380);
+	bi->erase(400);
+	bi->erase(420);
+	bi->erase(440);
+	bi->erase(460);*/
+	//bi->erase(480);
 }
 
 

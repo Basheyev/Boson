@@ -187,8 +187,8 @@ bool BalancedIndex::erase(uint64_t key) {
         if (leaf->isUnderflow()) {
             uint64_t newRootPos = leaf->dealUnderflow();
             if (newRootPos != NOT_FOUND) {
-                std::shared_ptr<Node> newRoot = Node::loadNode(*this, newRootPos);
-                newRoot->setParent(NOT_FOUND);
+                //std::shared_ptr<Node> newRoot = Node::loadNode(*this, newRootPos);
+                //newRoot->setParent(NOT_FOUND);
                 updateRoot(newRootPos);
             }
         }
