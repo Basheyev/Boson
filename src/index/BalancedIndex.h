@@ -186,10 +186,10 @@ namespace Boson {
         bool previous();   
         void printTree();
         void updateRoot(uint64_t newRootPosition);
+        void persistIndexHeader();
     protected:
         RecordFileIO& getRecordsFile();
-        std::shared_ptr<LeafNode> findLeafNode(uint64_t key);        
-        void persistIndexHeader();
+        std::shared_ptr<LeafNode> findLeafNode(uint64_t key);                
         void printTreeLevel(std::shared_ptr<Node> node, int level);
     private:
 

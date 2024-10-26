@@ -226,7 +226,7 @@ void LeafNode::insertAt(uint32_t index, uint64_t key, uint64_t valuePosition) {
     data.insertAt(NodeArray::VALUES, index, valuePosition);
     
     //isPersisted = false;
-    persist();
+    //persist();
 }
 
 
@@ -322,8 +322,8 @@ void LeafNode::mergeWithSibling(uint64_t key, uint64_t siblingPos) {
 
 
 #ifdef _DEBUG
-    std::cout << "Left sibling: " << *toString() << std::endl;
-    std::cout << "Right sibling: " << *siblingLeaf->toString() << std::endl;
+    std::cout << "Left sibling (" << position << "): " << *toString() << std::endl;
+    std::cout << "Right sibling (" << siblingLeaf->position << "): " << *siblingLeaf->toString() << std::endl;
 #endif
 
     // copy keys and values from sibling node to this node
@@ -331,6 +331,7 @@ void LeafNode::mergeWithSibling(uint64_t key, uint64_t siblingPos) {
         data.pushBack(NodeArray::KEYS, siblingLeaf->data.keys[i]);
         data.pushBack(NodeArray::VALUES, siblingLeaf->data.values[i]);
     }
+
     // interconnect siblings
     uint64_t rightSiblingPos = siblingLeaf->getRightSibling();
     setRightSibling(rightSiblingPos);
@@ -338,8 +339,18 @@ void LeafNode::mergeWithSibling(uint64_t key, uint64_t siblingPos) {
         std::shared_ptr<Node> rightSibling = Node::loadNode(index, rightSiblingPos);
         rightSibling->setLeftSibling(this->position);
     }
+
+    /*
+    uint64_t siblingParentPos = siblingLeaf->getParent();
+    if (siblingParentPos != NOT_FOUND) {
+        std::shared_ptr<Node> siblingParent = Node::loadNode(index, siblingParentPos);
+        siblingParent->data.
+
+    }*/
+
     // Delete sibling node
     Node::deleteNode(index, siblingPos);
+    // FIXME: how to delete reference in parent node
 
 #ifdef _DEBUG
     std::cout << "Merged leaf node: " << *toString() << std::endl;
@@ -366,17 +377,17 @@ uint64_t LeafNode::borrowFromSibling(uint64_t key, uint64_t siblingPos, uint32_t
     uint64_t borrowedKey = siblingNode->data.keys[borrowIndex];
     uint64_t borrowedValuePos = siblingNode->data.values[borrowIndex];
     this->insertKey(borrowedKey, borrowedValuePos);
+    this->persist();
 
     // delete borrowed key/value pair in sibling node
-    siblingNode->deleteAt(borrowIndex);
+    //siblingNode->deleteAt(borrowIndex);
+    siblingNode->data.deleteAt(NodeArray::VALUES, borrowIndex);
+    siblingNode->persist();
     
 #ifdef _DEBUG
     std::cout << "Leaf node (" << position << ") borrowed value from sibling (" << siblingPos << "): ";
     std::cout << *toString() << std::endl;
 #endif
-
-    //isPersisted = false;
-    persist();
 
     // return new middle key
     if (borrowIndex == 0)
@@ -402,15 +413,15 @@ NodeType LeafNode::getNodeType() {
 */
 std::shared_ptr<std::string> LeafNode::toString() {
     std::stringstream ss;
-    ss << "Leaf: Values=[";
+    ss << "Leaf: [";
     for (uint32_t i = 0; i < data.valuesCount; i++) {
         bool isNotLast = (i < data.valuesCount - 1);        
         std::shared_ptr<std::string> value = this->getValueAt(i);
-        ss << data.keys[i] << ":'" << *value << "'";
-        ss << " (" << data.values[i] << ")";
+        ss << data.keys[i] << "='" << *value << "'";
+        ss << "(" << data.values[i] << ")";
         ss << (isNotLast ? ", " : "");
     }
-    ss << "] : parent(";
+    ss << "]: parent(";
     if (data.parent == NOT_FOUND) {
         ss << "no)";
     } else ss << data.parent << ")";

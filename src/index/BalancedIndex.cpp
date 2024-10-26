@@ -90,15 +90,13 @@ std::shared_ptr<LeafNode> BalancedIndex::findLeafNode(uint64_t key) {
 *  @brief Set new index root InnerNode and update 
 */
 void BalancedIndex::updateRoot(uint64_t newRootPosition) {
+    // update root position
+    indexHeader.rootPosition = newRootPosition;
+    // assign new root node or update from storage if content of root changed
+    root = Node::loadNode(*this, newRootPosition);            
 #ifdef _DEBUG
     std::cout << "Root node updated from " << root->position << " to " << newRootPosition << std::endl;
 #endif    
-    // update root position
-    indexHeader.rootPosition = newRootPosition;
-    // assign new root node
-    root = Node::loadNode(*this, newRootPosition);            
-    // persist header
-    persistIndexHeader();
 }
 
 
@@ -124,8 +122,8 @@ void BalancedIndex::persistIndexHeader() {
 */
 bool BalancedIndex::insert(uint64_t key, const std::string& value) {
 
-#ifdef _DEBUG
-    std::cout << std::endl;
+#ifdef _DEBUG    
+    std::cout << "-----------------------------------------------------------------------" << std::endl;
     std::cout << "Inserting key/value pair key=" << key << " value='" << value << "'" << std::endl;
 #endif
     
@@ -137,6 +135,8 @@ bool BalancedIndex::insert(uint64_t key, const std::string& value) {
 
     bool isInserted = leaf->insertKey(key, value);
 
+    if (isInserted) indexHeader.recordsCount++;
+
     if (leaf->isOverflow()) {        
         uint64_t rootPos = leaf->dealOverflow();
         // if this is root node position update it
@@ -145,9 +145,10 @@ bool BalancedIndex::insert(uint64_t key, const std::string& value) {
         }
         
     }
-
-    indexHeader.recordsCount++;
+        
     persistIndexHeader();
+
+    this->printTree();
 
     return isInserted;
 }
@@ -248,7 +249,7 @@ void BalancedIndex::printTreeLevel(std::shared_ptr<Node> node, int level) {
     std::cout << *nodeStr;
     std::cout << " (LEFT: " << (left == NOT_FOUND ? 0 : left);
     std::cout << " RIGHT: " << (right == NOT_FOUND ? 0 : right) << ")";
-    std::cout << " : " << node->position << "\n";
+    std::cout << " : " << node->position << std::endl;
     if (node->getNodeType() == NodeType::INNER) {
         for (uint32_t i = 0; i < node->data.childrenCount; i++) {
             std::shared_ptr<Node> chld = Node::loadNode(*this, node->data.children[i]);

@@ -212,9 +212,8 @@ uint64_t InnerNode::pushUpKey(uint64_t key, uint64_t leftChild, uint64_t rightCh
 void InnerNode::borrowChildren(uint64_t borrowerPos, uint64_t lender, uint32_t borrowIndex) {
     uint32_t borrowerChildIndex = 0;
 
-    std::shared_ptr<Node> borrower = Node::loadNode(this->index, borrowerPos);
-    //auto borrower = std::dynamic_pointer_cast<InnerNode>(untypedBorrower);
-
+    std::shared_ptr<Node> untypedBorrower = Node::loadNode(this->index, borrowerPos);
+    
     // find borrower child index
     for (uint32_t i = 0; i < data.childrenCount; i++) {
         if (data.children[i] == borrowerPos) {
@@ -224,21 +223,43 @@ void InnerNode::borrowChildren(uint64_t borrowerPos, uint64_t lender, uint32_t b
     }
 
 #ifdef _DEBUG
-    std::cout << "Borrow key to from " << (borrowIndex == 0 ? "left" : "right");
+    std::cout << "Borrow key from " << (borrowIndex == 0 ? "right " : "left ");
+    std::cout << ((untypedBorrower->data.nodeType == NodeType::INNER) ? "inner" : "leaf");
     std::cout << " node(" << lender << ") to node(" << borrowerPos << ")" << std::endl;
 #endif
 
-    // Process borrowing
-    if (borrowIndex == 0) {
-        // borrow from right sibling
-        uint64_t theKey = data.keys[borrowerChildIndex];
-        uint64_t upKey = borrower->borrowFromSibling(theKey, lender, borrowIndex);
-        data.keys[borrowerChildIndex] = upKey;
-    } else {
-        // borrow from left sibling
-        uint64_t theKey = data.keys[borrowerChildIndex - 1];
-        uint64_t upKey = borrower->borrowFromSibling(theKey, lender, borrowIndex);
-        data.keys[borrowerChildIndex - 1] = upKey;        
+    if (untypedBorrower->data.nodeType == NodeType::INNER) {
+        auto borrower = std::dynamic_pointer_cast<InnerNode>(untypedBorrower);
+        // Process inner node borrowing
+        if (borrowIndex == 0) {
+            // borrow from right sibling
+            uint64_t theKey = data.keys[borrowerChildIndex];
+            uint64_t upKey = borrower->borrowFromSibling(theKey, lender, borrowIndex);
+            data.keys[borrowerChildIndex] = upKey;
+        }
+        else {
+            // borrow from left sibling
+            uint64_t theKey = data.keys[borrowerChildIndex - 1];
+            uint64_t upKey = borrower->borrowFromSibling(theKey, lender, borrowIndex);
+            data.keys[borrowerChildIndex - 1] = upKey;
+        }
+    }
+    else {
+        auto borrower = std::dynamic_pointer_cast<LeafNode>(untypedBorrower);
+        // Process leaf node borrowing
+        if (borrowIndex == 0) {
+            // borrow from right sibling
+            uint64_t theKey = data.keys[borrowerChildIndex];
+            uint64_t upKey = borrower->borrowFromSibling(theKey, lender, borrowIndex);
+            data.keys[borrowerChildIndex] = upKey;
+        }
+        else {
+            // borrow from left sibling
+            uint64_t theKey = data.keys[borrowerChildIndex - 1];
+            uint64_t upKey = borrower->borrowFromSibling(theKey, lender, borrowIndex);
+            data.keys[borrowerChildIndex - 1] = upKey;
+        }
+
     }
         
     persist();
@@ -334,13 +355,13 @@ uint64_t InnerNode::mergeChildren(uint64_t leftChildPos, uint64_t rightChildPos)
         if (isRootNode()) {
             // prevent overwrite of this actual root shared_ptr by other instances
             index.updateRoot(this->position);
+            index.persistIndexHeader();
             // if this node is empty
             if (data.keysCount == 0) {
                 leftChildNode->setParent(NOT_FOUND);
                 leftChildNode->persist();
                 return leftChildPos;
-            }
-            else return NOT_FOUND;
+            } else return NOT_FOUND;
         } return dealUnderflow();
     }
 
@@ -449,7 +470,7 @@ std::shared_ptr<std::string> InnerNode::toString() {
     for (uint32_t i = 0; i < data.childrenCount; i++) {
         ss << data.children[i] << ((i < data.childrenCount - 1) ? ", " : "");
     }    
-    ss << "] : parent(";
+    ss << "]: parent(";
     if (data.parent == NOT_FOUND) {
         ss << "no)";
     }

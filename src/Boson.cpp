@@ -33,14 +33,14 @@ using namespace std;
 
 
 void insertRecords(BalancedIndex* bi) {
-	bi->insert(1, "Unknown guy");
+	//bi->insert(1, "Unknown guy");
 	bi->insert(341, "WWWWWWWWWWW");
 	bi->insert(10, "Bolat");
 	bi->insert(20, "Ayoka");
 	bi->insert(30, "Teya"); 
 	bi->insert(40, "Malika"); 
 	bi->insert(50, "Shariha");
-	bi->insert(60, "Nikhya"); 
+	bi->insert(60, "Nikhya");
 	bi->insert(70, "Arman");
 	bi->insert(80, "Khanat"); 
 	bi->insert(90, "Baurzhan");
@@ -92,8 +92,8 @@ void removeRecords(BalancedIndex* bi) {
 	cout << "-------------------------------------------------------------------------\n";
 	cout << "DELETING RECRODS\n";
 	cout << "-------------------------------------------------------------------------\n";
-	bi->erase(1);	
-	/*bi->erase(30);
+	bi->erase(10);	
+	bi->erase(30);
 	bi->erase(50);
 	bi->erase(70);
 	bi->erase(90);
@@ -107,7 +107,7 @@ void removeRecords(BalancedIndex* bi) {
 	bi->erase(250);
 	bi->erase(270);
 	bi->erase(290);
-	bi->erase(310);
+	/*bi->erase(310);
 	bi->erase(330);
 	bi->erase(350);
 	bi->erase(370);
@@ -137,10 +137,15 @@ int main()
 			RecordFileIO* rf = new RecordFileIO(cf);
 			BalancedIndex* bi = new BalancedIndex(*rf);					
 
-			bi->printTree();
+			//bi->printTree();
 			insertRecords(bi);
 			bi->printTree();
 			
+			uint64_t key = 480;
+			auto value = *bi->search(key);
+
+			std::cout << "SEARCH KEY:" << std::endl;
+			std::cout << key << "=" << value << std::endl;
 
 			removeRecords(bi);
 			bi->printTree();

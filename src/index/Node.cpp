@@ -297,7 +297,8 @@ uint64_t Node::dealOverflow() {
 
 #ifdef _DEBUG
     std::cout << std::endl;
-    std::cout << "Overflow detected in the node (" << position << "):" << *toString() << std::endl;
+    std::cout << "Overflow detected in the node (" << position << "): ";
+    std::cout << *toString() << std::endl;
 #endif
     
     // Get key at middle index for propagation to the parent node
