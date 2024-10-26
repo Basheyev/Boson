@@ -143,6 +143,9 @@ void removeRecords(BalancedIndex* bi) {
 	bi->erase(440);
 	bi->erase(460);
 	bi->erase(480);
+
+	bi->erase(1);
+	bi->erase(341);
 }
 
 
@@ -152,7 +155,7 @@ int main()
 {
 	char* filename = "D:/bptree.bin";
 
-	std::remove(filename);
+	//std::remove(filename);
 
 	CachedFileIO cf;	
 	cf.open(filename);
@@ -162,18 +165,14 @@ int main()
 			RecordFileIO* rf = new RecordFileIO(cf);
 			BalancedIndex* bi = new BalancedIndex(*rf);					
 
-			insertRecords(bi);
-			
-			uint64_t key = 480;
-			auto value = *bi->search(key);
+			for (int i = 0; i < 3; i++) {
+				insertRecords(bi);
+				removeRecords(bi);
+				insertRecords(bi);
+			}
 
-		//	std::cout << "SEARCH KEY:" << std::endl;
-		//	std::cout << key << "=" << value << std::endl;
 
-			removeRecords(bi);
-
-		//	insertRecords(bi);
-		//	bi->printTree();
+			bi->printTree();
 
 			delete bi;
 			delete rf;
