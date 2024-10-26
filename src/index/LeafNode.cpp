@@ -84,7 +84,8 @@ std::shared_ptr<std::string> LeafNode::getValueAt(uint32_t index) {
     if (offset == NOT_FOUND) {
         std::stringstream ss;
         ss << std::endl;
-        ss << "Can't read value of Leaf Node at " << position << " value position: " << offsetInFile;
+        ss << "Can't read value of Leaf Node (" << position << ") value index: " << index
+            << " position: " << offsetInFile;
         throw std::ios_base::failure(ss.str());
     }
 
@@ -370,8 +371,8 @@ uint64_t LeafNode::borrowFromSibling(uint64_t key, uint64_t siblingPos, uint32_t
     siblingNode->deleteAt(borrowIndex);
     
 #ifdef _DEBUG
-    std::cout << "Leaf node (" << position << ") borrowed value from sibling (" 
-        << siblingPos << "): " << *toString() << std::endl;
+    std::cout << "Leaf node (" << position << ") borrowed value from sibling (" << siblingPos << "): ";
+    std::cout << *toString() << std::endl;
 #endif
 
     //isPersisted = false;
@@ -405,7 +406,9 @@ std::shared_ptr<std::string> LeafNode::toString() {
     for (uint32_t i = 0; i < data.valuesCount; i++) {
         bool isNotLast = (i < data.valuesCount - 1);        
         std::shared_ptr<std::string> value = this->getValueAt(i);
-        ss << data.keys[i] << ":'" << *value << (isNotLast ? "', " : "'");
+        ss << data.keys[i] << ":'" << *value << "'";
+        ss << " (" << data.values[i] << ")";
+        ss << (isNotLast ? ", " : "");
     }
     ss << "] : parent(";
     if (data.parent == NOT_FOUND) {

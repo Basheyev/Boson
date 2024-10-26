@@ -212,8 +212,8 @@ uint64_t InnerNode::pushUpKey(uint64_t key, uint64_t leftChild, uint64_t rightCh
 void InnerNode::borrowChildren(uint64_t borrowerPos, uint64_t lender, uint32_t borrowIndex) {
     uint32_t borrowerChildIndex = 0;
 
-    std::shared_ptr<Node> untypedBorrower = Node::loadNode(this->index, borrowerPos);
-    std::shared_ptr<InnerNode> borrower = std::dynamic_pointer_cast<InnerNode>(untypedBorrower);
+    std::shared_ptr<Node> borrower = Node::loadNode(this->index, borrowerPos);
+    //auto borrower = std::dynamic_pointer_cast<InnerNode>(untypedBorrower);
 
     // find borrower child index
     for (uint32_t i = 0; i < data.childrenCount; i++) {
@@ -223,20 +223,22 @@ void InnerNode::borrowChildren(uint64_t borrowerPos, uint64_t lender, uint32_t b
         }
     }
 
+#ifdef _DEBUG
+    std::cout << "Borrow key to from " << (borrowIndex == 0 ? "left" : "right");
+    std::cout << " node(" << lender << ") to node(" << borrowerPos << ")" << std::endl;
+#endif
+
     // Process borrowing
     if (borrowIndex == 0) {
         // borrow from right sibling
         uint64_t theKey = data.keys[borrowerChildIndex];
         uint64_t upKey = borrower->borrowFromSibling(theKey, lender, borrowIndex);
         data.keys[borrowerChildIndex] = upKey;
-        isPersisted = false;
-    }
-    else {
+    } else {
         // borrow from left sibling
         uint64_t theKey = data.keys[borrowerChildIndex - 1];
         uint64_t upKey = borrower->borrowFromSibling(theKey, lender, borrowIndex);
-        data.keys[borrowerChildIndex - 1] = upKey;
-        isPersisted = false;
+        data.keys[borrowerChildIndex - 1] = upKey;        
     }
         
     persist();
@@ -323,10 +325,24 @@ uint64_t InnerNode::mergeChildren(uint64_t leftChildPos, uint64_t rightChildPos)
 
     // Remove the key, keep the left child and abandon the right child
     this->deleteAt(i);
-    //this->persist();
+    
+    // FIXME: underflow / overflow?
 
     // If there is underflow propagate borrow or merge to parent
-    //if (this->isUnderflow()) {
+    if (this->isUnderflow()) {
+        // If this node is root node (no parent)
+        if (isRootNode()) {
+            // prevent overwrite of this actual root shared_ptr by other instances
+            index.updateRoot(this->position);
+            // if this node is empty
+            if (data.keysCount == 0) {
+                leftChildNode->setParent(NOT_FOUND);
+                leftChildNode->persist();
+                return leftChildPos;
+            }
+            else return NOT_FOUND;
+        } return dealUnderflow();
+    }
 
     // If there is overflow propagate borrow or merge to parent
     if (this->isOverflow()) {
@@ -343,11 +359,9 @@ uint64_t InnerNode::mergeChildren(uint64_t leftChildPos, uint64_t rightChildPos)
                 return leftChildPos;
             }
             else return NOT_FOUND;
-
-
-        //} return dealUnderflow();
         } return dealOverflow();
     }
+
     return NOT_FOUND;
 }
 
@@ -366,8 +380,8 @@ void InnerNode::mergeWithSibling(uint64_t key, uint64_t rightSiblingPos) {
     uint64_t siblingChildPos;
 
 #ifdef _DEBUG
-    std::cout << "Left sibling: " << *toString() << std::endl;
-    std::cout << "Right sibling: " << *rightSibling->toString() << std::endl;
+    std::cout << "Left sibling (" << position << "): " << *toString() << std::endl;
+    std::cout << "Right sibling (" << rightSibling->position << "): " << *rightSibling->toString() << std::endl;
 #endif
 
     // Push key into keys
@@ -385,6 +399,8 @@ void InnerNode::mergeWithSibling(uint64_t key, uint64_t rightSiblingPos) {
         siblingChild = Node::loadNode(this->index, siblingChildPos);
         // reattach sibling's child to this node
         siblingChild->setParent(this->position);
+        siblingChild->persist();
+        siblingChild.reset();
         // copy sibling child to this node
         this->data.pushBack(NodeArray::CHILDREN, siblingChildPos);        
     }

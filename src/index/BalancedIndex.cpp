@@ -149,8 +149,6 @@ bool BalancedIndex::insert(uint64_t key, const std::string& value) {
     indexHeader.recordsCount++;
     persistIndexHeader();
 
-    printTree();
-
     return isInserted;
 }
 
@@ -198,6 +196,9 @@ bool BalancedIndex::erase(uint64_t key) {
 #endif
         indexHeader.recordsCount--;
         persistIndexHeader();
+
+        printTree();
+
         return true;
 
     }    

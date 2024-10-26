@@ -93,8 +93,8 @@ void removeRecords(BalancedIndex* bi) {
 	cout << "DELETING RECRODS\n";
 	cout << "-------------------------------------------------------------------------\n";
 	bi->erase(1);	
-	bi->erase(30);
-	bi->erase(50); 
+	/*bi->erase(30);
+	bi->erase(50);
 	bi->erase(70);
 	bi->erase(90);
 	bi->erase(110);
@@ -115,12 +115,13 @@ void removeRecords(BalancedIndex* bi) {
 	bi->erase(410);
 	bi->erase(430);
 	bi->erase(450);
-	bi->erase(470);
+	bi->erase(470);*/
 }
 
 
-// FIXME: underflow merging causes overflow because still merging values before deletion
-// FXIME: mergWithSibling in InnerNode bugs (overflow)
+
+// FIXME: why five children after merge?
+// FIXME: borrowFromSibling - debug
 
 int main()
 {
