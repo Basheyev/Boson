@@ -6,14 +6,10 @@
 *
 ******************************************************************************/
 
-
-#include <sstream>
-
 #include "BalancedIndex.h"
 
 
 using namespace Boson;
-
 
 
 /*
@@ -83,8 +79,7 @@ uint64_t InnerNode::getChildAt(uint32_t index) {
 * @param child node position in storage file
 */
 void InnerNode::setChildAt(uint32_t index, uint64_t childNode) {
-    data.children[index] = childNode;
-    //isPersisted = false;
+    data.children[index] = childNode;    
     persist();
 }
 
@@ -205,8 +200,8 @@ uint64_t InnerNode::pushUpKey(uint64_t key, uint64_t leftChild, uint64_t rightCh
 
 /*
 * @brief Borrow children by specifying Borrower, Lender and borrow index
-* @param borrowerPos
-* @param lender
+* @param borrowerPos borrower node storage position
+* @param lender lender node storage position
 * @param borrowIndex
 */
 void InnerNode::borrowChildren(uint64_t borrowerPos, uint64_t lender, uint32_t borrowIndex) {
@@ -227,8 +222,9 @@ void InnerNode::borrowChildren(uint64_t borrowerPos, uint64_t lender, uint32_t b
     std::cout << ((untypedBorrower->data.nodeType == NodeType::INNER) ? "inner" : "leaf");
     std::cout << " node(" << lender << ") to node(" << borrowerPos << ")" << std::endl;
 #endif
-
+    // Check what type of nodes we are working with
     if (untypedBorrower->data.nodeType == NodeType::INNER) {
+        // if InnerNode childrens are also inner nodes
         auto borrower = std::dynamic_pointer_cast<InnerNode>(untypedBorrower);
         // Process inner node borrowing
         if (borrowIndex == 0) {
@@ -243,8 +239,8 @@ void InnerNode::borrowChildren(uint64_t borrowerPos, uint64_t lender, uint32_t b
             uint64_t upKey = borrower->borrowFromSibling(theKey, lender, borrowIndex);
             data.keys[borrowerChildIndex - 1] = upKey;
         }
-    }
-    else {
+    } else {
+        // if InnerNode childrens are leaf nodes
         auto borrower = std::dynamic_pointer_cast<LeafNode>(untypedBorrower);
         // Process leaf node borrowing
         if (borrowIndex == 0) {
@@ -259,10 +255,10 @@ void InnerNode::borrowChildren(uint64_t borrowerPos, uint64_t lender, uint32_t b
             uint64_t upKey = borrower->borrowFromSibling(theKey, lender, borrowIndex);
             data.keys[borrowerChildIndex - 1] = upKey;
         }
-
     }
         
-    persist();
+    // Persist changes
+    this->persist();
 
 }
 
@@ -273,6 +269,7 @@ void InnerNode::borrowChildren(uint64_t borrowerPos, uint64_t lender, uint32_t b
 * @param key
 * @param sibling
 * @param borrowIndex
+* @return upKey
 */
 uint64_t InnerNode::borrowFromSibling(uint64_t key, uint64_t sibling, uint32_t borrowIndex) {
     
@@ -298,9 +295,8 @@ uint64_t InnerNode::borrowFromSibling(uint64_t key, uint64_t sibling, uint32_t b
         // delete the first key with children from sibling node
         siblingNode->data.deleteAt(NodeArray::KEYS, 0);
         siblingNode->data.deleteAt(NodeArray::CHILDREN, 0);        
-    }
-    else {
-        // borrow the last key from left sibling, insert it to head
+    } else {
+        // borrow the last key from left sibling, insert it to the head of this node
         uint32_t childIndex = borrowIndex + 1;
         childNodePos = siblingNode->getChildAt(childIndex);
         childNode = Node::loadNode(this->index, childNodePos);
@@ -313,7 +309,6 @@ uint64_t InnerNode::borrowFromSibling(uint64_t key, uint64_t sibling, uint32_t b
         // delete key with children from sibling node
         siblingNode->data.deleteAt(NodeArray::KEYS, borrowIndex);
         siblingNode->data.deleteAt(NodeArray::CHILDREN, childIndex);
-        
     }
 
     // Persist all modified nodes
@@ -352,8 +347,6 @@ uint64_t InnerNode::mergeChildren(uint64_t leftChildPos, uint64_t rightChildPos)
     // Remove the key, keep the left child and abandon the right child
     this->deleteAt(i);
 
-    // FIXME: underflow / overflow?
-
     // If there is underflow propagate borrow or merge to parent
     if (this->isUnderflow()) {
         // If this node is root node (no parent)
@@ -374,11 +367,9 @@ uint64_t InnerNode::mergeChildren(uint64_t leftChildPos, uint64_t rightChildPos)
     if (this->isOverflow()) {
         // If this node is root node (no parent)
         if (isRootNode()) {
-            
             // prevent overwrite of this actual root shared_ptr by other instances
             index.updateRoot(this->position);
-
-            // if this node is empty
+            // if this node is empty - promote merged left child as root
             if (data.keysCount == 0) {
                 leftChildNode->setParent(NOT_FOUND);
                 leftChildNode->persist();

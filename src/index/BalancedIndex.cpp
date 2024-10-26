@@ -47,8 +47,9 @@ BalancedIndex::~BalancedIndex() {
 
 
 /*
-*  @brief Searches LeafNode that contains key
-* 
+*  @brief Searches LeafNode that contains the key
+*  @param key to search
+*  @return leaf node that possibly contains the key
 */
 std::shared_ptr<LeafNode> BalancedIndex::findLeafNode(uint64_t key) {
     std::vector<uint64_t> stack;
@@ -88,6 +89,7 @@ std::shared_ptr<LeafNode> BalancedIndex::findLeafNode(uint64_t key) {
 
 /*
 *  @brief Set new index root InnerNode and update 
+*  @param newRootPosition
 */
 void BalancedIndex::updateRoot(uint64_t newRootPosition) {
     // update root position
@@ -119,6 +121,9 @@ void BalancedIndex::persistIndexHeader() {
 
 /*
 *  @brief Insert key/value pair
+*  @param key to insert
+*  @param value to insert
+*  @return true if succeeded or false otherwise
 */
 bool BalancedIndex::insert(uint64_t key, const std::string& value) {
 
@@ -126,88 +131,106 @@ bool BalancedIndex::insert(uint64_t key, const std::string& value) {
     std::cout << "-----------------------------------------------------------------------" << std::endl;
     std::cout << "Inserting key/value pair key=" << key << " value='" << value << "'" << std::endl;
 #endif
-    
+    // Traverse down the tree to a leaf node that can contain the key
     std::shared_ptr<LeafNode> leaf = findLeafNode(key);
-
-    if (leaf->search(key) != KEY_NOT_FOUND) {
-        return false;
-    }
-
-    bool isInserted = leaf->insertKey(key, value);
-
-    if (isInserted) indexHeader.recordsCount++;
-
+    // if key found, then we can't insert duplicate - return false
+    if (leaf->search(key) != KEY_NOT_FOUND) return false;    
+    // Otherwise inser key to the leaf node    
+    if (!leaf->insertKey(key, value)) return false;
+    // If succeeded increment records counter
+    indexHeader.recordsCount++;
+    // if leaf node overflow detected then deal overflow
     if (leaf->isOverflow()) {        
         uint64_t rootPos = leaf->dealOverflow();
         // if this is root node position update it
-        if (rootPos != NOT_FOUND) {
-            updateRoot(rootPos);
-        }
-        
+        if (rootPos != NOT_FOUND) updateRoot(rootPos);
     }
-        
+    // Persist index header if root node possibly affected
     persistIndexHeader();
-
 #ifdef _DEBUG   
     this->printTree();
 #endif
-
-    return isInserted;
+    // return true because key/value pair successfuly inserted
+    return true;
 }
 
 
 /*
 *  @brief Update key/value pair
+*  @param key to update
+*  @param value new value assigned to key
+*  @return true if succeeded or false otherwise
 */
 bool BalancedIndex::update(uint64_t key, const std::string& value) {
+    // Traverse down the tree to a leaf node that can contain the key
     std::shared_ptr<LeafNode> leaf = findLeafNode(key);
+    // Get key index in the leaf node
     uint32_t valueIndex = leaf->search(key);
+    // if key is not found, then we can't update it - return false
     if (valueIndex == KEY_NOT_FOUND) return false;
+    // update value in the leaf node
     leaf->setValueAt(valueIndex, value);
+    // persist leaf node
+    leaf->persist();
+    // return that everything is OK
     return true;
 }
 
 
+/*
+*  @brief Searches and returns value by key
+*  @param key requested
+*  @return std::shared_ptr<string> if succeded or nullptr otherwise
+*/
 std::shared_ptr<std::string> BalancedIndex::search(uint64_t key) {
+    // Traverse down the tree to a leaf node that can contain the key
     std::shared_ptr<LeafNode> leaf = findLeafNode(key);    
+    // Get key index in the leaf node
     uint32_t index = leaf->search(key);
-    // FIXME: For non-pointer types returning nullptr is invalid 
-    return (index == KEY_NOT_FOUND) ? nullptr : leaf->getValueAt(index);
+    // if key is not found, then we can't update it - return nullptr
+    if (index == KEY_NOT_FOUND) return nullptr;
+    // if key is found, then return value
+    return leaf->getValueAt(index);
 }
 
 
 
+/*
+*  @brief Deletes key/value pair
+*  @param key requested
+*/
 bool BalancedIndex::erase(uint64_t key) {
 
 #ifdef _DEBUG
     std::cout << "Erasing key/value pair key=" << key << std::endl;
 #endif
-
+    // Traverse down the tree to a leaf node that can contain the key
     std::shared_ptr<LeafNode> leaf = findLeafNode(key);
-
+    // if key is successfuly deleted
     if (leaf->deleteKey(key)) {
+        // if underflow appears
         if (leaf->isUnderflow()) {
+            // deal underflow
             uint64_t newRootPos = leaf->dealUnderflow();
             // if root changed
             if (newRootPos != NOT_FOUND) {                
                 updateRoot(newRootPos);
             } else {
-                // update root data if possibly changed
+                // update the root anyway if the data possibly changed
                 root = Node::loadNode(*this, indexHeader.rootPosition);
             }
         }
 #ifdef _DEBUG
         std::cout << "Key/value pair deleted " << key << std::endl;
 #endif
+        // decrease records counter
         indexHeader.recordsCount--;
+        // persist index header
         persistIndexHeader();
-
 #ifdef _DEBUG   
         this->printTree();
 #endif
-
         return true;
-
     }    
 
     return false;
@@ -215,6 +238,11 @@ bool BalancedIndex::erase(uint64_t key) {
 
 
 bool BalancedIndex::first() {
+    // Traverse down the tree to a leaf node that can contain the first key
+    std::shared_ptr<LeafNode> leaf = findLeafNode(0); // Zero is minimal key value
+
+    // todo 
+
     return false;
 }
 

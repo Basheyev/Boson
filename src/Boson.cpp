@@ -177,6 +177,8 @@ int main()
 			delete bi;
 			delete rf;
 
+			std::cout << "CACHE HITS RATE: " << cf.getStats(CachedFileStats::CACHE_HITS_RATE) << "%";
+
 			cf.close();
 
 		}

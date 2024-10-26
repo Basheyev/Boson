@@ -69,16 +69,15 @@ std::shared_ptr<Node> Node::loadNode(BalancedIndex& bi, uint64_t offsetInFile) {
     if (data.nodeType == NodeType::INNER) {
         node = std::make_shared<InnerNode>(bi, offset, data);
 #ifdef _DEBUG
-     //   std::cout << "Inner Node loaded (" << node->position << ")" << std::endl;
+       // std::cout << "Inner Node loaded (" << node->position << ")" << std::endl;
 #endif
     }
     else {
         node = std::make_shared<LeafNode>(bi, offset, data);
 #ifdef _DEBUG
-     //   std::cout << "Leaf Node loaded (" << node->position << ")" << std::endl;
+       // std::cout << "Leaf Node loaded (" << node->position << ")" << std::endl;
 #endif
     }
-
 
     return node;
 
@@ -135,13 +134,14 @@ uint64_t Node::persist() {
         throw std::ios_base::failure(ss.str());
     }
 
-
     // Offset of record in the file could have been changed, so we update it
     if (offset != position) {
+#ifdef _DEBUG
         std::cout << "Node migrated in file from " << position << " to " << offset << std::endl;
+#endif
         position = offset;
-
     }
+
     // Set flag that data is already persisted
     isPersisted = true;
 
@@ -334,7 +334,6 @@ uint64_t Node::dealOverflow() {
     // Push middle key up to parent the node (root node returned)
     std::shared_ptr<Node> parent = loadNode(index, this->getParent());
     uint64_t parentPos = parent->pushUpKey(upKey, position, splittedRightNode->position);
-//  already saved changes, don't call parent->persist();
     
     // Return current root node position
     return parentPos;
@@ -366,7 +365,6 @@ uint64_t Node::dealUnderflow() {
             uint32_t keyIndex = leftSibling->getKeyCount() - 1;
             std::shared_ptr<Node> parent = loadNode(index, this->getParent());
             parent->borrowChildren(position, leftSiblingPos, keyIndex);
-          //  parent->persist();
             return NOT_FOUND;
         }
     }
@@ -378,7 +376,6 @@ uint64_t Node::dealUnderflow() {
             uint32_t keyIndex = 0;
             std::shared_ptr<Node> parent = loadNode(index, this->getParent());
             parent->borrowChildren(position, rightSiblingPos, keyIndex);
-          //  parent->persist();
             return NOT_FOUND;
         }
     }
@@ -389,7 +386,6 @@ uint64_t Node::dealUnderflow() {
         if (leftSibling->getParent() == this->getParent()) {  
             std::shared_ptr<Node> parent = loadNode(index, this->getParent());
             uint64_t rootNodePos = parent->mergeChildren(leftSiblingPos, this->position);
-            //parent->persist();
             return rootNodePos;
         }
     } 
@@ -397,11 +393,6 @@ uint64_t Node::dealUnderflow() {
     // 4. Try to merge with right sibling        
     std::shared_ptr<Node> parent = loadNode(index, this->getParent());
     uint64_t rootNodePos = parent->mergeChildren(this->position, rightSiblingPos);
-    // FIXME: parent object could be changed after merge children
-    // this local pointer is rewrites correct valus with old ones
-    // SOLUTION: may be we shoud enhance loadNode method to share 
-    // same links on same position
-    //parent->persist();
     return rootNodePos;
 
 }
