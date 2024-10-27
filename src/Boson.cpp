@@ -1,17 +1,19 @@
-﻿/*
-* ==========================================================================
-* Boson Database
-* ==========================================================================
-* - NoSQL database engine.
-* - Single database file.
-* - Standard Key/Value store.
-* - Document store (JSON).
-* - Support cursors for linear records traversal.
-* - Support for on-disk as well in-memory databases.
-* - Support Terabyte sized databases.
-* ==========================================================================
-* (C) Bolat Basheyev 2022-2024
-*/
+﻿/******************************************************************************
+*
+*  Boson Database
+*
+*  Features:
+*  - NoSQL database engine.
+*  - Single database file.
+*  - Standard Key/Value store.
+*  - Document store (JSON).
+*  - Support cursors for linear records traversal.
+*  - Support for on-disk as well in-memory databases.
+*  - Support Terabyte sized databases.
+*
+*  (C) Boson Database, Bolat Basheyev 2022-2024
+*
+******************************************************************************/
 
 #include "api/BosonAPI.h"
 #include "BalancedIndexTest.h"

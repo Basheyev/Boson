@@ -7,17 +7,15 @@
 ******************************************************************************/
 
 
-
-
-
 #include "BalancedIndex.h"
-
-#include <algorithm>
 
 using namespace Boson;
 
 
-
+/*
+*  @brief BalancedIndex constructor 
+*  @param recordFile RecordFileIO object with opened file
+*/
 BalancedIndex::BalancedIndex(RecordFileIO& rf) : recordsFile(rf) {
     // check if file is open
     if (!rf.isOpen()) throw std::runtime_error("Can't open file.");
@@ -271,6 +269,11 @@ bool BalancedIndex::erase(uint64_t key) {
 }
 
 
+
+/*
+*  @brief Go to the database first entry and return key/value pair
+*  @return key/value pair
+*/
 std::pair<uint64_t, std::shared_ptr<std::string>> BalancedIndex::first() {
     // Traverse down the tree to a leaf node that can contain the first key
     // Zero is minimal key value so it would be the first leaf node
@@ -281,6 +284,10 @@ std::pair<uint64_t, std::shared_ptr<std::string>> BalancedIndex::first() {
 }
 
 
+/*
+*  @brief Go to the database last entry and return key/value pair
+*  @return key/value pair
+*/
 std::pair<uint64_t, std::shared_ptr<std::string>> BalancedIndex::last() {
     // Traverse down the tree to a leaf node that can contain the first key
     // NOT_FOUND is maximal key value for uint64_t so it would be the last node
@@ -291,10 +298,15 @@ std::pair<uint64_t, std::shared_ptr<std::string>> BalancedIndex::last() {
 }
 
 
-
-// TODO: not safe traversal if tree is changed between calls
+/*
+*  @brief Fetch next entry in ascending order and return key/value pair
+*  @return next key/value pair
+*/
 std::pair<uint64_t, std::shared_ptr<std::string>> BalancedIndex::next() {
     
+    // TODO: not safe traversal if tree is changed between calls    
+    // TODO: check cursorIndex and cursorNode before fetch
+
     std::pair<uint64_t, std::shared_ptr<std::string>> empty = std::make_pair(NOT_FOUND, nullptr);
 
     // check if cursor node and index are valid or return empty pair
@@ -311,8 +323,6 @@ std::pair<uint64_t, std::shared_ptr<std::string>> BalancedIndex::next() {
         } else return empty;
     }
 
-    // TODO: check cursorIndex and cursorNode before fetch
-
     // fetch key and value from the leaf node
     uint64_t key = cursorNode->getKeyAt(cursorIndex);
     std::shared_ptr<std::string> value = cursorNode->getValueAt(cursorIndex);
@@ -321,7 +331,10 @@ std::pair<uint64_t, std::shared_ptr<std::string>> BalancedIndex::next() {
 }
 
 
-
+/*
+*  @brief Fetch previous entry in descending order and return key/value pair
+*  @return previous key/value pair
+*/
 std::pair<uint64_t, std::shared_ptr<std::string>> BalancedIndex::previous() {
 
     std::pair<uint64_t, std::shared_ptr<std::string>> empty = std::make_pair(NOT_FOUND, nullptr);
@@ -347,18 +360,22 @@ std::pair<uint64_t, std::shared_ptr<std::string>> BalancedIndex::previous() {
     uint64_t key = cursorNode->getKeyAt(cursorIndex);
     std::shared_ptr<std::string> value = cursorNode->getValueAt(cursorIndex);
 
-    
-
     return std::make_pair(key, value);
 }
 
 
+/*
+*  @brief returns RecordFileIO object
+*  @return RecordFileIO object
+*/
 RecordFileIO& BalancedIndex::getRecordsFile() {
     return recordsFile;
 }
 
 
-
+/*
+*  @brief Prints tree state
+*/
 void BalancedIndex::printTree() {
     std::cout << "======================================================================================\n";
     std::cout << " TREE STATE\n";
@@ -369,6 +386,11 @@ void BalancedIndex::printTree() {
 }
 
 
+/*
+*  @brief Prints tree level
+*  @param node to print
+*  @param level of the node from root
+*/
 void BalancedIndex::printTreeLevel(std::shared_ptr<Node> node, int level) {            
     for (int t = 0; t < level; t++) std::cout << "    ";
     uint64_t left = node->getLeftSibling();

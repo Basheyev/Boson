@@ -13,6 +13,7 @@
 
 #include "RecordFileIO.h"
 
+#include <algorithm>
 #include <unordered_map>
 #include <cinttypes>
 #include <string>
