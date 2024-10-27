@@ -10,9 +10,6 @@
 ******************************************************************************/
 #pragma once
 
-
-#include "RecordFileIO.h"
-
 #include <algorithm>
 #include <unordered_map>
 #include <cinttypes>
@@ -22,6 +19,7 @@
 #include <iostream>
 #include <ios>
 
+#include "RecordFileIO.h"
 
 namespace Boson {
 

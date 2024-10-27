@@ -46,24 +46,22 @@ int main()
 	
 	//auto pair = db.last();
 
-	uint64_t key = 347;
+	uint64_t key = 311;
+	uint64_t lastKey = 349;
 	auto value = db.get(key);
 	auto pair = std::make_pair(key, value);
 
+	// traverse entries
 	if (value != nullptr) {		
 		do {
 			std::cout << pair.first << " = '" << *pair.second << "'" << std::endl;
 			pair = db.next();
-		} while (pair.second != nullptr);
+		} while (pair.second != nullptr && pair.first <= lastKey);
 	}
 	
 	std::cout << "--------------------------------------------\n";
 	std::cout << "ENTRIES: " << db.size() << "\n";
 	std::cout << "CACHE HITS: " << db.getCacheHits() << "%\n";
-
-
-
-
 
 	db.close();
 
