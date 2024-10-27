@@ -29,7 +29,7 @@ abstraction like API working with document store entities.
      ---------------------------------------------------
                               |     
      ---------------------------------------------------
-    |                Records Storage I/O                |      -  Collections & Records Storage Layer
+    |                Records Storage I/O                |      -  Records Storage Layer
      ---------------------------------------------------
                               |                           
      ---------------------------------------------------
@@ -176,10 +176,8 @@ To keep B+ tree balanced and sorted these operations performed:
    of values efficient and straightforward.
 
 5. **Update Operation**: Updating a key's value involves locating the key in the relevant leaf node 
-   through a search. Once found, the associated value is modified. If the key needs to be repositioned 
-   due to ordering constraints, it is treated as a deletion followed by an insertion to maintain the 
-   correct structure and ordering of the tree. This ensures that the B+ Tree remains properly balanced 
-  and sorted.
+   through a search. Once found, the associated value is modified. If the value needs to be repositioned 
+   due to record capacity constraints, new record can be allocated in storage without changing th key.
 
 Each operation relies on the balanced nature of the B+ Tree to maintain efficiency, resulting in 
 logarithmic complexity for searches, insertions, and deletions, even with large datasets.
