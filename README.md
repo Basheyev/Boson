@@ -1,4 +1,4 @@
-
+﻿
 # Boson Database
 
 ## 1. Overview
@@ -21,11 +21,11 @@ and level of abstraction. From low-level like cache to high level
 abstraction like API working with document store entities.
 
      ---------------------------------------------------
-    |                    Boson API                      |      -  API Layer (Key/Value)
+    |                    Boson API                      |      -  API Layer
      ---------------------------------------------------     
                               |
      ---------------------------------------------------
-    |                   B+ Tree Index                   |      -  Index Layer
+    |                   B+ Tree Index                   |      -  Index Layer (Key/Value)
      ---------------------------------------------------
                               |     
      ---------------------------------------------------
@@ -89,20 +89,97 @@ if it has "dirty" mark, page persisted on the storage device.
 
 ### 3.2. Records Storage I/O
 
-Storage file consists of a database header and two **double-linked lists 
-of records** - one for data records and the second for deleted records.
-When a new record is created algorithm searches available deleted records
-of the appropriate size to efficiently utilize used space. If there is no
-suitable deleted record of appropriate size, a new data record is created at
-the end of the file.
+#### 3.2.1. Motivation
+
+**RecordFileIO is designed for seamless storage of binary records of
+arbitrary size (maximum record size limited to 4GB), accessing records as
+a linked list and reusing space from deleted records**. Features:
+- Create/read/update/delete records of arbitrary size
+- Navigate records: first, last, next, previous, absolute position
+- Reuse space from deleted records (linked list of deleted records)
+- Data consistency check (Adler-32 checksum algoritm)
+
+#### 3.2.2. Records
+
+The storage file consists of a database header and two doubly-linked lists
+of records - one for data records and the second for deleted records.
+When a new record is created, the algorithm searches for available deleted records
+of the appropriate size to efficiently utilize previously used space. If there is no
+suitable deleted record of the appropriate size, a new data record is allocated
+at the end of the file. Deleted records added to the deleted records list to reuse.
+RecordFileIO uses CachedFileIO to cache frequently accessed data and improve I/O performance.
 
 
-#### 3.2.1. Records
-
-
-
-#### 3.2.2. Motivation
 
 
 ### 3.3. B+ Tree Index
 
+#### 3.3.1. Motivation
+
+**The B+ Tree algorithm is optimized for scenarios involving a large volume of data that 
+does not fit into RAM and is persisted in storage. The algorithm maintains a tree index 
+to keep key/value pairs balanced and sorted, ensuring that operations like insert, delete, 
+and search have O(log n) complexity, even with very large datasets**. The linked list structure 
+of the leaf nodes makes range queries and sequential scans extremely fast, which is essential
+for database indexing and applications requiring sorted data access.
+
+#### 3.3.2. Structure and operations of a B+ Tree
+
+     Root node                            [  80  ]
+                                       /           \
+     Inner node             [ 20 | 40 ]             [ 90 | 110 ]
+                          /      |      \             /  |   \
+     Leaf node     [10|15] -> [25|30] -> [45|50] -> ... ... ...
+                    |   |      |   |      |   |
+     Value         [D1,D2]    [D3,D4]    [D5,D6]    ... ... ...
+      
+
+
+B+ Tree is composed of Internal nodes and Leaf nodes. Internal nodes only store keys to guide the search, 
+while the actual data is kept in the leaf nodes:
+- **Internal Nodes**: These nodes contain keys and pointers to child nodes but do not store 
+  actual data. Each internal node can hold between ⌈M/2⌉ to M-1 keys and M children. Every key in internal
+  node separates the child nodes: the left child node contains keys less than parent node's key 
+  and the right child node contains keys greater than or equal to the parent node's key.
+- **Leaf Nodes**: These nodes store pointers to data and are linked together in a doubly linked 
+  list for efficient range queries. Each leaf node can also hold between ⌈M/2⌉to M-1 keys and M-1 values. 
+- **A B+ Tree is balanced**, meaning all leaf nodes are at the same depth to guarantee same deterministic
+  search time.
+
+To keep B+ tree balanced and sorted these operations performed:
+
+1. **Search Operation**: To search for a specific key in a B+ Tree, start at the root node. Compare 
+   the target key with the keys in the current node to determine the appropriate child node. 
+   If the target key is smaller, traverse to the left child; if larger or equal, proceed to the 
+   right child. This process is repeated down the tree until reaching the appropriate leaf node, 
+   where the search is finalized. Since B+ Trees are balanced, search operations have a complexity 
+   of O(log n).
+
+2. **Insertion Operation**: Inserting a key begins by locating the correct leaf node using the search 
+   procedure. The key is then inserted into the leaf node in its correct sorted position. If the node 
+   exceeds its maximum capacity (M-1 keys), a split occurs. The node divides into two, with half the 
+   keys moving to a new sibling node. The median key is promoted to the parent node. If the parent 
+   node also overflows, it may trigger further splits that can propagate up to the root, potentially 
+   increasing the tree’s height.
+
+3. **Deletion Operation**: Deleting a key starts by locating the target key in the relevant leaf node. 
+   The key is removed, but if this causes the node to have fewer keys than the minimum (⌈M/2⌉), 
+   an adjustment is needed. The tree can borrow a key from a sibling node if it has more than the 
+   minimum number of keys. If borrowing isn't possible, the node merges with a sibling, and a key 
+   from the parent node is removed or adjusted accordingly. This merge process can propagate up 
+   the tree if necessary, keeping the B+ Tree balanced.
+
+4. **Range Queries**: B+ Trees excel at range queries due to the linked list structure of the leaf nodes. 
+   To perform a range query, start by locating the first key in the desired range using the 
+   search procedure. Once the starting key is found, traverse through the linked list of leaf 
+   nodes until the end of the range is reached. This linked structure makes scanning a sequence 
+   of values efficient and straightforward.
+
+5. **Update Operation**: Updating a key's value involves locating the key in the relevant leaf node 
+   through a search. Once found, the associated value is modified. If the key needs to be repositioned 
+   due to ordering constraints, it is treated as a deletion followed by an insertion to maintain the 
+   correct structure and ordering of the tree. This ensures that the B+ Tree remains properly balanced 
+  and sorted.
+
+Each operation relies on the balanced nature of the B+ Tree to maintain efficiency, resulting in 
+logarithmic complexity for searches, insertions, and deletions, even with large datasets.
