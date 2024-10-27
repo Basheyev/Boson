@@ -34,7 +34,7 @@ int main()
 
 	db.open("D:/mydatabase.bin", true);
 	
-	for (int i = 0; i < 50; i++) {
+	for (int i = 0; i < 150; i++) {
 		db.insert("Anyways all project will be completed.");
 		db.insert("Beniki told me that message length is just a marker of records in the storage file.");
 		db.insert("Syely lovely touches his hairs.");
@@ -46,8 +46,8 @@ int main()
 	
 	//auto pair = db.last();
 
-	uint64_t key = 311;
-	uint64_t lastKey = 349;
+	uint64_t key = 4311;
+	uint64_t lastKey = 4349;
 	auto value = db.get(key);
 	auto pair = std::make_pair(key, value);
 

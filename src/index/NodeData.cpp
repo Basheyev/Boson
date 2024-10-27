@@ -49,6 +49,7 @@ void NodeData::insertAt(NodeArray mode, uint32_t index, uint64_t value) {
     
     // check boundaries
     if (index < 0 || index > length || length > max) {
+        // TODO: how to handle in the node or here?
         std::cerr << "NodeData Insert At: invalid index or array is full!" << std::endl;
         return;
     }

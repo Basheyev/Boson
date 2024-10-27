@@ -66,9 +66,12 @@ uint32_t LeafNode::search(uint64_t key) {
 /*
 *  @brief Return value at specified index in this node
 *  @param index of value
-*  @return returns value string
+*  @return returns value string or nullptr if not found
 */
 std::shared_ptr<std::string> LeafNode::getValueAt(uint32_t index) {
+
+    // Check boundaries
+    if (index >= data.keysCount) return nullptr;
 
     // Go to required position in storage file
     RecordFileIO& recordsFile = this->index.getRecordsFile();
@@ -77,28 +80,33 @@ std::shared_ptr<std::string> LeafNode::getValueAt(uint32_t index) {
 
     // load data from storage file record
     uint32_t valueLength = recordsFile.getDataLength() + 1;
-    
-    char* cStr = new char[valueLength];
+    // allocate memory buffer to read value
+    char* buffer = new char[valueLength];
 
-    uint64_t offset = recordsFile.getRecordData(cStr, valueLength);
+    // Read data from storage
+    uint64_t offset = recordsFile.getRecordData(buffer, valueLength);
+    
+    // if record read failed
     if (offset == NOT_FOUND) {
         std::stringstream ss;
         ss << std::endl;
-        ss << "Can't read value of Leaf Node (" << position << ") value index: " << index
-            << " position: " << offsetInFile;
+        ss << "Can't read value of Leaf Node (" << position 
+           << ") value index: " << index
+           << " position: " << offsetInFile;
         throw std::ios_base::failure(ss.str());
     }
 
     // add null terminator to C style string
-    cStr[valueLength - 1] = 0; 
+    buffer[valueLength - 1] = 0; 
 
     // convert to C++ string and return as shared pointer
     std::shared_ptr<std::string> cppStr = std::make_shared<std::string>();
     
-    *cppStr = cStr;
-
-    delete[] cStr;
-
+    // assign C-style string value to C++ string
+    *cppStr = buffer;
+    // release memory buffer
+    delete[] buffer;
+    // return C++ string
     return cppStr;
 }
 
@@ -120,8 +128,10 @@ void LeafNode::setValueAt(uint32_t index, const std::string& value) {
     uint32_t valueLength = (uint32_t) value.length() + 1;
     const char* cStr = value.c_str();
     uint64_t offset = recordsFile.setRecordData(cStr, valueLength);
-    if (offset == NOT_FOUND) throw std::ios_base::failure("Can't write value.");
-
+    // if write failed 
+    if (offset == NOT_FOUND) {
+        throw std::ios_base::failure("Can't write value.");
+    }
     // update offset if its changed
     data.values[index] = offset;
     isPersisted = false;
