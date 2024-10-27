@@ -30,7 +30,7 @@ namespace Boson {
         BosonAPI();
         ~BosonAPI();
 
-        bool open(char* filename);
+        bool open(char* filename, bool readOnly = false);
         bool close();
 
         uint64_t size();
@@ -52,6 +52,7 @@ namespace Boson {
         CachedFileIO* cachedFile;
         RecordFileIO* recordFile;
         BalancedIndex* balancedIndex;
+        bool isReadOnly;
     };
 
 

@@ -22,14 +22,15 @@ BosonAPI::~BosonAPI() {
 }
 
 
-bool BosonAPI::open(char* filename) {
+bool BosonAPI::open(char* filename, bool readOnly) {
+    isReadOnly = readOnly;
     cachedFile = new CachedFileIO();
-    if (!cachedFile->open(filename)) {
+    if (!cachedFile->open(filename, DEFAULT_CACHE, readOnly)) {
         delete cachedFile;
         return false;
     }
     recordFile = new RecordFileIO(*cachedFile);
-    balancedIndex = new BalancedIndex(*recordFile);
+    balancedIndex = new BalancedIndex(*recordFile);    
     return true;
 }
 
@@ -60,14 +61,14 @@ bool BosonAPI::isExists(uint64_t key) {
 
 
 uint64_t BosonAPI::insert(std::string value) {
-    if (balancedIndex == nullptr) return 0;
+    if (balancedIndex == nullptr || isReadOnly) return 0;
     uint64_t nextKey = balancedIndex->getNextIndexCounter();
     return balancedIndex->insert(nextKey, value) ? nextKey : NOT_FOUND;
 }
 
 
 bool BosonAPI::insert(uint64_t key, std::string value) {
-    if (balancedIndex == nullptr) return false;
+    if (balancedIndex == nullptr || isReadOnly) return false;
     return balancedIndex->insert(key, value);
 }
 
@@ -79,7 +80,7 @@ std::shared_ptr<std::string> BosonAPI::get(uint64_t key) {
 
 
 bool BosonAPI::erase(uint64_t key) {
-    if (balancedIndex == nullptr) return false;
+    if (balancedIndex == nullptr || isReadOnly) return false;
     return balancedIndex->erase(key);
 }
 

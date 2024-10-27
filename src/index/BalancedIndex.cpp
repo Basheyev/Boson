@@ -47,7 +47,7 @@ BalancedIndex::BalancedIndex(RecordFileIO& rf) : recordsFile(rf) {
 *  @brief Destructor - persists root data
 */
 BalancedIndex::~BalancedIndex() {
-    root->persist();
+//    root->persist();
     root.reset();
 }
 
