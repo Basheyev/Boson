@@ -36,7 +36,7 @@ add_executable (Boson
     "src/template/InMemoryTest.cpp"
     "src/template/InMemoryTest.h"     
     "src/template/InMemoryBPTree.h" 
-)
+ "src/test/BalancedIndexTest.h" "src/test/BalancedIndexTest.cpp")
 
 set_property(TARGET Boson 
     PROPERTY 
