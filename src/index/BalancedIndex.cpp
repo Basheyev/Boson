@@ -30,20 +30,46 @@ BalancedIndex::BalancedIndex(RecordFileIO& rf) : recordsFile(rf) {
         indexHeader.treeOrder = TREE_ORDER;
         indexHeader.rootPosition = root->persist();
         recordsFile.setPosition(referencePos);
-        recordsFile.setRecordData(&indexHeader, sizeof indexHeader);
+        recordsFile.setRecordData(&indexHeader, sizeof indexHeader);        
     } else {
         // look up root position
         recordsFile.getRecordData(&indexHeader, sizeof indexHeader);
         // load root record
         root = Node::loadNode(*this, indexHeader.rootPosition);
     }
+    // initialize cursor
+    cursorNode = nullptr;
+    cursorIndex = KEY_NOT_FOUND;
 }
 
 
+/*
+*  @brief Destructor - persists root data
+*/
 BalancedIndex::~BalancedIndex() {
     root->persist();
     root.reset();
 }
+
+
+
+/*
+*  @brief Return total amount of entries
+*  @return total amount of entries
+*/
+uint64_t BalancedIndex::size() {
+    return indexHeader.recordsCount;
+}
+
+
+/*
+*  @brief Returns next index key
+*  @return next index key
+*/
+uint64_t BalancedIndex::getNextIndexCounter() {
+    return indexHeader.indexCounter++;
+}
+
 
 
 /*
@@ -147,9 +173,14 @@ bool BalancedIndex::insert(uint64_t key, const std::string& value) {
     }
     // Persist index header if root node possibly affected
     persistIndexHeader();
+
 #ifdef _DEBUG   
     this->printTree();
 #endif
+
+    // Adjust index counter
+    if (key > indexHeader.indexCounter) indexHeader.indexCounter = key + 1;
+
     // return true because key/value pair successfuly inserted
     return true;
 }
@@ -237,25 +268,83 @@ bool BalancedIndex::erase(uint64_t key) {
 }
 
 
-bool BalancedIndex::first() {
+std::pair<uint64_t, std::shared_ptr<std::string>> BalancedIndex::first() {
     // Traverse down the tree to a leaf node that can contain the first key
-    std::shared_ptr<LeafNode> leaf = findLeafNode(0); // Zero is minimal key value
-
-    // todo 
-
-    return false;
+    // Zero is minimal key value so it would be the first leaf node
+    std::shared_ptr<LeafNode> leaf = findLeafNode(0); 
+    cursorNode = leaf;
+    cursorIndex = 0;
+    return next();
 }
 
-bool BalancedIndex::last() {
-    return false;
+
+std::pair<uint64_t, std::shared_ptr<std::string>> BalancedIndex::last() {
+    // Traverse down the tree to a leaf node that can contain the first key
+    // NOT_FOUND is maximal key value for uint64_t so it would be the last node
+    std::shared_ptr<LeafNode> leaf = findLeafNode(NOT_FOUND);
+    cursorNode = leaf;
+    cursorIndex = leaf->getKeyCount() - 1;
+    return previous();
 }
 
-bool BalancedIndex::next() {
-    return false;
+
+
+// TODO: not safe traversal if tree is changed between calls
+std::pair<uint64_t, std::shared_ptr<std::string>> BalancedIndex::next() {
+    
+    std::pair<uint64_t, std::shared_ptr<std::string>> empty = std::make_pair(NOT_FOUND, nullptr);
+
+    // check if cursor node and index are valid or return empty pair
+    if (cursorNode == nullptr || cursorIndex == KEY_NOT_FOUND) return empty;
+
+    if (cursorIndex >= cursorNode->getKeyCount()) {
+        uint64_t nextNode = cursorNode->getRightSibling();
+        if (nextNode != NOT_FOUND) {
+            cursorNode = std::dynamic_pointer_cast<LeafNode>(Node::loadNode(*this, nextNode));
+            cursorIndex = 0;
+        } else return empty;
+    }
+
+    // TODO: check cursorIndex and cursorNode before fetch
+
+    // fetch key and value from the leaf node
+    uint64_t key = cursorNode->getKeyAt(cursorIndex);
+    std::shared_ptr<std::string> value = cursorNode->getValueAt(cursorIndex);
+
+    // increment index
+    cursorIndex++;
+
+    return std::make_pair(key, value);
 }
 
-bool BalancedIndex::previous() {
-    return false;
+
+
+std::pair<uint64_t, std::shared_ptr<std::string>> BalancedIndex::previous() {
+
+    std::pair<uint64_t, std::shared_ptr<std::string>> empty = std::make_pair(NOT_FOUND, nullptr);
+
+    // check if cursor node and index are valid or return empty pair
+    if (cursorNode == nullptr) return empty;
+
+    if (cursorIndex == KEY_NOT_FOUND) {
+        uint64_t previousNode = cursorNode->getLeftSibling();
+        if (previousNode != NOT_FOUND) {
+            cursorNode = std::dynamic_pointer_cast<LeafNode>(Node::loadNode(*this, previousNode));
+            cursorIndex = cursorNode->getKeyCount() - 1;
+            // check again if left node is corrupt and empty?
+        } else return empty;
+    }
+
+    // TODO: check cursorIndex and cursorNode before fetch
+
+    // fetch key and value from the leaf node
+    uint64_t key = cursorNode->getKeyAt(cursorIndex);
+    std::shared_ptr<std::string> value = cursorNode->getValueAt(cursorIndex);
+
+    // decrement index
+    cursorIndex--;
+
+    return std::make_pair(key, value);
 }
 
 

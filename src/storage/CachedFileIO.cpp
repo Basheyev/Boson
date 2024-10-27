@@ -578,6 +578,7 @@ size_t CachedFileIO::setCacheSize(size_t cacheSize) {
 		this->cacheMap.reserve(maxPagesCount);
 	} catch (std::bad_alloc& ba) {	
 		// close file and return NOT_FOUND
+		std::cout << "Can't allocate cache of size " << cacheSize << ": " << ba.what() << std::endl;
 		this->close();
 		return NOT_FOUND;
 	}

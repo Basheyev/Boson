@@ -10,10 +10,10 @@
 * - Support for on-disk as well in-memory databases.
 * - Support Terabyte sized databases.
 * ==========================================================================
-* (C) Bolat Basheyev 2022
+* (C) Bolat Basheyev 2022-2024
 */
 
-#include "Boson.h"
+#include "api/BosonAPI.h"
 #include "BalancedIndexTest.h"
 
 
@@ -23,9 +23,45 @@ using namespace std;
 
 int main()
 {
-	char* filename = "D:/bptree.bin";
-	BalancedIndexTest bit(filename);
-	bit.run();
+	//char* filename = "D:/bptree.bin";
+	//BalancedIndexTest bit(filename);
+	//bit.run(true);
+
+
+	BosonAPI db;
+
+	db.open("D:/mydatabase.bin");
+	
+	for (int i = 0; i < 10000; i++) {
+		db.insert("Anyways all project will be completed.");
+		db.insert("Beniki told me that message length is just a marker of records in the storage file.");
+		db.insert("Syely lovely touches his hairs.");
+		db.insert("Vereniki died trying to get rich.");
+		db.insert("Thats what happened.");
+		db.insert("Anyways all project will be completed.");
+		db.insert("Beniki told me that message length is just a marker of records in the storage file.");		
+	}
+
+	
+	auto pair = db.last();
+
+	do {
+		std::cout << pair.first << " = '" << *pair.second << "'" << std::endl;
+		pair = db.next();
+	} while (pair.second != nullptr);
+
+	std::cout << "--------------------------------------------\n";
+	std::cout << "CACHE HITS: " << db.getCacheHits() << "%\n";
+
+
+	uint64_t key = 77776;
+	auto value = db.get(key);
+	if (value != nullptr) {
+		std::cout << "SEARCH KEY " << key << " value is '" << *value << "'" << std::endl;
+	}
+
+
+	db.close();
 
 	return 0;
 }

@@ -31,6 +31,7 @@
 #include <cstring>
 #include <cstdint>
 #include <unordered_map>
+#include <iostream>
 
 namespace Boson {
 

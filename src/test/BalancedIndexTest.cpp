@@ -26,12 +26,22 @@ bool BalancedIndexTest::run(bool clearFile) {
 			RecordFileIO* rf = new RecordFileIO(cf);
 			BalancedIndex* bi = new BalancedIndex(*rf);
 			
+			
 			insertRecords(bi);
-			bi->printTree();
+			/*bi->printTree();
 			removeRecords(bi);
 			bi->printTree();
-			insertRecords(bi);
+			insertRecords(bi);*/
+
 			bi->printTree();
+
+		    std::cout << "----------------------------------------------------------" << std::endl;
+
+			auto pair = bi->last();
+			while (pair.first != NOT_FOUND) {
+				std::cout << pair.first << " = '" << *pair.second << "'" << std::endl;
+				pair = bi->previous();
+			}
 
 			delete bi;
 			delete rf;
