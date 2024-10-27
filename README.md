@@ -25,11 +25,11 @@ abstraction like API working with document store entities.
      ---------------------------------------------------     
                               |
      ---------------------------------------------------
-    |                   B+ Tree Index                   |      -  Index Layer (Key/Value)
+    |           B+ Tree Index (Key/Value pairs)         |      -  Index Layer 
      ---------------------------------------------------
                               |     
      ---------------------------------------------------
-    |                Records Storage I/O                |      -  Records Storage Layer
+    |             Records File I/O (Records)            |      -  Records Storage Layer
      ---------------------------------------------------
                               |                           
      ---------------------------------------------------
@@ -37,7 +37,7 @@ abstraction like API working with document store entities.
      ---------------------------------------------------
                               |
      ---------------------------------------------------
-    |                   Database File                   |      -  OS File System Layer
+    |                     Binary File                   |      -  OS File System Layer
      --------------------------------------------------- 
 
 
@@ -177,7 +177,7 @@ To keep B+ tree balanced and sorted these operations performed:
 
 5. **Update Operation**: Updating a key's value involves locating the key in the relevant leaf node 
    through a search. Once found, the associated value is modified. If the value needs to be repositioned 
-   due to record capacity constraints, new record can be allocated in storage without changing th key.
+   due to record capacity constraints, new record can be allocated in storage without changing the key.
 
 Each operation relies on the balanced nature of the B+ Tree to maintain efficiency, resulting in 
 logarithmic complexity for searches, insertions, and deletions, even with large datasets.

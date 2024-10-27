@@ -32,7 +32,7 @@ int main()
 
 	db.open("D:/mydatabase.bin", true);
 	
-	for (int i = 0; i < 135; i++) {
+	for (int i = 0; i < 50; i++) {
 		db.insert("Anyways all project will be completed.");
 		db.insert("Beniki told me that message length is just a marker of records in the storage file.");
 		db.insert("Syely lovely touches his hairs.");
@@ -42,23 +42,25 @@ int main()
 		db.insert("Beniki told me that message length is just a marker of records in the storage file.");		
 	}	
 	
-	auto pair = db.last();
+	//auto pair = db.last();
 
-	do {
-		std::cout << pair.first << " = '" << *pair.second << "'" << std::endl;
-		pair = db.previous();
-	} while (pair.second != nullptr);
+	uint64_t key = 347;
+	auto value = db.get(key);
+	auto pair = std::make_pair(key, value);
 
+	if (value != nullptr) {		
+		do {
+			std::cout << pair.first << " = '" << *pair.second << "'" << std::endl;
+			pair = db.next();
+		} while (pair.second != nullptr);
+	}
+	
 	std::cout << "--------------------------------------------\n";
 	std::cout << "ENTRIES: " << db.size() << "\n";
 	std::cout << "CACHE HITS: " << db.getCacheHits() << "%\n";
 
 
-	uint64_t key = 233;
-	auto value = db.get(key);
-	if (value != nullptr) {
-		std::cout << "SEARCH KEY " << key << " value is '" << *value << "'" << std::endl;
-	}
+
 
 
 	db.close();

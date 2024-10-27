@@ -220,6 +220,9 @@ std::shared_ptr<std::string> BalancedIndex::search(uint64_t key) {
     uint32_t index = leaf->search(key);
     // if key is not found, then we can't update it - return nullptr
     if (index == KEY_NOT_FOUND) return nullptr;
+    // update cursor
+    cursorNode = leaf;
+    cursorIndex = index;
     // if key is found, then return value
     return leaf->getValueAt(index);
 }
@@ -297,6 +300,9 @@ std::pair<uint64_t, std::shared_ptr<std::string>> BalancedIndex::next() {
     // check if cursor node and index are valid or return empty pair
     if (cursorNode == nullptr || cursorIndex == KEY_NOT_FOUND) return empty;
 
+    // increment index
+    cursorIndex++;
+
     if (cursorIndex >= cursorNode->getKeyCount()) {
         uint64_t nextNode = cursorNode->getRightSibling();
         if (nextNode != NOT_FOUND) {
@@ -311,9 +317,6 @@ std::pair<uint64_t, std::shared_ptr<std::string>> BalancedIndex::next() {
     uint64_t key = cursorNode->getKeyAt(cursorIndex);
     std::shared_ptr<std::string> value = cursorNode->getValueAt(cursorIndex);
 
-    // increment index
-    cursorIndex++;
-
     return std::make_pair(key, value);
 }
 
@@ -325,6 +328,9 @@ std::pair<uint64_t, std::shared_ptr<std::string>> BalancedIndex::previous() {
 
     // check if cursor node and index are valid or return empty pair
     if (cursorNode == nullptr) return empty;
+
+    // decrement index
+    cursorIndex--;
 
     if (cursorIndex == KEY_NOT_FOUND) {
         uint64_t previousNode = cursorNode->getLeftSibling();
@@ -341,8 +347,7 @@ std::pair<uint64_t, std::shared_ptr<std::string>> BalancedIndex::previous() {
     uint64_t key = cursorNode->getKeyAt(cursorIndex);
     std::shared_ptr<std::string> value = cursorNode->getValueAt(cursorIndex);
 
-    // decrement index
-    cursorIndex--;
+    
 
     return std::make_pair(key, value);
 }
