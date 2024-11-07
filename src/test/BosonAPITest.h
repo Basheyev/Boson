@@ -16,7 +16,7 @@ namespace Boson {
 	private:
 		void insertData();
 		void eraseData();
-		void traverseEntries();
+		void traverseEntries(bool descendingOrder = false);
 		BosonAPI db;
 	};
 
