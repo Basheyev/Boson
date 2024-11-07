@@ -222,6 +222,7 @@ namespace Boson {
 
         std::shared_ptr<LeafNode> cursorNode;
         uint32_t cursorIndex;
+        bool treeChanged;
     };
 
 

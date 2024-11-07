@@ -75,14 +75,14 @@ void BosonAPITest::traverseEntries() {
 
 	uint64_t key = 0;
 
-	auto pair = db.first();
+	auto pair = db.last();
 	auto value = pair.second;
 
 	// traverse entries
 	if (value != nullptr) {
 		do {
 			std::cout << pair.first << " = '" << *pair.second << "'" << std::endl;
-			pair = db.next();
+			pair = db.previous();
 		} while (pair.second != nullptr);
 	}
 
@@ -95,13 +95,15 @@ void BosonAPITest::traverseEntries() {
 void BosonAPITest::run() {
 
 	insertData();
-	db.printTreeState();
+	//db.printTreeState();
+	traverseEntries();
 	eraseData();
-	db.printTreeState();
+	//db.printTreeState();
 	insertData(); 
-	db.printTreeState();
+
+	//db.printTreeState();
 	traverseEntries();
 	eraseData();
 	
-	db.printTreeState();
+	//db.printTreeState();
 }
