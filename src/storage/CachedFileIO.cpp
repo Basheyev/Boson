@@ -79,11 +79,17 @@ bool CachedFileIO::open(const char* path, size_t cacheSize, bool isReadOnly) {
 	// if file does not exist or another problem
 	if (errNo != 0 || this->fileHandler == nullptr) {
 		// if can`t open file in read only mode return false
-		if (isReadOnly) return false;
+		if (isReadOnly) {
+			this->fileHandler = nullptr;
+			return false;
+		}
 		// try to create new file for binary write/read
 		errNo = fopen_s(&(this->fileHandler), path, "w+b");
 		// if still can't create file return false
-		if (errNo != 0 || this->fileHandler == nullptr) return false;
+		if (errNo != 0 || this->fileHandler == nullptr) {
+			this->fileHandler = nullptr;
+			return false;
+		}
 	}
 	// set mode to no buffering, we will manage buffers and caching by our selves
 	setvbuf(this->fileHandler, nullptr, _IONBF, 0);
@@ -112,8 +118,8 @@ bool CachedFileIO::open(const char* path, size_t cacheSize, bool isReadOnly) {
 bool CachedFileIO::close() {
 	// check if file was opened
 	if (fileHandler == nullptr) return false;
-	// flush buffers
-	this->flush();
+	// flush buffers if we have write permissions
+	if (!readOnly) this->flush();
 	// close file
 	fclose(fileHandler);
 	// Release memory pool of cached pages

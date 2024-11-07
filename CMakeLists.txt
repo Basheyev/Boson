@@ -13,10 +13,7 @@ include_directories(
 
 # Добавьте источник в исполняемый файл этого проекта.
 add_executable (Boson 
-    
-    "src/api/BosonAPI.cpp" 
-    "src/api/BosonAPI.h" 
-            
+                
     "src/storage/RecordFileIO.h" 
     "src/storage/RecordFileIO.cpp"   
     "src/storage/CachedFileIO.h" 
@@ -35,10 +32,15 @@ add_executable (Boson
     "src/index/NodeData.cpp"
     "src/test/BalancedIndexTest.h" 
     "src/test/BalancedIndexTest.cpp"
+        
+    "src/api/BosonAPI.cpp" 
+    "src/api/BosonAPI.h" 
+    "src/test/BosonAPITest.cpp" 
+    "src/test/BosonAPITest.h"
 
     "src/Boson.cpp"
 
-)
+ )
 
 set_property(TARGET Boson 
     PROPERTY 

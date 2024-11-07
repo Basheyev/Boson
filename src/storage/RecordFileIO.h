@@ -56,7 +56,7 @@ namespace Boson {
 		uint64_t    next;              // Next record position in data file
 		uint64_t    previous;          // Previous record position in data file				
 		uint32_t    recordCapacity;    // Record capacity in bytes
-		uint32_t    dataLength;        // Data length in bytes				
+		uint32_t    dataLength;        // Data length in bytes (or if deleted)				
 		uint32_t    dataChecksum;      // Checksum for data consistency check		
 		uint32_t    headChecksum;      // Checksum for header consistency check
 	} RecordHeader;
@@ -100,7 +100,7 @@ namespace Boson {
 		size_t        freeLookupDepth;
 
 		void     initStorageHeader();
-		bool     saveStorageHeader();
+		bool     persistStorageHeader();
 		bool     loadStorageHeader();
 		uint64_t getRecordHeader(uint64_t offset, RecordHeader& result);
 		uint64_t putRecordHeader(uint64_t offset, RecordHeader& header);

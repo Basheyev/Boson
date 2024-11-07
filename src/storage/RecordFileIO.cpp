@@ -66,7 +66,7 @@ RecordFileIO::RecordFileIO(CachedFileIO& cachedFile, size_t freeDepth) : cachedF
 */
 RecordFileIO::~RecordFileIO() {
 	if (!cachedFile.isOpen()) return;	
-	saveStorageHeader();
+	persistStorageHeader();
 	cachedFile.flush();
 }
 
@@ -207,9 +207,13 @@ bool RecordFileIO::previous() {
 */
 uint64_t RecordFileIO::createRecord(const void* data, uint32_t length) {
 	if (!cachedFile.isOpen() || cachedFile.isReadOnly()) return NOT_FOUND;
-	// find free record of required length
+	// find free record of required length or create new one
 	RecordHeader newRecordHeader;
 	uint64_t offset = allocateRecord(length, newRecordHeader);
+	// if there is a troubles with allocating record return NOT_FOUND
+	if (offset == NOT_FOUND) {
+		return NOT_FOUND;
+	}
 	
 	// Fill record header fields and link to previous record	
 	newRecordHeader.next = NOT_FOUND;                       
@@ -241,14 +245,22 @@ uint64_t RecordFileIO::createRecord(const void* data, uint32_t length) {
 *
 */
 uint64_t RecordFileIO::removeRecord() {
+
 	if (!cachedFile.isOpen() || cachedFile.isReadOnly() || currentPosition == NOT_FOUND) return NOT_FOUND;
+
+#ifdef _DEBUG
+	std::cout << "RecordFileIO: removing record at " << currentPosition << std::endl;
+#endif
+	
 	// check siblings
 	uint64_t leftSiblingOffset = recordHeader.previous;
 	uint64_t rightSiblingOffset = recordHeader.next;
 	bool leftSiblingExists = (leftSiblingOffset != NOT_FOUND);
 	bool rightSiblingExists = (rightSiblingOffset != NOT_FOUND);
+
 	RecordHeader leftSiblingHeader;
 	RecordHeader rightSiblingHeader;
+
 	uint64_t returnOffset;
 	if (leftSiblingExists && rightSiblingExists) {  
 		// removing record in the middle
@@ -285,7 +297,7 @@ uint64_t RecordFileIO::removeRecord() {
 	}
 	// Update storage header information about total records number
 	storageHeader.totalRecords--;
-	saveStorageHeader();
+	persistStorageHeader();
 	return returnOffset;
 }
 
@@ -416,7 +428,7 @@ uint64_t RecordFileIO::setRecordData(const void* data, uint32_t length) {
 	// if this is first record, then update storage header
 	if (recordHeader.previous == NOT_FOUND) {
 		storageHeader.firstRecord = offset;
-		saveStorageHeader();
+		persistStorageHeader();
 	};
 	// Write record header and data to the storage file
 	constexpr uint64_t HEADER_SIZE = sizeof RecordHeader;
@@ -457,7 +469,7 @@ void RecordFileIO::initStorageHeader() {
 	storageHeader.firstFreeRecord = NOT_FOUND;
 	storageHeader.lastFreeRecord = NOT_FOUND;
 
-	saveStorageHeader();
+	persistStorageHeader();
 
 }
 
@@ -467,7 +479,7 @@ void RecordFileIO::initStorageHeader() {
 *  @brief Saves in memory storage header to the file storage
 *  @return true - if succeeded, false - if failed
 */
-bool RecordFileIO::saveStorageHeader() {
+bool RecordFileIO::persistStorageHeader() {
 	if (!cachedFile.isOpen()) return false;
 	uint64_t bytesWritten = cachedFile.write(0, &storageHeader, sizeof StorageHeader);
 	// check read success
@@ -581,7 +593,7 @@ uint64_t RecordFileIO::createFirstRecord(uint32_t capacity, RecordHeader& result
     storageHeader.lastRecord = offset;
 	storageHeader.endOfFile += sizeof(RecordHeader) + capacity;
 	storageHeader.totalRecords++;
-	saveStorageHeader();
+	persistStorageHeader();
 	
 	return offset;
 }
@@ -615,7 +627,7 @@ uint64_t RecordFileIO::appendNewRecord(uint32_t capacity, RecordHeader& result) 
 	storageHeader.lastRecord = freeRecordOffset;
 	storageHeader.endOfFile += sizeof(RecordHeader) + capacity;
 	storageHeader.totalRecords++;
-	saveStorageHeader();
+	persistStorageHeader();
 
 	return freeRecordOffset;
 }
@@ -641,14 +653,14 @@ uint64_t RecordFileIO::getFromFreeList(uint32_t capacity, RecordHeader& result) 
 	uint64_t iterationCounter = 0;
 	// iterate through free list and check iterations counter
 	while (freeRecord.next != NOT_FOUND && iterationCounter < maximumIterations) {
-		// Read next record header
+		// Read next free record header
 		getRecordHeader(offset, freeRecord);
 		// if record with requested capacity found
 		if (freeRecord.recordCapacity >= capacity) {
 			// Remove free record from the free list
-			removeFromFreeList(freeRecord);
-			RecordHeader lastRecord;
+			removeFromFreeList(freeRecord);			
 			// update last record to point to new record
+			RecordHeader lastRecord;
 			getRecordHeader(storageHeader.lastRecord, lastRecord);
 			lastRecord.next = offset;			
 			putRecordHeader(storageHeader.lastRecord, lastRecord);
@@ -657,10 +669,14 @@ uint64_t RecordFileIO::getFromFreeList(uint32_t capacity, RecordHeader& result) 
 			result.previous = storageHeader.lastRecord;
 			result.recordCapacity = freeRecord.recordCapacity;
 			result.dataLength = 0;
+
+			// FIXME: Should I persist resukt header?
+
+
 			// update storage header last record to new record
 			storageHeader.lastRecord = offset;
 			storageHeader.totalRecords++;
-			saveStorageHeader();
+			persistStorageHeader();
 			return offset;
 		}
 		offset = freeRecord.next;
@@ -677,23 +693,33 @@ uint64_t RecordFileIO::getFromFreeList(uint32_t capacity, RecordHeader& result) 
 */
 bool RecordFileIO::putToFreeList(uint64_t offset) {
 	
-	RecordHeader freeRecord;
-	RecordHeader prevFreeRecord;
-	size_t prevOffset = storageHeader.lastFreeRecord;
-	if (getRecordHeader(offset, freeRecord) == NOT_FOUND) return false;
+	RecordHeader newFreeRecord;
+	RecordHeader previousFreeRecord;
+	
+	// FIXME: dublicate adding to free list (!!!!)
+	if (getRecordHeader(offset, newFreeRecord) == NOT_FOUND) return false;
 
-	// modify previous free record to point to new free record
-	if (prevOffset != NOT_FOUND) {
-		getRecordHeader(prevOffset, prevFreeRecord);
-		prevFreeRecord.next = offset;
-		putRecordHeader(prevOffset, prevFreeRecord);
+	// Update previous free record to reference next new free record
+	size_t previousFreeRecordOffset = storageHeader.lastFreeRecord;
+	// if free records list is not empty
+	if (previousFreeRecordOffset != NOT_FOUND) {
+		// load previous last record
+		getRecordHeader(previousFreeRecordOffset, previousFreeRecord);
+		// set last recrod next value to recently deleted free record
+		previousFreeRecord.next = offset;
+		// save previous last record
+		putRecordHeader(previousFreeRecordOffset, previousFreeRecord);
 	}
 		
-	freeRecord.next = NOT_FOUND;
-	freeRecord.previous = prevOffset;
-	freeRecord.dataLength = 0;
-	freeRecord.dataChecksum = 0;
-	putRecordHeader(offset, freeRecord);
+	// Update new free record fields	
+	newFreeRecord.next = NOT_FOUND;
+	// Point to the previous free record position
+	newFreeRecord.previous = previousFreeRecordOffset;
+	// Set data length and data checksum to zero, because it doesn't matter
+	newFreeRecord.dataLength = 0;
+	newFreeRecord.dataChecksum = 0;
+	// Save record header
+	putRecordHeader(offset, newFreeRecord);
 
 	// if its first free record, save its offset to the storage header	
 	if (storageHeader.firstFreeRecord == NOT_FOUND) {
@@ -703,8 +729,9 @@ bool RecordFileIO::putToFreeList(uint64_t offset) {
 	// save it as last added free record
 	storageHeader.lastFreeRecord = offset;
 	storageHeader.totalFreeRecords++;
+
 	// save storage header
-	saveStorageHeader();
+	persistStorageHeader();
 	return true;
 }
 
@@ -714,12 +741,17 @@ bool RecordFileIO::putToFreeList(uint64_t offset) {
 *  @param[in] freeRecord - header of record to remove from free list
 */
 void RecordFileIO::removeFromFreeList(RecordHeader& freeRecord) {
+	// Simplify namings and check
 	uint64_t leftSiblingOffset = freeRecord.previous;
 	uint64_t rightSiblingOffset = freeRecord.next;
 	bool leftSiblingExists = (leftSiblingOffset != NOT_FOUND);
 	bool rightSiblingExists = (rightSiblingOffset != NOT_FOUND);
+
+
 	RecordHeader leftSiblingHeader;
 	RecordHeader rightSiblingHeader;
+
+	// If both of siblings exists then we removing record in the middle
 	if (leftSiblingExists && rightSiblingExists) {		               
 		// If removing in the middle
 		getRecordHeader(freeRecord.previous, leftSiblingHeader);
@@ -728,14 +760,16 @@ void RecordFileIO::removeFromFreeList(RecordHeader& freeRecord) {
 		rightSiblingHeader.previous = leftSiblingOffset;
 		putRecordHeader(leftSiblingOffset, leftSiblingHeader);
 		putRecordHeader(rightSiblingOffset, rightSiblingHeader);
-	} else if (leftSiblingExists) {                                    
-		// if removing back free record
+	}   // if left sibling exists and right is not
+	else if (leftSiblingExists) {                                    
+		// if removing last free record
 		getRecordHeader(freeRecord.previous, leftSiblingHeader);
 		leftSiblingHeader.next = NOT_FOUND;
 		putRecordHeader(leftSiblingOffset, leftSiblingHeader);
 		storageHeader.lastFreeRecord = leftSiblingOffset;
-	} else if (rightSiblingExists) {                                   
-		// if removing front free record
+	}   // if right sibling exists and left is not
+	else if (rightSiblingExists) {                                   
+		// if removing first free record
 		getRecordHeader(freeRecord.next, rightSiblingHeader);
 		rightSiblingHeader.previous = NOT_FOUND;
 		putRecordHeader(rightSiblingOffset, rightSiblingHeader);
@@ -745,8 +779,10 @@ void RecordFileIO::removeFromFreeList(RecordHeader& freeRecord) {
 		storageHeader.firstFreeRecord = NOT_FOUND;
 		storageHeader.lastFreeRecord = NOT_FOUND;
 	}
+	// Decrement total free records
 	storageHeader.totalFreeRecords--;
-	saveStorageHeader();
+	// Persist storage header
+	persistStorageHeader();
 }
 
 

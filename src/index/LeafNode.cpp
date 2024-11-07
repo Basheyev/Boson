@@ -200,7 +200,7 @@ bool LeafNode::insertKey(uint64_t key, uint64_t valuePosition) {
 
 /*
 *  @brief Insert key/value pair at specified index in this node
-*  @param index
+*  @param index of position to insert key/value pair
 *  @param key
 *  @param value
 */
@@ -208,12 +208,14 @@ void LeafNode::insertAt(uint32_t index, uint64_t key, const std::string& value) 
     // insert key
     data.insertAt(NodeArray::KEYS, index, key);
 
-    // Create record in storage file
+    // Create record in storage file for persisting value itself
     RecordFileIO& recordsFile = this->index.getRecordsFile();
     uint32_t valueLength = (uint32_t) value.length() + 1;
     const char* cStr = value.c_str();    
     uint64_t offsetInFile = recordsFile.createRecord(cStr, valueLength);
-    if (offsetInFile == NOT_FOUND) throw std::ios_base::failure("Can't write value.");
+    if (offsetInFile == NOT_FOUND) {
+        throw std::ios_base::failure("Can't write value.");
+    }
     
     // insert value pointer
     data.insertAt(NodeArray::VALUES, index, offsetInFile);
@@ -250,7 +252,7 @@ void LeafNode::insertAt(uint32_t index, uint64_t key, uint64_t valuePosition) {
 bool LeafNode::deleteKey(uint64_t key) {
 #ifdef _DEBUG
     std::cout << std::endl;
-    std::cout << "Deleteing key " << key << " in the leaf node (" << position << ")" << std::endl;
+    std::cout << "LeafNode: Deleteing key " << key << " in the leaf node (" << position << ")" << std::endl;
     if (this->position == 128) {
         std::cout << "ATTENTION! Deleting key = " << key << std::endl;
     }
@@ -264,7 +266,7 @@ bool LeafNode::deleteKey(uint64_t key) {
     }
     deleteAt(deleteIndex);
 #ifdef _DEBUG
-    std::cout << "Key deleted (" << position << "): " << *toString() << std::endl;
+    std::cout << "LeafNode: Key deleted (" << position << "): " << *toString() << std::endl;
 #endif
     return true;
 }
@@ -300,7 +302,7 @@ void LeafNode::deleteAt(uint32_t index) {
 uint64_t LeafNode::split() {
 
 #ifdef _DEBUG
-       std::cout << "Splitting node at " << position << ": " << *toString() << std::endl;
+       std::cout << "LeafNode: Splitting node at " << position << ": " << *toString() << std::endl;
 #endif
 
     uint32_t midIndex = data.keysCount / 2;
@@ -357,7 +359,7 @@ void LeafNode::mergeWithSibling(uint64_t key, uint64_t siblingPos) {
     // FIXME: do I need this? Node::deleteNode(index, siblingPos);    
 
 #ifdef _DEBUG
-    std::cout << "Merged leaf node: " << *toString() << std::endl;    
+    std::cout << "LeafNode: Merged leaf node: " << *toString() << std::endl;    
 #endif
 
     this->persist();   
@@ -389,7 +391,7 @@ uint64_t LeafNode::borrowFromSibling(uint64_t key, uint64_t siblingPos, uint32_t
     siblingNode->persist();
     
 #ifdef _DEBUG
-    std::cout << "Leaf node (" << position << ") borrowed value from sibling (" << siblingPos << "): ";
+    std::cout << "InnerNode: Leaf node (" << position << ") borrowed value from sibling (" << siblingPos << "): ";
     std::cout << *toString() << std::endl;
 #endif
 

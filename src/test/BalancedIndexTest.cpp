@@ -28,10 +28,10 @@ bool BalancedIndexTest::run(bool clearFile) {
 			
 			
 			insertRecords(bi);
-			/*bi->printTree();
+			bi->printTree();
 			removeRecords(bi);
 			bi->printTree();
-			insertRecords(bi);*/
+			insertRecords(bi);
 
 			bi->printTree();
 

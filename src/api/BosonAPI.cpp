@@ -28,6 +28,7 @@ BosonAPI::BosonAPI() {
     cachedFile = nullptr;
     recordFile = nullptr;
     balancedIndex = nullptr;
+    isReadOnly = false;
 }
 
 
@@ -52,6 +53,7 @@ bool BosonAPI::open(char* filename, bool readOnly) {
     cachedFile = new CachedFileIO();
     if (!cachedFile->open(filename, DEFAULT_CACHE, readOnly)) {
         delete cachedFile;
+        cachedFile = nullptr;
         return false;
     }
     recordFile = new RecordFileIO(*cachedFile);
@@ -65,10 +67,13 @@ bool BosonAPI::open(char* filename, bool readOnly) {
 *  @return true if file was closed, false if it wasn't open
 */
 bool BosonAPI::close() {
-    delete balancedIndex;
-    delete recordFile;
-    bool wasOpen = cachedFile->close();
-    delete cachedFile;
+    if (balancedIndex != nullptr) delete balancedIndex;            
+    if (recordFile != nullptr) delete recordFile;    
+    bool wasOpen = false;
+    if (cachedFile != nullptr) {
+        wasOpen = cachedFile->close();
+        delete cachedFile;        
+    }    
     cachedFile = nullptr;
     recordFile = nullptr;
     balancedIndex = nullptr;
@@ -194,4 +199,10 @@ std::pair<uint64_t, std::shared_ptr<std::string>> BosonAPI::previous() {
 double BosonAPI::getCacheHits() {
     if (cachedFile == nullptr) return 0;
     return cachedFile->getStats(CachedFileStats::CACHE_HITS_RATE);
+}
+
+
+void BosonAPI::printTreeState() {
+    if (balancedIndex == nullptr) return;
+    balancedIndex->printTree();
 }

@@ -48,6 +48,8 @@ namespace Boson {
 
         double getCacheHits();
 
+        void printTreeState();
+
     private:
         CachedFileIO* cachedFile;
         RecordFileIO* recordFile;

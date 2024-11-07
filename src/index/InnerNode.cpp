@@ -218,7 +218,7 @@ void InnerNode::borrowChildren(uint64_t borrowerPos, uint64_t lender, uint32_t b
     }
 
 #ifdef _DEBUG
-    std::cout << "Borrow key from " << (borrowIndex == 0 ? "right " : "left ");
+    std::cout << "InnerNode: Borrow key from " << (borrowIndex == 0 ? "right " : "left ");
     std::cout << ((untypedBorrower->data.nodeType == NodeType::INNER) ? "inner" : "leaf");
     std::cout << " node(" << lender << ") to node(" << borrowerPos << ")" << std::endl;
 #endif
@@ -336,7 +336,7 @@ uint64_t InnerNode::mergeChildren(uint64_t leftChildPos, uint64_t rightChildPos)
     uint64_t key = data.keys[i];
 
 #ifdef _DEBUG
-    std::cout << "Merging children of inner node (" << position 
+    std::cout << "InnerNode: Merging children of inner node (" << position 
         << ") - [" << leftChildPos << ", " << rightChildPos << "]" << std::endl;
 #endif
 
@@ -438,8 +438,10 @@ void InnerNode::mergeWithSibling(uint64_t key, uint64_t rightSiblingPos) {
     std::cout << "Right sibling deleted at " << rightSiblingPos << std::endl;
 #endif
 
-    // Clear and delete right sibling from storage and memory
-    Node::deleteNode(this->index, rightSiblingPos); 
+    // Clear and delete right sibling from memory and storage
+    rightSibling.reset();
+    // Do not delete node here it is caller responsibility (and its only mergeChildren method in InnerNode)
+    // Node::deleteNode(this->index, rightSiblingPos); 
 }
 
 
