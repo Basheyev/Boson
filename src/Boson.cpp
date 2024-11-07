@@ -25,9 +25,6 @@ using namespace Boson;
 using namespace std;
 
 
-
-
-
 int main()
 {
 	BosonAPITest bapit("D:/data.bin");

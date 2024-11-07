@@ -22,7 +22,7 @@ void BosonAPITest::insertData() {
 	std::cout << "INSERTING\n";
 	std::cout << "============================================================================================" << std::endl;
 
-	for (int i = 0; i < 100; i++) {
+	for (int i = 0; i < 30; i++) {
 		db.insert("Anyways all project will be completed.");
 		db.insert("Beniki told me that message length is just a marker of records in the storage file.");
 		db.insert("Syely lovely touches his hairs.");
@@ -44,12 +44,24 @@ void BosonAPITest::eraseData() {
 	std::cout << "DELETING\n";
 	std::cout << "============================================================================================" << std::endl;
 
-	uint64_t M = db.size();
-	for (uint64_t i = 0; i < M; i++) {
-		db.erase(i);
+	
+	
+	// Get all IDs
+	std::vector<uint64_t> allRecords;
+	uint64_t totalRecords = db.size();
+	auto pair = db.first();
+	for (int i = 0; i < totalRecords; i++) {		
+		allRecords.push_back(pair.first);
+		pair = db.next();
 	}
 
-	db.getCacheHits();
+	// Delete by IDs	
+	for (uint64_t i = 0; i < totalRecords; i++) {
+		db.erase(allRecords[i]);
+	}
+
+
+	std::cout << "Cache hits: " << db.getCacheHits() << "%" << std::endl;
 
 }
 
@@ -84,14 +96,14 @@ void BosonAPITest::traverseEntries() {
 void BosonAPITest::run() {
 
 	insertData();
-	db.printTreeState();
-	eraseData();
-	db.printTreeState();
-	insertData();         // FIXME: RecordFileIO free list bug (free list is corrupted returning dublicates and corrupts tree)
-	db.printTreeState();
-	
-	traverseEntries();
 
+	//db.printTreeState();
+	eraseData();
+	//db.printTreeState();
+	insertData();         // FIXME: RecordFileIO free list bug (free list is corrupted returning dublicates and corrupts tree)
+	//db.printTreeState();
+	traverseEntries();
 	eraseData();
 	
+	db.printTreeState();
 }

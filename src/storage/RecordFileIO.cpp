@@ -670,7 +670,7 @@ uint64_t RecordFileIO::getFromFreeList(uint32_t capacity, RecordHeader& result) 
 			result.recordCapacity = freeRecord.recordCapacity;
 			result.dataLength = 0;
 
-			// FIXME: Should I persist resukt header?
+			// FIXME: Should I persist result header?
 
 
 			// update storage header last record to new record
