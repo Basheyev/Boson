@@ -294,7 +294,7 @@ size_t CachedFileIO::write(size_t position, const void* dataBuffer, size_t lengt
 			// Case 2: if writing last page
 			offset = 0;
 			dst = pageInfo->data;
-			bytesToCopy = length - bytesWritten; // FIXME: bug
+			bytesToCopy = length - bytesWritten;
 		} else {
 			// Case 3: if reading middle page 
 			offset = 0;

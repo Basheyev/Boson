@@ -355,8 +355,7 @@ void LeafNode::mergeWithSibling(uint64_t key, uint64_t siblingPos) {
         rightSibling->setLeftSibling(this->position);
     }
 
-    // Delete sibling node
-    // FIXME: do I need this? Node::deleteNode(index, siblingPos);    
+
 
 #ifdef _DEBUG
     std::cout << "LeafNode: Merged leaf node: " << *toString() << std::endl;    

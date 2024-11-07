@@ -22,7 +22,7 @@ void BosonAPITest::insertData() {
 	std::cout << "INSERTING\n";
 	std::cout << "============================================================================================" << std::endl;
 
-	for (int i = 0; i < 30; i++) {
+	for (int i = 0; i < 1; i++) {
 		db.insert("Anyways all project will be completed.");
 		db.insert("Beniki told me that message length is just a marker of records in the storage file.");
 		db.insert("Syely lovely touches his hairs.");
@@ -50,7 +50,7 @@ void BosonAPITest::eraseData() {
 	std::vector<uint64_t> allRecords;
 	uint64_t totalRecords = db.size();
 	auto pair = db.first();
-	for (int i = 0; i < totalRecords; i++) {		
+	while (pair.second != nullptr) {	
 		allRecords.push_back(pair.first);
 		pair = db.next();
 	}
@@ -74,9 +74,8 @@ void BosonAPITest::traverseEntries() {
 	std::cout << "============================================================================================" << std::endl;
 
 	uint64_t key = 0;
-	//uint64_t lastKey = ;
-	//auto value = db.get(key);
-	auto pair = db.first(); // std::make_pair(key, value);
+
+	auto pair = db.first();
 	auto value = pair.second;
 
 	// traverse entries
@@ -96,12 +95,11 @@ void BosonAPITest::traverseEntries() {
 void BosonAPITest::run() {
 
 	insertData();
-
-	//db.printTreeState();
+	db.printTreeState();
 	eraseData();
-	//db.printTreeState();
-	insertData();         // FIXME: RecordFileIO free list bug (free list is corrupted returning dublicates and corrupts tree)
-	//db.printTreeState();
+	db.printTreeState();
+	insertData(); 
+	db.printTreeState();
 	traverseEntries();
 	eraseData();
 	

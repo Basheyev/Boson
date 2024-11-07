@@ -275,12 +275,33 @@ bool BalancedIndex::erase(uint64_t key) {
 *  @return key/value pair
 */
 std::pair<uint64_t, std::shared_ptr<std::string>> BalancedIndex::first() {
+
+    
+
     // Traverse down the tree to a leaf node that can contain the first key
     // Zero is minimal key value so it would be the first leaf node
     std::shared_ptr<LeafNode> leaf = findLeafNode(0); 
     cursorNode = leaf;
     cursorIndex = 0;
-    return next();
+
+    if (cursorIndex >= cursorNode->getKeyCount()) {
+        uint64_t nextNode = cursorNode->getRightSibling();
+        if (nextNode != NOT_FOUND) {
+            cursorNode = std::dynamic_pointer_cast<LeafNode>(Node::loadNode(*this, nextNode));
+            cursorIndex = 0;
+        }
+        else {
+            std::pair<uint64_t, std::shared_ptr<std::string>> empty = std::make_pair(NOT_FOUND, nullptr);
+            return empty;
+        }
+    }
+
+    // fetch key and value from the leaf node
+    uint64_t key = cursorNode->getKeyAt(cursorIndex);
+    std::shared_ptr<std::string> value = cursorNode->getValueAt(cursorIndex);
+
+    return std::make_pair(key, value);
+
 }
 
 

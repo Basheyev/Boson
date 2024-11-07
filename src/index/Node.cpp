@@ -12,6 +12,10 @@
 using namespace Boson;
 
 
+/*
+* @brief Creates new index node
+* @param bi B+ Tree instance
+*/
 Node::Node(BalancedIndex& bi) : index(bi) {
     position = NOT_FOUND;
     isPersisted = true;
@@ -244,7 +248,6 @@ uint64_t Node::getParent() {
 *  @param parentPosition parent node position in storage file
 */
 void Node::setParent(uint64_t parentPosition) {
-    // TODO what if record position changed (not real if size is not changed?)
     data.parent = parentPosition;
     this->isPersisted = false;
 }

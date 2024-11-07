@@ -670,9 +670,6 @@ uint64_t RecordFileIO::getFromFreeList(uint32_t capacity, RecordHeader& result) 
 			result.recordCapacity = freeRecord.recordCapacity;
 			result.dataLength = 0;
 
-			// FIXME: Should I persist result header?
-
-
 			// update storage header last record to new record
 			storageHeader.lastRecord = offset;
 			storageHeader.totalRecords++;
@@ -696,7 +693,6 @@ bool RecordFileIO::putToFreeList(uint64_t offset) {
 	RecordHeader newFreeRecord;
 	RecordHeader previousFreeRecord;
 	
-	// FIXME: dublicate adding to free list (!!!!)
 	if (getRecordHeader(offset, newFreeRecord) == NOT_FOUND) return false;
 
 	// Update previous free record to reference next new free record
@@ -788,14 +784,12 @@ void RecordFileIO::removeFromFreeList(RecordHeader& freeRecord) {
 
 
 /**
-*  @brief Adler-32 checksum algoritm
+*  @brief Adler-32 checksum algoritm (strightforward and not efficent, but its okay)
 *  @param[in] data - byte array of data to be checksummed
 *  @param[in] length - length of data in bytes
 *  @return 32-bit checksum of given data
 */
 uint32_t RecordFileIO::checksum(const uint8_t* data, uint64_t length) {
-	
-	// FIXME: inefficient, but straightforward algorithm
 
 	const uint32_t MOD_ADLER = 65521;
 	uint32_t a = 1, b = 0;

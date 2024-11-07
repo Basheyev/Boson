@@ -28,7 +28,7 @@ using namespace std;
 int main()
 {
 	BosonAPITest bapit("D:/data.bin");
-	bapit.run();  // BUG: RecordFileIO free recrods list
+	bapit.run();
 
 	return 0;
 }
