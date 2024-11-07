@@ -39,7 +39,7 @@ BalancedIndex::BalancedIndex(RecordFileIO& rf) : recordsFile(rf) {
     cursorNode = nullptr;
     cursorIndex = KEY_NOT_FOUND;
     // set like if tree changed to protect call to next(), previous() before first(), last()
-    treeChanged = true;
+    isTreeChanged = true;
 }
 
 
@@ -183,7 +183,7 @@ bool BalancedIndex::insert(uint64_t key, const std::string& value) {
     if (key > indexHeader.indexCounter) indexHeader.indexCounter = key + 1;
 
     // Set flag that tree is changed that can invalidate sequencial traversing of entries
-    treeChanged = true;
+    isTreeChanged = true;
 
     // return true because key/value pair successfuly inserted
     return true;
@@ -269,7 +269,7 @@ bool BalancedIndex::erase(uint64_t key) {
         this->printTree();
 #endif
         // Set flag that tree is changed that can invalidate sequencial traversing of entries
-        treeChanged = true;
+        isTreeChanged = true;
 
         return true;
     }    
@@ -300,7 +300,7 @@ std::pair<uint64_t, std::shared_ptr<std::string>> BalancedIndex::first() {
     uint64_t key = cursorNode->getKeyAt(cursorIndex);
     std::shared_ptr<std::string> value = cursorNode->getValueAt(cursorIndex);    
     // Set flag that tree is changed that can invalidate sequencial traversing of entries
-    treeChanged = false;
+    isTreeChanged = false;
 
     return std::make_pair(key, value);
 
@@ -329,7 +329,7 @@ std::pair<uint64_t, std::shared_ptr<std::string>> BalancedIndex::last() {
     uint64_t key = cursorNode->getKeyAt(cursorIndex);
     std::shared_ptr<std::string> value = cursorNode->getValueAt(cursorIndex);
     // Set flag that tree is changed that can invalidate sequencial traversing of entries
-    treeChanged = false;
+    isTreeChanged = false;
 
     return std::make_pair(key, value);
 }
@@ -344,7 +344,7 @@ std::pair<uint64_t, std::shared_ptr<std::string>> BalancedIndex::next() {
     std::pair<uint64_t, std::shared_ptr<std::string>> empty = std::make_pair(NOT_FOUND, nullptr);
 
     // check if cursor node and index are valid or return empty pair
-    if (cursorNode == nullptr || cursorIndex == KEY_NOT_FOUND || treeChanged) return empty;
+    if (cursorNode == nullptr || cursorIndex == KEY_NOT_FOUND || isTreeChanged) return empty;
 
     // increment index
     cursorIndex++;
@@ -375,13 +375,10 @@ std::pair<uint64_t, std::shared_ptr<std::string>> BalancedIndex::next() {
 */
 std::pair<uint64_t, std::shared_ptr<std::string>> BalancedIndex::previous() {
 
-    // TODO: not safe traversal if tree is changed between calls    
-    // TODO: check cursorIndex and cursorNode before fetch
-
     std::pair<uint64_t, std::shared_ptr<std::string>> empty = std::make_pair(NOT_FOUND, nullptr);
 
     // check if cursor node and index are valid or return empty pair
-    if (cursorNode == nullptr || treeChanged) return empty;
+    if (cursorNode == nullptr || isTreeChanged) return empty;
 
     // decrement index
     cursorIndex--;
