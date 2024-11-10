@@ -88,6 +88,7 @@ std::shared_ptr<std::string> LeafNode::getValueAt(uint32_t index) {
     
     // if record read failed
     if (offset == NOT_FOUND) {
+        delete[] buffer;
         std::stringstream ss;
         ss << std::endl;
         ss << "Can't read value of Leaf Node (" << position 
