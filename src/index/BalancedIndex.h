@@ -24,7 +24,7 @@
 namespace Boson {
 
 
-    constexpr uint64_t TREE_ORDER = 5;
+    constexpr uint64_t TREE_ORDER = 32;
     constexpr uint64_t MAX_DEGREE = TREE_ORDER - 1;
     constexpr uint64_t MIN_DEGREE = TREE_ORDER / 2;
     constexpr uint32_t KEY_NOT_FOUND = -1;

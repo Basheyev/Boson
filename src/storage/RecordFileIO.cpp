@@ -240,6 +240,7 @@ uint64_t RecordFileIO::createRecord(const void* data, uint32_t length) {
 /*
 *
 * @brief Delete record in current position
+* FIXME: deleting of already deleted records causes cyclic references and crashing (no protection)
 *
 * @return returns offset of the next sibling or NOT_FOUND if it was last one
 *

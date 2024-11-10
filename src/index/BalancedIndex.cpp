@@ -227,6 +227,7 @@ std::shared_ptr<std::string> BalancedIndex::search(uint64_t key) {
     // update cursor
     cursorNode = leaf;
     cursorIndex = index;
+    isTreeChanged = false;
     // if key is found, then return value
     return leaf->getValueAt(index);
 }

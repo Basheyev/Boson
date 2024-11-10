@@ -48,10 +48,10 @@ BosonAPI::~BosonAPI() {
 *  @param readOnly - true to open with read only rights, false to write permission (default)
 *  @return true if database file successfuly opened, false if not
 */
-bool BosonAPI::open(char* filename, bool readOnly) {
+bool BosonAPI::open(char* filename, bool readOnly, size_t cacheSize) {
     isReadOnly = readOnly;
     cachedFile = new CachedFileIO();
-    if (!cachedFile->open(filename, DEFAULT_CACHE, readOnly)) {
+    if (!cachedFile->open(filename, cacheSize, readOnly)) {
         delete cachedFile;
         cachedFile = nullptr;
         return false;
@@ -199,6 +199,27 @@ std::pair<uint64_t, std::shared_ptr<std::string>> BosonAPI::previous() {
 double BosonAPI::getCacheHits() {
     if (cachedFile == nullptr) return 0;
     return cachedFile->getStats(CachedFileStats::CACHE_HITS_RATE);
+}
+
+
+/*
+*  @brief writes all cached data to storage
+*/
+void BosonAPI::flush() {
+    if (cachedFile == nullptr) return;
+    cachedFile->flush();
+}
+
+
+double BosonAPI::getReadThroughput() {
+    if (cachedFile == nullptr) return 0;
+    return cachedFile->getStats(CachedFileStats::READ_THROUGHPUT);
+}
+
+
+double BosonAPI::getWriteThroughput() {
+    if (cachedFile == nullptr) return 0;
+    return cachedFile->getStats(CachedFileStats::WRITE_THROUGHPUT);
 }
 
 

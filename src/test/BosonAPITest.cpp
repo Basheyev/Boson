@@ -23,7 +23,7 @@ void BosonAPITest::insertData() {
 	std::cout << "============================================================================================" << std::endl;
 
 	int i;
-	for (i = 0; i < 3; i++) {
+	for (i = 0; i < 5; i++) {
 		db.insert("Anyways all project will be completed.");
 		db.insert("Beniki told me that message length is just a marker of records in the storage file.");
 		db.insert("Syely lovely touches his hairs.");
@@ -103,8 +103,8 @@ void BosonAPITest::run() {
 	//db.printTreeState();
 	insertData(); 
 
-	//db.printTreeState();
-	traverseEntries(true);
+	db.printTreeState();
+	//traverseEntries(true);
 	eraseData();
 	
 	//db.printTreeState();

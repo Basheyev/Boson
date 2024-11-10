@@ -30,7 +30,7 @@ namespace Boson {
         BosonAPI();
         ~BosonAPI();
 
-        bool open(char* filename, bool readOnly = false);
+        bool open(char* filename, bool readOnly = false, size_t cacheSize = DEFAULT_CACHE);
         bool close();
 
         uint64_t size();
@@ -46,7 +46,12 @@ namespace Boson {
         std::pair<uint64_t, std::shared_ptr<std::string>> next();
         std::pair<uint64_t, std::shared_ptr<std::string>> previous();
 
+        void flush();
+
         double getCacheHits();
+        double getReadThroughput();
+        double getWriteThroughput();
+
 
         void printTreeState();
 
